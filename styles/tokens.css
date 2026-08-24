@@ -1,0 +1,99 @@
+/*
+ * Design tokens — §7.3, §7.5, §7.6.
+ *
+ * One file, so §7.5's evenness has a single source rather than ten literals.
+ * Every hue is `order × --hue-step`, and --hue-step is `360deg / --activity-count`.
+ * Changing the activity count changes the ring; no hue is written as a literal.
+ */
+
+:root {
+  /* ── Hue ring (§7.5) ─────────────────────────────────────────────────────
+     Ten activities in the v1 pack give an even ring at 36°. The ring is
+     computed, not enumerated: the floor is evenness, not any given gap.
+     Pack validation (§4.6) checks the pack's hues against this same rule. */
+  --activity-count: 10;
+  --hue-step: calc(360deg / var(--activity-count));
+
+  --hue-0: calc(0 * var(--hue-step));
+  --hue-1: calc(1 * var(--hue-step));
+  --hue-2: calc(2 * var(--hue-step));
+  --hue-3: calc(3 * var(--hue-step));
+  --hue-4: calc(4 * var(--hue-step));
+  --hue-5: calc(5 * var(--hue-step));
+  --hue-6: calc(6 * var(--hue-step));
+  --hue-7: calc(7 * var(--hue-step));
+  --hue-8: calc(8 * var(--hue-step));
+  --hue-9: calc(9 * var(--hue-step));
+
+  /* Saturation and lightness are constant across the ring. Bands are
+     distinguished by hue alone (§7.5) — at 12% opacity lightness differences
+     collapse to nothing, so varying them would buy nothing and cost evenness. */
+  --band-saturation: 72%;
+  --band-lightness: 52%;
+
+  /* ── Band anatomy (§7.3) ────────────────────────────────────────────────── */
+  --spine-width: 8vw;          /* leftmost 8% of viewport width; ≥25px at 320px */
+  --spine-opacity: 1;          /* full saturation */
+  --body-opacity: 0.12;        /* remaining 92%, same hue at 12% */
+  --label-inset: 16px;         /* label block inset from the right edge */
+
+  /* ── Ruler (§7.3, RD-1) ─────────────────────────────────────────────────
+     Exact hairline ticks; the numbers stand alone. Nothing sits between the
+     spine and the tick — no plate, no scrim, no stripe. Tick colour is white
+     for now and deliberately open (AC 19 is a build check, not an assumption). */
+  --tick-color: #ffffff;
+  --tick-weight: 1px;
+  --tick-length: 12px;
+
+  /* ── Overflow (§7.6) ────────────────────────────────────────────────────
+     The 24-hour rim has one appearance and never changes — before breach and
+     after. The stripes are the entire in-stack signal. */
+  --rim-color: rgba(255, 255, 255, 0.85);
+  --rim-weight: 1px;
+
+  --overflow-red: #d92b2b;
+  --stripe-color: rgba(217, 43, 43, 0.55);
+  --stripe-angle: 45deg;
+  --stripe-period: 6px;
+
+  /* Unallocated (§7.8) */
+  --unallocated-outline: rgba(255, 255, 255, 0.45);
+
+  /* ── Type (§7.1, §7.4) ──────────────────────────────────────────────────
+     Two faces: a display face for activity labels, a utility face for numbers
+     and the toggle. The utility face carries `tabular-nums` so a changing
+     total cannot reflow a toggle segment (§7.1). */
+  --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+  --font-utility: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --label-size-min: 13px;
+  --label-size-max: 34px;
+  --label-size-ratio: 0.16;    /* labelSize = clamp(min, bandHeight × 0.16, max) */
+  --hours-size-ratio: 0.72;    /* hoursSize = labelSize × 0.72 */
+  --label-hide-below: 20px;    /* omit the label when bandHeight < 20px */
+
+  --toggle-letter-spacing: 0.08em;
+
+  /* ── Layout (§7.2, §7.4) ────────────────────────────────────────────────── */
+  --header-h: 56px;
+  --toggle-h: 64px;
+  --footer-h: 56px;
+  --tap-target-min: 44px;      /* independent of visual band height (§7.4) */
+
+  /* ── Surfaces ───────────────────────────────────────────────────────────── */
+  --bg: #0e0e11;
+  --fg: #f4f4f6;
+  --fg-muted: rgba(244, 244, 246, 0.62);
+  --backdrop-dim: rgba(0, 0, 0, 0.45);   /* sheet backdrop, §8.1 */
+  --sheet-height: 88vh;                  /* §8.1 */
+  --sheet-radius: 20px;
+
+  /* ── Motion (§7.7, §8.1) ────────────────────────────────────────────────── */
+  --band-transition: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --band-transition: 0ms;
+  }
+}

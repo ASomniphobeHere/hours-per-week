@@ -2,11 +2,11 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** not started
+**Status:** Stage 0 complete
 
 ## How to use this document
 
-Stages run top to bottom. Stage 9 is the one exception — it is independent of the client and may run in parallel any time after Stage 1.
+Stages run top to bottom. Two exceptions: Stage 9 is independent of the client and may run in parallel any time after Stage 1, and Stage 12 may run any time after Stage 8 — it gates step 11.5, and it is what lets the whole system be accepted before Stage 13 exists.
 
 Every step carries the spec sections it implements and the numbered §12 acceptance criteria it closes. Per `CLAUDE.md`: when a step's acceptance criteria pass, check it. When every step in a stage is checked, check the stage and recommend a review and pull request before moving on.
 
@@ -24,6 +24,7 @@ Fixed by the interview before writing this plan.
 | Datastore | SQLite file via `better-sqlite3`. Rooms, sessions, snapshots, events. |
 | Household estimator | Real fit against the ATUS extract in `datasets/`, own stage, emitting coefficients into the pack. Placeholder coefficients ship from Stage 1 so the client is testable before the fit lands. |
 | Granularity | Stage → step → acceptance criteria. |
+| Hosting | Self-hosted on a facilitator-controlled machine, fronted by a Cloudflare Tunnel on `hours.ced-global.com`. Forced by the SQLite file. The subdomain is delegated to Cloudflare on its own; the `ced-global.com` nameservers do not move. Stage 13. The system is provable without it — Stage 12 runs a full room on a LAN with no domain, no tunnel, and no internet, and doubles as the venue contingency. |
 
 **Styling:** CSS Modules over a single token file. Chosen over a utility framework because §7.2–§7.6 specify exact geometry — 8% of viewport width, 12% opacity, `clamp(13px, bandHeight × 0.16, 34px)`, a 6 px stripe period — which are computed values, not scale steps. Tokens hold the hue ring, the overflow red, and the two type faces.
 
@@ -105,15 +106,15 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
 
 ---
 
-## Stage 0 — Scaffold, tokens, database
+## Stage 0 — Scaffold, tokens, database ✅
 
-- [ ] **0.1 Next.js + TypeScript app** — App Router, strict TS, ESLint, Vitest, Playwright. `.gitignore` extended for `node_modules`, `.next`, `*.sqlite`; the existing `datasets/` ignore stays.
+- [x] **0.1 Next.js + TypeScript app** — App Router, strict TS, ESLint, Vitest, Playwright. `.gitignore` extended for `node_modules`, `.next`, `*.sqlite`; the existing `datasets/` ignore stays.
   *AC: none (enabling)*
 
-- [ ] **0.2 Design tokens** — `styles/tokens.css`: the ten-hue ring computed at `360/n`, the overflow red, spine/body opacities (100% / 12%), the two faces (display for labels, utility face with `tabular-nums` for numbers and the toggle), and the 24 h rim colour. One file, so §7.5's evenness has a single source rather than ten literals. (§7.3, §7.5, §7.6)
+- [x] **0.2 Design tokens** — `styles/tokens.css`: the ten-hue ring computed at `360/n`, the overflow red, spine/body opacities (100% / 12%), the two faces (display for labels, utility face with `tabular-nums` for numbers and the toggle), and the 24 h rim colour. One file, so §7.5's evenness has a single source rather than ten literals. (§7.3, §7.5, §7.6)
   *AC: none (enabling; 20 is tested in 1.5 and 4.3)*
 
-- [ ] **0.3 SQLite schema and migration runner** — `lib/db/schema.sql`, opened once per process, WAL on. (§2.1, §6.1)
+- [x] **0.3 SQLite schema and migration runner** — `lib/db/schema.sql`, opened once per process, WAL on. (§2.1, §6.1)
   ```sql
   rooms      (id TEXT PK, join_code TEXT UNIQUE, stage_open INT DEFAULT 0,
               opened_at INT, created_at INT)
@@ -127,7 +128,7 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
   `snapshots.kind` is one of `s1` / `finish` / `complete` (§10). `room_events` carries `stage.open` and nothing else in v1 (§6.2.5).
   *AC: none (enabling)*
 
-- [ ] **0.4 Shared types** — `lib/domain/types.ts` and `lib/pack/types.ts` transcribed from §3.2, §4.1, §4.2, §4.3, §5, §10. `DayValue.mode` is the three-member union `'derived' | 'direct' | 'fallback'` from the outset — §4.3 rule 5 is not retrofittable onto a boolean.
+- [x] **0.4 Shared types** — `lib/domain/types.ts` and `lib/pack/types.ts` transcribed from §3.2, §4.1, §4.2, §4.3, §5, §10. `DayValue.mode` is the three-member union `'derived' | 'direct' | 'fallback'` from the outset — §4.3 rule 5 is not retrofittable onto a boolean.
   *AC: none (enabling)*
 
 **Stage 0 done when:** `npm run dev` serves a blank shell, `npm test` runs, the schema applies to a fresh file, and `tsc --noEmit` is clean.
@@ -388,8 +389,70 @@ Per §10: *"Everything else in this document exists to produce per-activity delt
 - [ ] **11.4 Full 58-criterion sweep** — walk §12 top to bottom against a real device and a real room. Every criterion checked, with the two visual judgements (19, 41) recorded as screenshots.
 
 - [ ] **11.5 Workshop dry run** — one facilitator, five to ten phones, end to end: room creation, join by code, questionnaire, finish, hold, flag, reveal, rebalance, complete, debrief output.
+  Run over the LAN path (12.2), not a public hostname — 12.3 is this step. Acceptance does not wait on Stage 13.
 
 **Stage 11 done when:** all 58 criteria pass and the dry run produces a usable debrief.
+
+---
+
+## Stage 12 — Rehearsal without deployment (independent)
+
+Runs any time after Stage 8, and **gates 11.5**. The point is that nothing about the system's correctness should depend on a DNS record existing. A full room — facilitator, many participants, every stage, a real debrief — is provable on one machine with no domain, no tunnel, and no internet connection at all.
+
+This is also the venue contingency. If the tunnel, the ISP, or the venue wifi fails on the day, 12.2 is the workshop running anyway off a laptop hotspot.
+
+- [ ] **12.1 Simulated room, headless** — a Playwright spec driving one facilitator context and N participant contexts against a single dev server: join by code, S1, finish, hold, flag, force-advance, reveal, rebalance, complete. Runs in CI with N high enough to exercise the console's ready-count and poll behaviour (§6.2, 8.2). This is the repeatable version of 11.5 — it catches stage-machine and concurrency regressions on every change, where a phone rehearsal catches them once.
+  *AC: none (proves 32\u201336, 50\u201355 without devices)*
+
+- [ ] **12.2 LAN serving mode** — the same production build bound to `0.0.0.0` with an inbound firewall rule on the port, reachable from phones on the same wifi at `http://<lan-ip>:<port>`. The bind address is environment-driven, not hardcoded: rehearsal binds the LAN, 13.1 binds `127.0.0.1`. Plain HTTP is sufficient for v1 because nothing in the client needs a secure context — no camera, no service worker, and `localStorage` (§`lib/store`) works over HTTP. **If a later change introduces a secure-context API, this path needs TLS and this step is revisited**, via a local Caddy with a DNS-01 certificate rather than a self-signed one no phone will trust.
+  *AC: none (enabling)*
+
+- [ ] **12.3 Multi-phone LAN dry run** — 11.5's rehearsal, run over 12.2: one facilitator laptop, five to ten real phones on shared wifi or a laptop hotspot, end to end through the debrief. Real devices are what surface the criteria a headless run cannot — 16 and 58's viewports, tap targets, the ruler over live hues (4.4), and mobile URL-bar resize (4.3).
+  *AC: closes the device half of 11.5*
+
+- [ ] **12.4 Rehearsal data isolation** — rehearsals point at a separate SQLite file via the same documented env var as 13.1, so practice rooms never land in a real workshop's tables or pollute a debrief. Verified by checking that a rehearsal leaves the production file's `rooms` count unchanged.
+  *AC: none (protects 46\u201348)*
+
+**Stage 12 done when:** a full room completes headless with N simulated participants, and once from real phones over LAN against a rehearsal database — both with no DNS record, no tunnel, and no public hostname in existence.
+
+---
+
+## Stage 13 — Public deployment (last)
+
+Runs last. Nothing depends on it: Stage 12 has already proven the room end to end from real devices, so this stage only makes a working system reachable from outside the building. Re-run 12.1 against the public hostname once it is up.
+
+The app self-hosts on a machine the facilitator controls, fronted by a Cloudflare Tunnel on `hours.ced-global.com`. SQLite on a local file is what forces this: a serverless target has no persistent disk for `better-sqlite3` to write to. The consequence — the machine is a single point of failure for a live workshop — is what 13.4 and 13.5 exist to contain.
+
+**Zone facts as of 2026-08-24**, established before choosing this route:
+
+| Record | Points at | Status |
+|---|---|---|
+| NS | `dns1/dns2.registrar-servers.com` (Namecheap BasicDNS) | unchanged |
+| apex, `www` | Vercel (`216.198.79.1`, `*.vercel-dns-017.com`) — the marketing site | unchanged |
+| MX | Zoho (`mx.zoho.eu`, `mx2`, `mx3`) — company mail | unchanged |
+| TXT | 3 records (SPF, Zoho verification, DKIM) | unchanged |
+
+A full nameserver move to Cloudflare is rejected: it would drag company mail's MX and SPF/DKIM records through a migration, where one missed TXT record fails mail silently. Delegating one unused subdomain touches none of it, and rolls back by deleting two records.
+
+- [ ] **13.1 Production process** — `next build && next start` behind an explicit `PORT`, bound to `127.0.0.1` and not `0.0.0.0`, so the tunnel is the only path in and the app is not exposed on venue wifi. `better-sqlite3` is a native module: pin the Node version and confirm it loads against the production build, not just the dev server. The database file lives outside `.next/` and outside the repo, at a documented absolute path, so a rebuild or a `git clean` cannot delete a workshop's data. WAL stays on (0.3).
+  *AC: none (operational)*
+
+- [ ] **13.2 Subdomain delegation** — `hours.ced-global.com` added to Cloudflare as its own zone (free plan), then two `NS` records at Namecheap on host `hours` pointing at the two Cloudflare nameservers it issues. Verify with `nslookup -type=NS hours.ced-global.com` before continuing, and re-verify that apex, `www`, and MX still resolve exactly as tabled above. If the subdomain zone is plan-gated at signup, the fallback is a small VPS running Caddy with a WireGuard tunnel home and a single `hours` A record at Namecheap — same isolation, no delegation.
+  *AC: none (operational)*
+
+- [ ] **13.3 Cloudflare Tunnel** — `cloudflared` installed on the host, `tunnel create`, `tunnel route dns` for `hours.ced-global.com`, and an ingress mapping that hostname to `http://localhost:<PORT>` with a `http_status:404` catch-all. Installed as a Windows service so it comes back after a reboot. TLS terminates at Cloudflare; no router port is forwarded and the home IP is never published. Polling (RD-2, 8.2) needs no tunnel-side configuration — there are no WebSockets in v1.
+  *AC: none (operational)*
+
+- [ ] **13.4 Host readiness** — sleep and hibernate disabled on AC power (`powercfg /change standby-timeout-ac 0`) and lid-close set to do nothing. A sleeping laptop takes the whole room down mid-session and is the realistic failure mode here, ahead of anything network-side. Checked as part of the pre-session routine, not once.
+  *AC: none (operational)*
+
+- [ ] **13.5 Backup and restart runbook** — a short written procedure covering: copy the SQLite file before and after every session; restart the app and the tunnel; and what a facilitator does if the host dies mid-room. Because one file holds every room, session, snapshot, and event, restore time matters more than any hardening. The runbook is the deliverable, not a script.
+  *AC: none (operational)*
+
+- [ ] **13.6 Public smoke test** — from a phone on mobile data, not the venue wifi: reach `https://hours.ced-global.com`, join by code, run S1 through the reveal, and confirm the certificate is valid and no mixed-content or absolute-`localhost` URL leaks into a response. Re-run immediately before any workshop run on the public hostname.
+  *AC: none (operational)*
+
+**Stage 13 done when:** `hours.ced-global.com` serves the production build over a valid certificate from an off-network device, the tunnel and app both survive a host reboot unattended, apex/`www`/MX resolve unchanged, and the runbook has been followed once from a cold start.
 
 ---
 
@@ -428,7 +491,10 @@ Every §12 criterion, and the step that closes it.
 |---|---|---|
 | White ticks fail against the light end of the hue ring (RD-1) | 4.4 | The live risk the no-scrim decision accepts. Tested against all ten hues inside Stage 4, not at the acceptance sweep. A failure is a colour decision for the user, not a rebuild and not a quiet return of the plate. |
 | A `roomId` reaches a participant by another route (RD-2) | 2.2, 2.3 | The decision removes it from `POST /session`; the standing risk is it leaking back in via a telemetry payload or an error body. Asserted absent in the session-creation test. |
-| Venue wifi during the reveal | 6.4, 8.3 | Bundled estimators mean no network call inside the questionnaire (§4.3). Polling is jittered; failures are silent participant-side and loud console-side. |
+| Venue wifi during the reveal | 6.4, 8.3 | Bundled estimators mean no network call inside the questionnaire (§4.3). Polling is jittered; failures are silent participant-side and loud console-side. If the venue network or the tunnel fails outright, 12.2 runs the whole workshop off a laptop hotspot with no internet at all. |
 | Household model will not reduce to a closed form | 9.6 | §4.3 is explicit: reconsider the model before reconsidering the bundled path. Escalate rather than adding `POST /estimate`. |
 | `pxPerHour` thrash on mobile URL-bar resize | 4.3 | Compute from a stable viewport unit (`dvh`) and debounce resize; a stack that jumps on scroll reads as broken. |
 | Cut order polluted by intermediate stepper values | 10.1 | Emit `hours.change` on commit, not on every stepper tick, so one 8→5 adjustment is one cut and not three. |
+| Host machine sleeps, reboots, or dies mid-room | 13.4, 13.5, 12.2 | The cost of local hosting, accepted knowingly. Sleep disabled on AC and lid-close neutered as a pre-session check; the runbook makes restart-and-restore a 30-second operation rather than an improvisation. |
+| One SQLite file holds every room's data | 13.1, 13.5, 12.4 | Path documented and kept outside the repo and `.next/`, so no rebuild or `git clean` can take it. Copied before and after every session. |
+| Subdomain delegation disturbs the live marketing site or company mail | 13.2 | Two `NS` records on an unused host; apex, `www` (Vercel) and MX (Zoho) are never edited. Re-verified by lookup after delegation, and rolled back by deleting the two records. |
