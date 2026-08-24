@@ -72,14 +72,67 @@ export interface Screen {
  * `params` carries them, shaped by the estimator implementation.
  */
 export interface EstimatorDef {
-  /** e.g. "household.v1" */
+  /** Names the *implementation*, e.g. "arith.freqDuration" or "household.v1".
+   *  Not unique across the pack: eight v1 activities share `arith.freqDuration`.
+   *  `activityId` is what is unique — one estimator per activity. */
   id: string;
   activityId: string;
   /** Field ids it reads. Must resolve to existing fields. */
   inputs: string[];
   /** Which day types it produces. */
   outputs: DayType[];
+  /** Shaped by the implementation named in `id`. */
   params?: Record<string, unknown>;
+  /** Values for inputs this estimator may find unanswered (§4.3 rule 2).
+   *  §4.6 requires one here for any input that lives in a gated section, since
+   *  a field's own default is unreachable once its section is gated out. */
+  defaults?: Record<string, unknown>;
+}
+
+/* ── arith.freqDuration params ──────────────────────────────────────────── */
+
+/**
+ * §4.4's third branch is "Σ over the activity's frequency × duration field
+ * pairs". §4.2's own worked example is wake time on workdays beside wake time
+ * on weekend days — a clock pair, which no frequency × duration expression can
+ * reach. So the branch is a declarative sum over *terms*, of which the
+ * frequency × duration pair is one kind. Still one estimator and one code path;
+ * nothing is special-cased per activity.
+ *
+ * A term with no `dayType` contributes to both days. One scoped to a day type
+ * contributes only there, which is how "work 8 h on a workday, 0 on a weekend
+ * day" is expressed without two estimators.
+ */
+export type ArithTerm =
+  | { kind: 'freqDuration'; freq: string; duration: string; dayType?: DayType }
+  | { kind: 'duration'; field: string; dayType?: DayType }
+  | { kind: 'clockSpan'; from: string; to: string; dayType?: DayType };
+
+export interface ArithParams {
+  terms: ArithTerm[];
+}
+
+/* ── household.v1 params ────────────────────────────────────────────────── */
+
+/**
+ * A linear model per day type, fitted offline against the ATUS extract
+ * (Stage 9). ATUS gives one diary day per respondent, so `wd` and `we` are two
+ * models over two disjoint subsamples rather than one model with a day term.
+ */
+export type HouseholdTerm =
+  /** Numeric input: contributes `coef × value`. */
+  | { field: string; coef: number }
+  /** Categorical input: contributes the coefficient for the chosen option id. */
+  | { field: string; levels: Record<string, number> };
+
+export interface HouseholdModel {
+  intercept: number;
+  terms: HouseholdTerm[];
+}
+
+export interface HouseholdParams {
+  wd: HouseholdModel;
+  we: HouseholdModel;
 }
 
 /** Pure: no time, no randomness, no session state (§4.3 rule 1). */
@@ -97,8 +150,15 @@ export interface ActivityDef {
   /** school only. */
   locked?: boolean;
   constraint?: Constraint;
-  /** Field id whose falsy value skips the section (§4.2.1). */
+  /** Field id whose skipping value skips the section (§4.2.1). */
   gateField?: string;
+  /** The gate answer that skips the section. §4.2.1 rule 1 admits a choice
+   *  gate, whose answer is an option id and so is never JS-falsy; naming the
+   *  value here is also what makes §4.6's "its default is not the skipping
+   *  value" checkable. Absent, the skipping value is JS falsiness — which is
+   *  what a `count` gate answered 0 wants. An unanswered gate is never
+   *  skipping (§4.2.1 rule 6). */
+  gateSkipValue?: unknown;
   /** Per-day-type default hours, used when this activity's estimator throws
    *  (§4.3 rule 3). Required for every activity with a fallback path (§4.6). */
   fallbackHours?: Record<DayType, number>;

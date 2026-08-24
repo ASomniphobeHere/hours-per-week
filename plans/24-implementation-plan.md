@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 0 complete
+**Status:** Stage 1 complete
 
 ## How to use this document
 
@@ -135,26 +135,26 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
 
 ---
 
-## Stage 1 — Domain core and content pack
+## Stage 1 — Domain core and content pack ✅
 
 Pure functions, no DOM, no network. This is where §3.4's invariant lives and the cheapest place to get derivation right.
 
-- [ ] **1.1 Answer map and persistence** (§5) — flat `Record<fieldId, {value, at, revision}>`, `revision` incrementing on every edit. Derived hours are never written here. localStorage keyed by session id, written on every field change. On boot, restore the answer map alongside `sessionId`, `token`, selected day type, and furthest stage. Pack-version mismatch on restore keeps answers whose field ids still exist, drops the rest, and resumes at S1's first unanswered screen.
+- [x] **1.1 Answer map and persistence** (§5) — flat `Record<fieldId, {value, at, revision}>`, `revision` incrementing on every edit. Derived hours are never written here. localStorage keyed by session id, written on every field change. On boot, restore the answer map alongside `sessionId`, `token`, selected day type, and furthest stage. Pack-version mismatch on restore keeps answers whose field ids still exist, drops the rest, and resumes at S1's first unanswered screen.
   *AC: 6 (with 3.6), 36 (with 2.6, 6.5)*
 
-- [ ] **1.2 Estimator registry** (§4.3) — `Map<estimatorId, Estimator>`. Two bundled implementations: `arith.freqDuration`, summing a section's frequency × duration field pairs, and `household.v1`, evaluating coefficients carried in the pack. Every estimator is a pure function of `(answers, dayType)` — no time, no randomness, no session state — and missing inputs resolve to pack defaults rather than to `NaN` or a throw.
+- [x] **1.2 Estimator registry** (§4.3) — `Map<estimatorId, Estimator>`. Two bundled implementations: `arith.freqDuration`, summing a section's frequency × duration field pairs, and `household.v1`, evaluating coefficients carried in the pack. Every estimator is a pure function of `(answers, dayType)` — no time, no randomness, no session state — and missing inputs resolve to pack defaults rather than to `NaN` or a throw.
   *AC: none directly (feeds 1.3, 9.x)*
 
-- [ ] **1.3 Derivation and mode machine** (§4.4, §4.3 rules 4–5) — the three-branch resolver, with `direct` the only short-circuit. A throw sets `mode: 'fallback'`, returns the pack default, and logs `estimator.fallback`; the next derivation pass retries it and a success returns it to `derived`. `direct` is never re-evaluated. Plain arithmetic runs through `arith.freqDuration`, so there is exactly one code path and nothing is special-cased per activity.
+- [x] **1.3 Derivation and mode machine** (§4.4, §4.3 rules 4–5) — the three-branch resolver, with `direct` the only short-circuit. A throw sets `mode: 'fallback'`, returns the pack default, and logs `estimator.fallback`; the next derivation pass retries it and a success returns it to `derived`. `direct` is never re-evaluated. Plain arithmetic runs through `arith.freqDuration`, so there is exactly one code path and nothing is special-cased per activity.
   *AC: 27*
 
-- [ ] **1.4 Totals, fits, constraints** (§3.4, §8.2) — `total`, `remaining` (may go negative; nothing clamps it), `overflow`, and `fits()` in its general both-day-types form. Constraint clamps: sleep ≥ 6 h/day; school ≥ 20 h/week in 5 h steps, weekend-disallowed; all others ≥ 0. Clamping is silent and emits `clamp.hit`.
+- [x] **1.4 Totals, fits, constraints** (§3.4, §8.2) — `total`, `remaining` (may go negative; nothing clamps it), `overflow`, and `fits()` in its general both-day-types form. Constraint clamps: sleep ≥ 6 h/day; school ≥ 20 h/week in 5 h steps, weekend-disallowed; all others ≥ 0. Clamping is silent and emits `clamp.hit`.
   *AC: none directly (asserted in 5.3, 7.2)*
 
-- [ ] **1.5 Pack loader and validator** (§4.6) — all fourteen validation rules, including the three §4.6 additions: a default on every field in a gated section, a per-day-type default on every activity with a fallback path, and an even hue ring at `360/n`. Fails loudly in dev; falls back to the last-good cached pack in production.
+- [x] **1.5 Pack loader and validator** (§4.6) — all fourteen validation rules, including the three §4.6 additions: a default on every field in a gated section, a per-day-type default on every activity with a fallback path, and an even hue ring at `360/n`. Fails loudly in dev; falls back to the last-good cached pack in production.
   *AC: 20 (ring validated here, rendered in 4.3)*
 
-- [ ] **1.6 v1 content pack** (§3.3, §4.1, §9) — `packs/v1/pack.json`: ten activities in §3.3 order with hues at `order × 36°`, screens for every section, gates on the gated sections, defaults on every gated field, fallback defaults for `household` and `care`, placeholder `household.v1` coefficients (replaced in Stage 9), and every §9 copy key. Copy holds the §9 register: no norm, benchmark, comparison, or expectation, in any section. The multitasking statement (§13) goes in the questionnaire intro, once.
+- [x] **1.6 v1 content pack** (§3.3, §4.1, §9) — `packs/v1/pack.json`: ten activities in §3.3 order with hues at `order × 36°`, screens for every section, gates on the gated sections, defaults on every gated field, fallback defaults for `household` and `care`, placeholder `household.v1` coefficients (replaced in Stage 9), and every §9 copy key. Copy holds the §9 register: no norm, benchmark, comparison, or expectation, in any section. The multitasking statement (§13) goes in the questionnaire intro, once.
   *AC: 5*
 
 **Stage 1 done when:** the domain layer has unit tests covering derivation in all three modes, the fallback→derived recovery path, `fits()` on both day types, every clamp, and all fourteen pack validation rules — and the v1 pack passes validation.
