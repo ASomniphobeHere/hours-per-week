@@ -1,14 +1,36 @@
 # 24 — Build Specification
 
 **Product:** a phone-first time-budget exercise for facilitated workshops.
-**Version:** 1.0 — build spec
+**Version:** 1.1 — build spec
 **Status of content:** the question list and the estimator models are *not* in this document. They are content, loaded as data, and are specified in §4 as interfaces. This document specifies the system that consumes them. A build is complete and testable with placeholder content.
+
+### Changes in 1.1
+
+Eleven decisions the 1.0 draft left open or contradicted, resolved. Each is now specified in place; this list exists so a reader of 1.0 knows what moved.
+
+| # | Was | Now | Where |
+|---|---|---|---|
+| 1 | "The stack", singular — no way to reach the weekend | Day-type toggle, one stack at a time | §7.1 *(new)* |
+| 2 | S4 view unspecified | S4 forces `wd`, toggle stays live | §7.1, §2.2, §8.3 |
+| 3 | Day total absent from the spec | In the toggle segments, per day, occupied hours | §7.1 |
+| 4 | "The stripes are the entire signal" | Breached segment's count goes bold red; stripes carry the rest | §7.6 |
+| 5 | Even hue ring **and** ≥40° apart — unsatisfiable at ten activities | Even ring, floor is 36° | §7.5, §4.6 |
+| 6 | Ruler "in a colour that holds contrast" | Translucent scrim behind each tick | §7.3 |
+| 7 | Estimator failure pinned an activity to `direct` forever | New `fallback` mode, recoverable; `direct` stays permanent | §3.2, §4.3, §4.4 |
+| 8 | Rule 6 promised a full stack, derivation delivered zeros | Field defaults required in gated sections | §4.6, §4.4 |
+| 9 | Token persistence unstated; refresh could mint a session | `sessionId` + `token` persisted with the answers | §5, §11 |
+| 10 | *Time to fit* meant two different things | Two fields, named apart, both recorded | §10, §6.2.5 |
+| 11 | Nothing covered school fitting inside existing slack | Valid outcome, specified, read against slack at finish | §8.4, §10, §11 |
+
+Section 7 subsections renumbered by one to make room for §7.1. Acceptance criteria renumbered; there are now 58.
+
+**Known consequence, accepted:** Unallocated absorbs school before any band does and emits no event, so the first *logged* cut is not the first real loss for any participant who had slack. Decision 11 accepts this rather than synthesising an event. §10 says how the debrief should read around it.
 
 ---
 
 ## 1. What the participant does
 
-A participant opens the app on their phone in a workshop room. They answer a questionnaire about their week. The system turns those answers into a schedule — a single day rendered as a vertical stack of activity bands filling a 24-hour container. They review it, correct anything wrong by tapping bands and re-answering, and press Finish.
+A participant opens the app on their phone in a workshop room. They answer a questionnaire about their week. The system turns those answers into a schedule — a day rendered as a vertical stack of activity bands filling a 24-hour container, with a toggle above it for the two day types the week is made of: a workday and a weekend day. They review it, correct anything wrong by tapping bands and re-answering, and press Finish.
 
 They then wait on a loader while the rest of the room finishes. When the facilitator opens the next stage, every participant sees the same thing at the same moment: they forgot StartSchool, which requires a minimum of 20 hours per week. The school band appears at the top of their stack and the stack no longer fits — everything below the 24-hour line is struck through with red diagonal stripes.
 
@@ -44,10 +66,12 @@ S1 questionnaire ──Finish──> S3 hold ──flag──> S4 reveal
 | S1 questionnaire | All screens answered | No |
 | S2 editor | Participant presses Finish | No |
 | S3 hold | `stage_open == true` **and** ≥5 s elapsed in S3 | Yes |
-| S4 reveal + rebalance | `fits() == true` and participant confirms | No |
+| S4 reveal + rebalance | `fits() == true` on **both** day types, and participant confirms | No |
 | S5 done | — | — |
 
 S2 is re-enterable from itself (band replay). S3 → S4 is one-way. A participant who is still in S1 or S2 when the flag flips is force-advanced (§6.3).
+
+Entry to S4 forces the day-type selection to `wd` (§7.1); it is the only stage transition that touches view state.
 
 ---
 
@@ -67,15 +91,15 @@ weekly(activity) = hours(activity,'wd') × 5 + hours(activity,'we') × 2
 type DayType = 'wd' | 'we';
 
 interface DayValue {
-  mode: 'derived' | 'direct';
-  hours: number;          // authoritative when mode === 'direct'
+  mode: 'derived' | 'direct' | 'fallback';
+  hours: number;          // authoritative when mode !== 'derived'
   // when mode === 'derived', hours is recomputed from answers via §4.3
 }
 
 interface Activity {
   id: string;             // stable, matches a questionnaire section id
   label: string;
-  hue: number;            // 0–360, see §7.4
+  hue: number;            // 0–360, see §7.5
   order: number;          // ascending = top to bottom
   wd: DayValue;
   we: DayValue;
@@ -109,9 +133,9 @@ interface Constraint {
 | `leisure` | Leisure | 9 | **Editable activity, not a residual** |
 | `—` | Unallocated | last | Rendered as remainder; not an Activity |
 
-`leisure` is a real activity with its own questions and its own band. `Unallocated` is the arithmetic remainder `24 − Σ hours` and is rendered as a dashed band with no tap target. An activity at zero hours is not a band at all — see §7.6.
+`leisure` is a real activity with its own questions and its own band. `Unallocated` is the arithmetic remainder `24 − Σ hours` and is rendered as a dashed band with no tap target. An activity at zero hours is not a band at all — see §7.7.
 
-The set is defined in the content pack, not hardcoded. The order column is authoritative for rendering.
+The set is defined in the content pack, not hardcoded. The order column is authoritative for rendering, and for hue assignment: ten activities give an even ring at 36°, each activity taking the hue at its `order` index (§7.5).
 
 ### 3.4 Derived state
 
@@ -190,7 +214,7 @@ interface ActivityDef {
 1. A gate is a single boolean or choice field on the first screen of a section.
 2. A falsy gate answer skips **every remaining screen in that section, and only that section.** A gate never affects another section.
 3. Gates are the only branching mechanism. No screen-level `showIf`, no field-level conditionals, no cross-section dependencies, no reordering.
-4. A skipped section's activity resolves to zero hours and lands in **Not included** (§7.6).
+4. A skipped section's activity resolves to zero hours and lands in **Not included** (§7.7).
 5. Re-answering a gate to truthy in replay reveals the section's remaining screens at their defaults, unanswered. Re-answering to falsy hides them and preserves their answers — flipping the gate back and forth is lossless.
 6. A gate field is always `required` and never has a default that skips. Force-advance from S1 (§6.3) treats an unanswered gate as **truthy**, so a participant pulled forward mid-questionnaire gets a full stack rather than a hollow one.
 
@@ -215,29 +239,43 @@ type Estimator = (answers: AnswerMap, dayType: DayType) => number; // hours
 
 **Registry.** The client holds `Map<estimatorId, Estimator>`. Implementations may be:
 
-- **Bundled** — a closed-form expression (linear model coefficients) shipped in the pack and evaluated client-side. Preferred: no network, works offline, no latency in the questionnaire.
+- **Bundled** — a closed-form expression (linear model coefficients) shipped in the pack and evaluated client-side. No network, works offline, no latency in the questionnaire.
 - **Remote** — `POST /estimate` with the input answers, returning hours. Use only if a model can't be reduced to coefficients.
+
+**v1 uses the bundled path for every estimator, `household` included.** The model is fitted offline against the ATUS extract and only its coefficients ship. `estimators/` in this repo is therefore build tooling, not runtime code: nothing in it reaches the client.
+
+This is a decision about the room, not about model quality. Forty phones on venue wifi, a network call inside a twenty-question flow, and §4.3 rule 3 catching every failure with a pack default — a remote estimator degrades exactly when the workshop is busiest. If `household` turns out not to reduce to a closed form, that is a reason to reconsider the model, and only then a reason to reconsider this.
 
 **Contract rules:**
 
 1. An estimator is a pure function of the answer map. No time, no randomness, no session state.
 2. It must return a value for any answer map, including one where its inputs are unanswered. Missing inputs fall back to pack-defined defaults.
-3. If an estimator throws or a remote call fails, the activity falls back to `mode: 'direct'` with a pack-defined default value. The participant sees a number, never an error. Log the fallback.
+3. If an estimator throws or a remote call fails, the activity falls back to **`mode: 'fallback'`** with a pack-defined default value. The participant sees a number, never an error. Log `estimator.fallback`.
 4. Estimator output is a starting value. The moment the participant edits that activity directly, `mode` flips to `direct` and the estimator no longer runs for it.
+5. **`fallback` is recoverable; `direct` is not.** An activity in `fallback` is re-evaluated on the next derivation pass, and a successful evaluation returns it to `derived`. An activity in `direct` is never re-evaluated.
 
-Rule 4 is important: the estimator is there so participants don't have to answer questions they'd answer badly. It is not authoritative over the participant.
+Rules 4 and 5 together carry the principle: the estimator is there so participants don't have to answer questions they'd answer badly, and it is not authoritative over the participant — but a transient network failure is not a participant decision and must not be recorded as one. Collapsing the two states means one dropped request pins an activity to a pack default for the rest of the session, including after the participant edits the very inputs the estimator reads.
+
+Both non-derived modes are authoritative over the estimator while they hold. The difference is only in who set them and whether the system may unset it.
 
 ### 4.4 Derivation
 
 ```
 hours(activity, dt):
   if activity[dt].mode == 'direct':      return activity[dt].hours
-  if estimator exists for activity:      return estimator(answers, dt)
+  if estimator exists for activity:
+      try:                               return estimator(answers, dt)
+      on throw:                          set mode = 'fallback'
+                                         return pack default
   else:                                  return Σ over the activity's
                                            frequency × duration field pairs
 ```
 
+A `fallback` activity takes the second branch, not the first: it is retried on every derivation pass and returns to `derived` the moment one succeeds (§4.3 rule 5). Only `direct` short-circuits.
+
 The third branch — plain arithmetic — is itself expressed as a pack-declared estimator (`arith.freqDuration`) so there is exactly one code path. Nothing is special-cased per activity.
+
+Because that branch sums the section's fields, **an unanswered section derives to zero unless its fields carry defaults.** This is why §4.6 requires a default on every field behind a gate: without it, §4.2.1 rule 6 promises a force-advanced participant a full stack and delivers an empty one.
 
 ### 4.5 Media
 
@@ -269,6 +307,9 @@ Validate on load, fail loudly in dev, fall back to last-good pack in production:
 - every `activity.gateField` resolves to a field on that section's gate screen
 - a gate field is `required` and its default is not the skipping value
 - no section's estimator reads a field from a gated-out section unless that estimator declares a default for it
+- **every field in a gated section declares a `default`**, so that a section revealed by an unanswered-gate-treated-as-truthy (§4.2.1 rule 6) derives to non-zero hours
+- **every activity with a `fallback` path declares a default `hours` per day type**, used when its estimator throws (§4.3 rule 3)
+- **activity hues form an even ring** — `360 / activities.length`, each activity's hue at its `order` index (§7.5)
 
 ---
 
@@ -285,6 +326,10 @@ type AnswerMap = Record<string /* fieldId */, {
 Flat, keyed by field id. Derived hours are **never** written here.
 
 **Persistence.** Write to localStorage on every field change, keyed by session id. On boot, if a stored answer map exists for the current session and pack version, restore it and resume at the furthest stage reached. A mid-session refresh must not cost the participant twenty answers.
+
+**Session identity persists with the answers.** `sessionId` and `token` are written to localStorage at session creation and restored on boot alongside the answer map. A refresh **must not** call `POST /session` again: `total` on the facilitator console counts sessions created (§6.2.2), so a second row inflates the one number the facilitator's decision rests on and breaks `inStage` summing to `total`.
+
+Also persisted, for the same reason a refresh should be invisible: the selected day type (§7.1) and the furthest stage reached.
 
 **Pack version mismatch** on restore: keep answers whose field ids still exist, drop the rest, resume at S1 at the first unanswered screen.
 
@@ -412,7 +457,9 @@ The press is a room-level fact, so the server records it. No client involvement,
 stage.open  { roomId, t, ready, total }
 ```
 
-Written once, when the flag flips. This is the room's `t = 0`: every participant's S4 entry, and so every *time to fit* in §10, is measured against it. Without the record, that moment can only be inferred from the earliest `forced.advance` in the room — which does not exist if everyone had already finished.
+Written once, when the flag flips. This is the room's `t = 0`, and it is what *time to fit, room* in §10 is measured against. Without the record, that moment can only be inferred from the earliest `forced.advance` in the room — which does not exist if everyone had already finished.
+
+It is not the only clock. §10 also records *time to fit* per participant, from their own S4 entry; for anyone force-advanced the two differ by the 5 s hold. Both are kept.
 
 #### 6.2.6 No auth
 
@@ -442,17 +489,42 @@ The 5-second floor applies in all three cases. A late finisher who skips straigh
 
 ## 7. Editor rendering
 
-### 7.1 Geometry
+### 7.1 Day-type toggle
+
+The editor renders **one day type at a time.** A two-segment toggle sits above the stack and is the only chrome between the header and the ruler.
+
+```
+┌─────────────┬─────────────┐
+│  WORK DAY   │  weekend    │
+│  23.7 hr    │  21.2 hr    │
+├─────────────┴─────────────┤
+│▓▓0▓                       │
+│▌             Sleep   8 h  │
+```
+
+Each segment carries its day type's label and that day's **occupied hours** — `total(dt)`, not `remaining`. Both totals are live and both are always visible; the participant never has to switch tabs to learn what the other day looks like. This is what makes a weekend breach discoverable from the workday view, and it is the only reason `fits()` can fail for a reason the participant can see.
+
+The toggle changes which stack is rendered. It changes nothing else: no answer, no derivation, no telemetry beyond a view event.
+
+**Default.** `wd` on first entry to S2. The selected day type persists across sheet open and close, and across refresh.
+
+**At S4.** Entry to S4 forces the selection to `wd`, because school is workday-only (§8.3) and a participant sitting on the weekend segment would otherwise experience the reveal as nothing happening. The toggle stays live afterwards — a participant whose weekend was already over 24 at S1 (§11) must be able to reach it, or `fits()` blocks confirm with the cause off-screen.
+
+**Breach.** When `total(dt) > 24`, that segment's hour count is set bold and in the overflow red. This applies to both segments, selected or not. See §7.6 — this is a deliberate exception to the stripes-only rule, and the only numeric overflow signal in the client.
+
+**Type.** Label in the utility face, small caps or uppercase with letter-spacing; hours in the utility face with `tabular-nums` so the two segments' digits align and a changing total does not reflow the tab.
+
+### 7.2 Geometry
 
 Full-bleed. No horizontal margin on the stack container. The stack is the page.
 
 ```
-pxPerHour = (viewportHeight - headerH - footerH) / 24
+pxPerHour = (viewportHeight - headerH - toggleH - footerH) / 24
 ```
 
 Recomputed on resize and orientation change. A band's height is `hours × pxPerHour`, unclamped. The stack container's height is `max(24, total) × pxPerHour`, so an overflowing stack extends past the viewport and must be scrolled — this is intended, not a bug to fix.
 
-### 7.2 Band anatomy
+### 7.3 Band anatomy
 
 ```
 │▌                                                    │
@@ -469,10 +541,11 @@ Recomputed on resize and orientation change. A band's height is `hours × pxPerH
 
 - **Spine:** leftmost 8% of viewport width, full saturation of the band's hue.
 - **Body:** remaining 92%, same hue at 12% opacity.
-- **Hour scale:** ticks at 0, 3, 6, 9, 12, 15, 18, 21, 24. Positioned at the left edge, rendered *over* the spine, in a colour that holds contrast against saturated fill. The scale is absolutely positioned against the stack container, not per-band — it is one continuous ruler.
+- **Hour scale:** ticks at 0, 3, 6, 9, 12, 15, 18, 21, 24. Positioned at the left edge, rendered *over* the spine. The scale is absolutely positioned against the stack container, not per-band — it is one continuous ruler.
+- **Tick scrim:** each tick number sits on a small translucent plate that spans the spine's width. No single ruler colour holds contrast against ten arbitrary hues at full saturation, so the contrast is guaranteed by the plate rather than assumed of the colour. The plate is the only element permitted to sit between the spine and the tick.
 - **Label block:** activity label and hour count, right-aligned, inset 16 px from the right edge.
 
-### 7.3 Type scaling
+### 7.4 Type scaling
 
 Label size scales with band height:
 
@@ -485,21 +558,32 @@ The lower clamp corresponds to roughly a 1-hour band. Below that, the band still
 
 **Tap target is independent of visual height.** Any band, however thin, has a minimum 44 px hit area, achieved with a transparent overlay that may overlap neighbours. When overlays collide, the smaller band wins the overlap — thin bands are the hard ones to hit.
 
-### 7.4 Colour
+### 7.5 Colour
 
-Bands are distinguished by **hue spacing, not lightness**. At 12% opacity, lightness differences collapse to nothing. Assign hues at even intervals around the wheel from the pack, keeping adjacent-in-order bands at least 40° apart.
+Bands are distinguished by **hue spacing, not lightness**. At 12% opacity, lightness differences collapse to nothing. Assign hues at even intervals around the wheel from the pack.
+
+With the v1 set of ten activities (§3.3) that interval is **36°**. An earlier draft of this section also required 40° between adjacent-in-order bands; the two rules are not simultaneously satisfiable at ten activities, and evenness is the property worth keeping. **The floor is 36°.** Pack validation checks the ring is even, not that any particular gap is met.
 
 Colour is orientation, not identification. The label identifies the band. A participant must be able to use the app in greyscale.
 
-### 7.5 Overflow
+### 7.6 Overflow
 
 The 24-hour line is an absolutely positioned horizontal rule at `24 × pxPerHour` from the top of the stack. It has **one appearance** and never changes — same weight, same colour, before and after breach. It is a rim, not an alert.
 
 Everything rendered below that line — the portions of bands that extend past it — carries a red diagonal stripe overlay at 45°, 6 px period. Implemented as a clipped overlay element over the stack, not per-band, so a band straddling the line is striped only on its lower portion.
 
-**There is no over-by text, no toast, no error message, no count.** The stripes are the entire signal.
+**There is no over-by text, no toast, no error message, and no count of the excess.** Within the stack, the stripes are the entire signal.
 
-### 7.6 Not included
+**The one exception is the day total** (§7.1). When a day type breaches, its toggle segment's hour count is set bold and in the overflow red. This is a numeric overflow signal and it is deliberate:
+
+- On the **selected** day it duplicates the stripes. Accepted. The total is already on screen and already changing; leaving it neutral while the stack is striped reads as an oversight rather than as restraint.
+- On the **unselected** day it is the only signal available. Stripes cannot show you a stack you are not looking at, and without it `fits()` can block confirm at S4 with nothing on screen naming the cause.
+
+The excess itself is still never stated. The segment shows occupied hours — `27.7 hr`, bold and red — not `+3.7` and not `3.7 over`. The participant reads the breach off a number they were already reading, and the size of the problem off the striped region.
+
+The 24-hour rim rule is unaffected by all of this and still has exactly one appearance.
+
+### 7.7 Not included
 
 An activity computing to 0 hours renders **no band**. A 0-height band is a dead tap target participants will try to hit, and a band at some arbitrary minimum height would misrepresent the total.
 
@@ -524,7 +608,7 @@ Instead, zero-hour activities appear in a **Not included** list positioned **bel
 
 **At S4.** Not included stays reachable during rebalance. A participant who wants to solve the squeeze by removing an activity moves it out of the stack, and that transition is exactly a cut to zero — log it as `hours.change` with `to: 0`, so it appears in cut order like any other reduction.
 
-### 7.7 Unallocated
+### 7.8 Unallocated
 
 Rendered as the bottom band, dashed 1 px outline, no fill, no spine, label "Unallocated". No tap target. Disappears entirely when `remaining ≤ 0`.
 
@@ -573,11 +657,15 @@ School's sheet contains only the weekly-hours stepper. It carries none of the qu
 
 Because school is workday-only, the weekend stack is unaffected by the reveal and will normally still fit. `fits()` is therefore effectively a workday condition — but implement it as the general form in §3.4 so a future weekend-bearing commitment doesn't require a rewrite.
 
+**The general form is not decorative.** §11 permits an answer set over 24 h at S1, so a participant can arrive at S4 with a weekend that already breaches. For them `fits()` is false for a reason school did not cause and the workday stack does not show. Two things carry that case, and both are required: S4 forces the view to `wd` but leaves the toggle live (§7.1), and the weekend segment shows its total bold and red (§7.6). Without them the confirm control stays disabled with no cause on screen.
+
 ### 8.4 Rebalance completion
 
 When `fits()` becomes true, the stripes disappear and a confirm control becomes enabled. The participant confirms; the client POSTs `/complete` and enters S5.
 
 The participant may continue adjusting after fitting and before confirming. Do not auto-advance on `fits()` — a participant who lands under 24 by accident should get to look at what they did.
+
+**`fits()` may already be true on entry to S4.** Unallocated (§7.8) absorbs school before any band does, so a participant with 4 h or more of workday slack takes the reveal without breaching: no stripes, confirm enabled immediately, cut order empty. This is a valid outcome and a real finding — their week had room — and nothing in the client marks it or compensates for it. See §11.
 
 ---
 
@@ -646,7 +734,14 @@ type EventType =
 | Sheet opens per activity during rebalance | count of `sheet.open` after S4 entry |
 | Sleep floor hit | any `clamp.hit` on `sleep` |
 | School above minimum | school weekly > 20 at complete |
-| Time to fit | `fits` timestamp − S4 entry |
+| Time to fit | `fits` timestamp − S4 entry, per participant |
+| Time to fit, room | `fits` timestamp − `stage.open`, shared clock |
+| Slack at finish | `remaining('wd')` in the finish snapshot |
+| No-squeeze | `fits()` already true on S4 entry — slack ≥ school |
+
+**Two times to fit, named apart.** §6.2.5 measures against the room's `stage.open`; the per-participant measure runs from that participant's S4 entry. For anyone force-advanced they differ by the 5 s hold plus their snapshot. Both are derivable from the event log at no cost, so record both rather than pick: the first compares rebalance effort between participants, the second plots how the room moved after the flag flipped. Do not use one name for both.
+
+**Read cut order against slack at finish.** Unallocated absorbs school before any band does, and that absorption emits no event (§7.8). So the first *logged* cut is not the first real loss for any participant who had slack — it is the first loss they had to make a decision about. Both readings are useful and they are not the same reading. A debrief that quotes first cut without slack at finish is quoting a participant who may have already given up two hours silently.
 
 Everything else in this document exists to produce **per-activity delta** and **cut order**. If a build decision trades against those two fields, the fields win.
 
@@ -658,16 +753,20 @@ Everything else in this document exists to produce **per-activity delta** and **
 |---|---|
 | Answers sum > 24 h at S1 | Allowed. Editor opens already striped. Do not validate the total at S1 — an over-24 answer set is a real finding. |
 | Participant joins mid-session, flag already true | Full S1 → S2 at their own pace, then S3 with 5 s hold, then S4. Never skip stages. |
-| Refresh at any stage | Resume at furthest stage reached, answers intact |
+| Refresh at any stage | Resume at furthest stage reached, answers and selected day type intact. Restore `sessionId` and `token` from localStorage; do **not** call `POST /session` again (§5). |
 | Refresh during S3 | Resume in S3, restart the 5 s floor |
 | Pack fetch fails at boot | Retry ×3 with backoff, then last-good cached pack, then hard error screen with a reload control |
-| Estimator throws | Fall back to pack default, `mode: 'direct'`, log `estimator.fallback`, no user-visible error |
+| Estimator throws | Fall back to pack default, `mode: 'fallback'`, log `estimator.fallback`, no user-visible error. Retried on the next derivation pass (§4.3 rule 5). |
 | Telemetry POST fails | Queue and retry with the next batch. Never block the UI. |
 | Stage poll fails during S3 | Keep polling silently. No connection warning on the hold screen. |
 | Viewport under 320 px wide | Support. Spine at 8% is 25 px minimum. |
 | Landscape orientation | Support by recomputing `pxPerHour`. Stack may exceed viewport; scroll. |
 | Every activity zeroed | Stack is entirely Unallocated; every activity sits in Not included. Valid state. |
 | School pushes weekend over 24 | Cannot occur (school is workday-only), but `fits()` must still evaluate both day types. |
+| **Weekend already over 24 at S4** | `fits()` is false for a cause the forced workday view does not show. The weekend segment reads bold and red (§7.6) and the toggle stays live (§7.1) so the participant can reach it. Confirm stays disabled until both days fit. |
+| **School fits inside existing slack** | Valid. No stripes, `fits()` true on S4 entry, confirm enabled immediately, cut order empty. Do not manufacture a breach: the ask is 20 h for everyone and a participant whose week had room is a finding, not a failure. Read against *slack at finish* (§10). |
+| **Force-advance from S1 with nothing answered** | Every gate resolves truthy (§4.2.1 rule 6) and every section derives from its field defaults (§4.6), so the participant reaches S4 with a full stack of pack-default hours rather than an empty one. |
+| Day-type toggle at S4 | Selection is forced to `wd` on S4 entry and remains changeable thereafter (§7.1). |
 
 ---
 
@@ -684,50 +783,67 @@ Everything else in this document exists to produce **per-activity delta** and **
 8. Progress recomputes over reachable screens when a gate changes.
 9. On the last screen, the generated stack contains one band per non-zero activity, ordered per pack, and every zero-hour activity appears in Not included.
 
-**S2**
-10. Stack is full-bleed: zero horizontal margin at every supported width.
-11. Spine is 8% of viewport width; body fill is the same hue at 12%.
-12. Hour scale renders over the spine, ticks at 0/3/…/24, as one continuous ruler.
-13. A 0.25 h band is tappable (≥44 px hit area) though visually a rule.
-14. Label type scales with band height and clamps at 13 px / 34 px.
-15. Tapping a band opens its section's screens prefilled; changing a field updates the sheet header total live.
-16. Sheet close animates the band; body scroll is locked while open; Escape closes.
-17. Sleep cannot be set below 6 h; the control stops silently.
-18. Direct entry overrides derivation; reverting restores it from unchanged answers.
-19. An activity at zero on both day types renders no band and appears in Not included.
-20. Not included sits below the 24 h line, reached by scrolling; a footer count scrolls to it.
-21. Tapping a Not included row opens its sheet; giving it hours moves it into the stack at its pack order.
-22. Not included is absent entirely when empty — no empty-state copy.
+10. A section left wholly unanswered derives to non-zero hours from its field defaults; it does not land in Not included.
+
+**S2 — day-type toggle**
+11. Exactly one day type's stack renders at a time; the toggle selects which.
+12. Both segments show their own day's occupied hours, live, whether selected or not.
+13. A day type over 24 h shows its segment's hour count bold and in the overflow red — including when it is not the selected segment.
+14. Segment digits are tabular; a changing total does not reflow the toggle.
+15. Selected day type survives sheet open/close and refresh.
+
+**S2 — stack**
+16. Stack is full-bleed: zero horizontal margin at every supported width.
+17. Spine is 8% of viewport width; body fill is the same hue at 12%.
+18. Hour scale renders over the spine, ticks at 0/3/…/24, as one continuous ruler.
+19. Each tick number sits on a translucent scrim and is legible against every activity hue at full saturation.
+20. Activity hues form an even ring at `360 / n`; no two are closer than that interval.
+21. A 0.25 h band is tappable (≥44 px hit area) though visually a rule.
+22. Label type scales with band height and clamps at 13 px / 34 px.
+23. Tapping a band opens its section's screens prefilled; changing a field updates the sheet header total live.
+24. Sheet close animates the band; body scroll is locked while open; Escape closes.
+25. Sleep cannot be set below 6 h; the control stops silently.
+26. Direct entry overrides derivation; reverting restores it from unchanged answers.
+27. An estimator failure sets `mode: 'fallback'`, not `direct`, and a later successful evaluation returns the activity to `derived`.
+28. An activity at zero on both day types renders no band and appears in Not included.
+29. Not included sits below the 24 h line, reached by scrolling; a footer count scrolls to it.
+30. Tapping a Not included row opens its sheet; giving it hours moves it into the stack at its pack order.
+31. Not included is absent entirely when empty — no empty-state copy.
 
 **S3**
-23. Finish enters the loader and marks ready; it does not advance the stage.
-24. Loader displays a minimum of 5 s in every path, including when the flag is already true.
-25. Poll failure produces no user-visible error.
-26. A participant in S1 or S2 when the flag flips is force-advanced with a snapshot of current state.
+32. Finish enters the loader and marks ready; it does not advance the stage.
+33. Loader displays a minimum of 5 s in every path, including when the flag is already true.
+34. Poll failure produces no user-visible error.
+35. A participant in S1 or S2 when the flag flips is force-advanced with a snapshot of current state.
+36. A refresh at any stage restores the existing session and creates no second session row.
 
 **S4**
-27. School renders at the top of the stack, above sleep.
-28. School weekly hours: minimum 20, increments of 5, decrement disabled at 20, zero on weekend days.
-29. School's sheet exposes only the weekly stepper — no questionnaire content.
-30. Portions of bands below the 24 h line carry 45° red stripes; the rim rule's appearance is identical before and after breach.
-31. No numeric overflow message appears anywhere.
-32. Confirm enables only when `fits()`; the app does not auto-advance on `fits()`.
+37. Entry to S4 forces the toggle to `wd`; the toggle remains operable afterwards.
+38. School renders at the top of the stack, above sleep.
+39. School weekly hours: minimum 20, increments of 5, decrement disabled at 20, zero on weekend days.
+40. School's sheet exposes only the weekly stepper — no questionnaire content.
+41. Portions of bands below the 24 h line carry 45° red stripes; the rim rule's appearance is identical before and after breach.
+42. The only numeric overflow signal anywhere in the client is the toggle segment's bold red hour count. No message, toast, delta, or excess figure appears — the segment shows occupied hours, never `+3.7`.
+43. Confirm enables only when `fits()` for **both** day types; the app does not auto-advance on `fits()`.
+44. A participant whose weekend breaches at S4 can reach the weekend stack and see the cause.
+45. A participant whose slack exceeds school reaches S4 with no stripes and confirm already enabled.
 
 **Telemetry**
-33. Three snapshots recorded: S1 end, Finish, complete.
-34. Cut order reconstructible from the event log for every completing participant.
+46. Three snapshots recorded: S1 end, Finish, complete.
+47. Cut order reconstructible from the event log for every completing participant.
+48. Both times to fit recorded under distinct names, and `slack at finish` recoverable from the finish snapshot.
 
 **Facilitator**
-35. `POST /room` returns a joinCode that `POST /session` resolves to that room; an unknown code is rejected.
-36. Console renders join code, `ready / total`, and all five stage counts; `inStage` sums to `total`.
-37. Counts update on the 3 s poll with no transition animation.
-38. Poll failure leaves the last values on screen, dimmed, with a reconnecting note.
-39. The button requires two presses; the armed label restates `total` and reverts to idle after 5 s without a second press.
-40. A successful POST replaces the button with a static Stage open state that cannot be pressed again.
-41. A failed POST returns the button to idle with an inline error, in no state implying the stage opened.
-42. Reloading the console at any point restores the same screen from the next poll.
-43. One `stage.open` record is written per room, carrying `ready` and `total` at the moment of the flip.
-44. Layout holds at 375 px with no horizontal scroll.
+49. `POST /room` returns a joinCode that `POST /session` resolves to that room; an unknown code is rejected.
+50. Console renders join code, `ready / total`, and all five stage counts; `inStage` sums to `total`.
+51. Counts update on the 3 s poll with no transition animation.
+52. Poll failure leaves the last values on screen, dimmed, with a reconnecting note.
+53. The button requires two presses; the armed label restates `total` and reverts to idle after 5 s without a second press.
+54. A successful POST replaces the button with a static Stage open state that cannot be pressed again.
+55. A failed POST returns the button to idle with an inline error, in no state implying the stage opened.
+56. Reloading the console at any point restores the same screen from the next poll.
+57. One `stage.open` record is written per room, carrying `ready` and `total` at the moment of the flip.
+58. Layout holds at 375 px with no horizontal scroll.
 
 ---
 

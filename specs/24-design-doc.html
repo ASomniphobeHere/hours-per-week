@@ -1,0 +1,512 @@
+<title>The Shape of 24</title>
+<style>
+:root{
+  --paper:#EDEFF3; --surface:#FFFFFF; --surface-2:#F5F7FA;
+  --ink:#131820; --ink-2:#4C5666; --ink-3:#737F91;
+  --rule:#D2D8E0; --rule-2:#E4E8ED;
+  --accent:#1E44B8; --accent-wash:#E5EAF8; --accent-line:#8FA4E4;
+  --stripe:#C42A33; --stripe-wash:#FAE8E9; --stripe-line:#E39096;
+  --band-op:0.12; --scrim:rgba(255,255,255,.82); --scrim-ink:#131820;
+  --display:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1219; --surface:#161B23; --surface-2:#1C222C;
+    --ink:#E7EBF1; --ink-2:#A5AFC0; --ink-3:#7D8899;
+    --rule:#2B323E; --rule-2:#232935;
+    --accent:#8CA6FF; --accent-wash:#1B2440; --accent-line:#3C4E86;
+    --stripe:#FF7078; --stripe-wash:#33191C; --stripe-line:#7A3238;
+    --band-op:0.22; --scrim:rgba(12,16,22,.78); --scrim-ink:#E7EBF1;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1219; --surface:#161B23; --surface-2:#1C222C;
+  --ink:#E7EBF1; --ink-2:#A5AFC0; --ink-3:#7D8899;
+  --rule:#2B323E; --rule-2:#232935;
+  --accent:#8CA6FF; --accent-wash:#1B2440; --accent-line:#3C4E86;
+  --stripe:#FF7078; --stripe-wash:#33191C; --stripe-line:#7A3238;
+  --band-op:0.22; --scrim:rgba(12,16,22,.78); --scrim-ink:#E7EBF1;
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper); color:var(--ink); font-family:var(--body);
+  font-size:17px; line-height:1.62; margin:0; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px; margin:0 auto; padding:0 24px 110px}
+.col{max-width:68ch}
+
+/* masthead */
+header.mast{padding:76px 0 0}
+.eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); margin:0 0 18px}
+h1{font-family:var(--display); font-weight:400; font-size:clamp(42px,7.2vw,70px);
+  line-height:1.03; letter-spacing:-.022em; margin:0 0 22px; text-wrap:balance}
+.standfirst{font-size:20px; line-height:1.55; color:var(--ink-2); max-width:58ch; margin:0 0 32px}
+.meta{display:flex; flex-wrap:wrap; gap:8px 10px; border-top:1px solid var(--rule); padding-top:18px}
+.chip{font-family:var(--mono); font-size:11.5px; color:var(--ink-3);
+  border:1px solid var(--rule); border-radius:2px; padding:3px 8px; background:var(--surface)}
+.chip b{color:var(--ink-2); font-weight:600}
+
+/* rhythm */
+section{padding-top:66px}
+.tickrule{position:relative; height:1px; background:var(--rule); margin:0 0 26px}
+.tickrule::before{content:""; position:absolute; left:0; top:-5px; width:2px; height:11px; background:var(--accent)}
+h2{font-family:var(--display); font-weight:400; font-size:clamp(28px,3.5vw,37px);
+  line-height:1.13; letter-spacing:-.016em; margin:0 0 14px; text-wrap:balance}
+h3{font-weight:650; font-size:16px; margin:34px 0 10px}
+.sref{font-family:var(--mono); font-size:11.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-3); margin:0 0 10px}
+p{margin:0 0 16px}
+.lede{font-size:18.5px; color:var(--ink-2)}
+a{color:var(--accent)}
+code{font-family:var(--mono); font-size:.86em; background:var(--surface-2);
+  border:1px solid var(--rule-2); border-radius:3px; padding:1px 5px; color:var(--ink)}
+strong{font-weight:650}
+ul,ol{margin:0 0 16px; padding-left:22px}
+li{margin-bottom:7px}
+li::marker{color:var(--ink-3)}
+
+/* instrument */
+.instrument{display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:36px 0 0; align-items:start}
+@media(max-width:760px){.instrument{grid-template-columns:1fr}}
+.phone{background:var(--surface); border:1px solid var(--rule); border-radius:5px; overflow:hidden}
+.phone-cap{padding:11px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2);
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.phone-cap b{color:var(--ink); font-weight:600}
+.tabs{display:flex; border-bottom:1px solid var(--rule)}
+.tab{flex:1; padding:9px 6px 10px; text-align:center; border-right:1px solid var(--rule)}
+.tab:last-child{border-right:0}
+.tab .tn{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-3); margin-bottom:2px}
+.tab .th{display:block; font-family:var(--mono); font-size:15px; font-variant-numeric:tabular-nums;
+  color:var(--ink-2); font-weight:500}
+.tab.on{background:var(--surface-2); box-shadow:inset 0 -2px 0 var(--accent)}
+.tab.on .tn{color:var(--ink); font-weight:600}
+.tab.on .th{color:var(--ink)}
+.tab.over .th{color:var(--stripe); font-weight:700}
+
+.stack{position:relative; overflow:hidden}
+.band{position:relative}
+.band .sp{position:absolute; left:0; top:0; bottom:0; width:8%}
+.band .bd{position:absolute; left:8%; right:0; top:0; bottom:0}
+.band .lb{position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  text-align:right; line-height:1.12; white-space:nowrap}
+.band .lb i{display:block; font-style:normal; font-weight:600; letter-spacing:-.01em; color:var(--ink)}
+.band .lb s{display:block; text-decoration:none; font-family:var(--mono);
+  font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.unal{position:relative; border-top:1px dashed var(--rule); border-bottom:1px dashed var(--rule)}
+.ruler{position:absolute; inset:0; pointer-events:none}
+.tk{position:absolute; left:0; width:8%; transform:translateY(-50%);
+  background:var(--scrim); color:var(--scrim-ink); font-family:var(--mono);
+  font-size:9px; line-height:13px; text-align:center; border-radius:0 2px 2px 0}
+.rim{position:absolute; left:0; right:0; height:2px; background:var(--ink)}
+.ovl{position:absolute; left:0; right:0; pointer-events:none;
+  background:repeating-linear-gradient(45deg,var(--stripe) 0 2px,transparent 2px 6px); opacity:.85}
+.below{padding:11px 14px 13px; border-top:1px solid var(--rule); background:var(--surface-2)}
+.below h4{font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 5px; text-align:right}
+.below .row{padding:7px 0; font-size:13.5px; color:var(--ink-3); border-top:1px solid var(--rule-2)}
+.cap{font-size:13.5px; line-height:1.5; color:var(--ink-3); margin:14px 0 0}
+.cap b{color:var(--ink-2); font-weight:600}
+.annot{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin:20px 0 0;
+  font-size:13.5px; line-height:1.45; color:var(--ink-2)}
+.annot dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); padding-top:3px; white-space:nowrap}
+.annot dd{margin:0}
+
+/* lanes */
+.lanes{border:1px solid var(--rule); border-radius:4px; background:var(--surface); overflow:hidden; margin:26px 0 0}
+.lrow{display:grid; grid-template-columns:1fr 78px 1fr; border-bottom:1px solid var(--rule-2)}
+.lrow:last-child{border-bottom:0}
+.lrow.pivot{background:var(--accent-wash)}
+.lhd{font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); background:var(--surface-2); border-bottom:1px solid var(--rule)}
+.lhd>div{padding:9px 13px}
+.cl{padding:13px; font-size:14.3px; line-height:1.48}
+.cl.p{border-right:1px solid var(--rule-2)}
+.cl.f{border-left:1px solid var(--rule-2); color:var(--ink-2)}
+.cl.dim{background:repeating-linear-gradient(45deg,var(--rule-2) 0 1px,transparent 1px 8px)}
+.cl b{font-weight:650}
+.cl .sb{display:block; color:var(--ink-3); font-size:12.8px; margin-top:3px}
+.sc{display:flex; align-items:center; justify-content:center; background:var(--surface-2);
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.05em; color:var(--accent)}
+@media(max-width:700px){.lrow{grid-template-columns:1fr 52px 1fr}.cl{padding:11px 9px; font-size:13.3px}}
+
+/* tables */
+.tw{overflow-x:auto; margin:20px 0 0; border:1px solid var(--rule); border-radius:4px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14.3px; min-width:520px}
+th{text-align:left; font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:500; padding:10px 13px; border-bottom:1px solid var(--rule);
+  background:var(--surface-2); white-space:nowrap}
+td{padding:10px 13px; border-bottom:1px solid var(--rule-2); vertical-align:top; line-height:1.45}
+tr:last-child td{border-bottom:0}
+td code{font-size:.85em}
+.n{font-variant-numeric:tabular-nums; font-family:var(--mono); white-space:nowrap}
+.sw{display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin-right:7px}
+
+/* callouts */
+.note{border-left:2px solid var(--accent); padding:2px 0 2px 16px; margin:24px 0; color:var(--ink-2); font-size:15.5px}
+.warn{border-left:2px solid var(--stripe); padding:2px 0 2px 16px; margin:24px 0; color:var(--ink-2); font-size:15.5px}
+.pull{font-family:var(--display); font-size:21px; line-height:1.42; color:var(--ink);
+  border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+  padding:22px 0; margin:32px 0; max-width:56ch; text-wrap:balance}
+footer{margin-top:80px; padding-top:22px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-3);
+  display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">24 &middot; design document &middot; against build spec 1.1</p>
+  <h1>The Shape of 24</h1>
+  <p class="standfirst">A workshop exercise that spends twenty minutes building a participant&rsquo;s week so it can take four hours a day back. The flow end to end, the instrument that carries it, and the eleven decisions that closed.</p>
+  <div class="meta">
+    <span class="chip"><b>spec</b> specs/24-build-spec.md v1.1</span>
+    <span class="chip"><b>sketch</b> IMG_20260824_173020.jpg</span>
+    <span class="chip"><b>decisions</b> 11 resolved</span>
+    <span class="chip"><b>criteria</b> 58</span>
+  </div>
+</header>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;7 &middot; the instrument</p>
+  <h2>One day, stacked</h2>
+  <div class="col">
+    <p class="lede">Everything the exercise does, it does to this object. A participant&rsquo;s week rendered as a single day: a vertical stack of activity bands filling a 24-hour container, full-bleed, owning the whole viewport so it reads as a whole day rather than a chart of one.</p>
+    <p>The week is two days, not one &mdash; five workdays and two weekend days &mdash; so a toggle sits above the stack and each segment carries its own day&rsquo;s occupied hours. Both totals are always live. That is what lets a weekend problem announce itself from the workday view.</p>
+  </div>
+
+  <div class="instrument">
+    <div class="phone">
+      <div class="phone-cap"><b>S2</b> &nbsp;editor &mdash; before the reveal</div>
+      <div class="tabs">
+        <div class="tab on"><span class="tn">Work day</span><span class="th">23.7 hr</span></div>
+        <div class="tab"><span class="tn">Weekend</span><span class="th">21.2 hr</span></div>
+      </div>
+      <div class="stack" style="height:486px">
+        <div class="band" style="height:160px"><div class="sp" style="background:hsl(36 72% 48%)"></div><div class="bd" style="background:hsl(36 72% 48%/var(--band-op))"></div><div class="lb" style="font-size:25px"><i>Sleep</i><s style="font-size:18px">8 h</s></div></div>
+        <div class="band" style="height:160px"><div class="sp" style="background:hsl(72 62% 40%)"></div><div class="bd" style="background:hsl(72 62% 40%/var(--band-op))"></div><div class="lb" style="font-size:25px"><i>Work</i><s style="font-size:18px">8 h</s></div></div>
+        <div class="band" style="height:20px"><div class="sp" style="background:hsl(108 55% 40%)"></div><div class="bd" style="background:hsl(108 55% 40%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Commute&nbsp; <s style="display:inline">1 h</s></i></div></div>
+        <div class="band" style="height:24px"><div class="sp" style="background:hsl(144 52% 38%)"></div><div class="bd" style="background:hsl(144 52% 38%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Eating&nbsp; <s style="display:inline">1.2 h</s></i></div></div>
+        <div class="band" style="height:30px"><div class="sp" style="background:hsl(180 58% 34%)"></div><div class="bd" style="background:hsl(180 58% 34%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Household&nbsp; <s style="display:inline">1.5 h</s></i></div></div>
+        <div class="band" style="height:18px"><div class="sp" style="background:hsl(252 55% 55%)"></div><div class="bd" style="background:hsl(252 55% 55%/var(--band-op))"></div></div>
+        <div class="band" style="height:12px"><div class="sp" style="background:hsl(288 50% 50%)"></div><div class="bd" style="background:hsl(288 50% 50%/var(--band-op))"></div></div>
+        <div class="band" style="height:50px"><div class="sp" style="background:hsl(324 62% 48%)"></div><div class="bd" style="background:hsl(324 62% 48%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Leisure&nbsp; <s style="display:inline">2.5 h</s></i></div></div>
+        <div class="unal" style="height:6px"></div>
+        <div class="ruler">
+          <div class="tk" style="top:0px">0</div>
+          <div class="tk" style="top:60px">3</div>
+          <div class="tk" style="top:120px">6</div>
+          <div class="tk" style="top:180px">9</div>
+          <div class="tk" style="top:240px">12</div>
+          <div class="tk" style="top:300px">15</div>
+          <div class="tk" style="top:360px">18</div>
+          <div class="tk" style="top:420px">21</div>
+          <div class="tk" style="top:479px">24</div>
+          <div class="rim" style="top:480px"></div>
+        </div>
+      </div>
+      <div class="below">
+        <h4>Not included</h4>
+        <div class="row">Care</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="phone-cap"><b>S4</b> &nbsp;reveal &mdash; school inserted</div>
+      <div class="tabs">
+        <div class="tab on over"><span class="tn">Work day</span><span class="th">27.7 hr</span></div>
+        <div class="tab"><span class="tn">Weekend</span><span class="th">21.2 hr</span></div>
+      </div>
+      <div class="stack" style="height:554px">
+        <div class="band" style="height:80px"><div class="sp" style="background:hsl(0 68% 50%)"></div><div class="bd" style="background:hsl(0 68% 50%/var(--band-op))"></div><div class="lb" style="font-size:14px"><i>StartSchool</i><s style="font-size:11px">4 h</s></div></div>
+        <div class="band" style="height:160px"><div class="sp" style="background:hsl(36 72% 48%)"></div><div class="bd" style="background:hsl(36 72% 48%/var(--band-op))"></div><div class="lb" style="font-size:25px"><i>Sleep</i><s style="font-size:18px">8 h</s></div></div>
+        <div class="band" style="height:160px"><div class="sp" style="background:hsl(72 62% 40%)"></div><div class="bd" style="background:hsl(72 62% 40%/var(--band-op))"></div><div class="lb" style="font-size:25px"><i>Work</i><s style="font-size:18px">8 h</s></div></div>
+        <div class="band" style="height:20px"><div class="sp" style="background:hsl(108 55% 40%)"></div><div class="bd" style="background:hsl(108 55% 40%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Commute&nbsp; <s style="display:inline">1 h</s></i></div></div>
+        <div class="band" style="height:24px"><div class="sp" style="background:hsl(144 52% 38%)"></div><div class="bd" style="background:hsl(144 52% 38%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Eating&nbsp; <s style="display:inline">1.2 h</s></i></div></div>
+        <div class="band" style="height:30px"><div class="sp" style="background:hsl(180 58% 34%)"></div><div class="bd" style="background:hsl(180 58% 34%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Household&nbsp; <s style="display:inline">1.5 h</s></i></div></div>
+        <div class="band" style="height:18px"><div class="sp" style="background:hsl(252 55% 55%)"></div><div class="bd" style="background:hsl(252 55% 55%/var(--band-op))"></div></div>
+        <div class="band" style="height:12px"><div class="sp" style="background:hsl(288 50% 50%)"></div><div class="bd" style="background:hsl(288 50% 50%/var(--band-op))"></div></div>
+        <div class="band" style="height:50px"><div class="sp" style="background:hsl(324 62% 48%)"></div><div class="bd" style="background:hsl(324 62% 48%/var(--band-op))"></div><div class="lb" style="font-size:13px"><i>Leisure&nbsp; <s style="display:inline">2.5 h</s></i></div></div>
+        <div class="ovl" style="top:480px; height:74px"></div>
+        <div class="ruler">
+          <div class="tk" style="top:0px">0</div>
+          <div class="tk" style="top:60px">3</div>
+          <div class="tk" style="top:120px">6</div>
+          <div class="tk" style="top:180px">9</div>
+          <div class="tk" style="top:240px">12</div>
+          <div class="tk" style="top:300px">15</div>
+          <div class="tk" style="top:360px">18</div>
+          <div class="tk" style="top:420px">21</div>
+          <div class="tk" style="top:479px">24</div>
+          <div class="rim" style="top:480px"></div>
+        </div>
+      </div>
+      <div class="below">
+        <h4>Not included</h4>
+        <div class="row">Care</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="cap">Rendered at 20&nbsp;px/hour, roughly a 600&nbsp;px phone viewport. Hours are the sketch&rsquo;s: 23.7 occupied, 0.3 unallocated. <b>Personal care (0.9&nbsp;h) and Admin (0.6&nbsp;h) show no label</b> &mdash; below 20&nbsp;px of band height the label is dropped, though both keep a full 44&nbsp;px hit area. That is the type rule working, not a rendering fault.</p>
+
+  <dl class="annot">
+    <dt>Spine</dt><dd>Leftmost 8% of viewport width, the band&rsquo;s hue at full saturation. At 320&nbsp;px that is still 25&nbsp;px.</dd>
+    <dt>Body</dt><dd>The remaining 92%, same hue at 12% opacity. Hue separates the bands; lightness cannot, because at 12% it collapses.</dd>
+    <dt>Ruler</dt><dd>One continuous scale over the spine, ticks at 0/3/&hellip;/24, each number on a translucent scrim so it holds against any hue.</dd>
+    <dt>Rim</dt><dd>The 24-hour line. One appearance, identical before and after breach. It is a rim, not an alert.</dd>
+    <dt>Stripes</dt><dd>45&deg; red, 6&nbsp;px period, clipped to everything below the rim &mdash; so Personal care, straddling the line, is striped only on its lower portion.</dd>
+  </dl>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;2.2 &middot; &sect;6.3 &middot; the flow</p>
+  <h2>Twenty minutes, two clocks</h2>
+  <div class="col">
+    <p class="lede">The participant moves at their own pace through the first half and then stops. The facilitator holds the room at that stop and releases it all at once. Everything before the release is individual; everything after is simultaneous.</p>
+  </div>
+
+  <div class="lanes">
+    <div class="lrow lhd"><div>Participant</div><div style="text-align:center">Stage</div><div>Facilitator</div></div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Joins</b><span class="sb">Enters a four-digit code or scans a QR. No account, no name. Content pack fetched and validated before anything renders.</span></div>
+      <div class="sc">&mdash;</div>
+      <div class="cl f"><b>Opens the room</b><span class="sb">Creates it with the flag closed, reads the join code aloud. Console reloads safely at any moment.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Answers the questionnaire</b><span class="sb">Screens in pack order, most carrying two day-scoped fields. A gate at the head of a section can skip that section &mdash; the only branching in the system.</span></div>
+      <div class="sc">S1</div>
+      <div class="cl f dim"><span class="sb">Watches the stage breakdown. A straggler on question 2 looks different from one on question 19.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Reviews and corrects</b><span class="sb">The stack appears. Tap a band, its section&rsquo;s screens rise in a sheet, prefilled. Fix a number, close, watch the band animate.</span></div>
+      <div class="sc">S2</div>
+      <div class="cl f dim"><span class="sb">&mdash;</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Presses Finish</b><span class="sb">Marks ready. Does <i>not</i> advance the stage &mdash; that is the point.</span></div>
+      <div class="sc">S2&rarr;S3</div>
+      <div class="cl f"><b>Reads the count</b><span class="sb"><span class="n">23 / 40</span> ready, in the largest type on the page. The one number the decision rests on.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Waits</b><span class="sb">A loader, a heading, dull cycling lines. Minimum five seconds in every path. Poll failures are swallowed &mdash; a connection warning here reads as a broken app.</span></div>
+      <div class="sc">S3</div>
+      <div class="cl f"><b>Decides</b><span class="sb">Judgement, not a threshold. The button is enabled from one participant; a console that refuses at 3/40 is wrong about who runs the room.</span></div>
+    </div>
+
+    <div class="lrow pivot">
+      <div class="cl p"><b>&mdash;</b><span class="sb">Nothing on their screen changes yet.</span></div>
+      <div class="sc">flag</div>
+      <div class="cl f"><b>Arms, then confirms</b><span class="sb">Two presses. The armed label restates <i>total</i>, not ready: <i>opens for 40 participants</i>. Reverts after 5&nbsp;s. One-way.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>The reveal</b><span class="sb">They forgot StartSchool. 20&nbsp;h a week minimum. The band lands at the top of the stack, above sleep, and the stack no longer fits.</span></div>
+      <div class="sc">S4</div>
+      <div class="cl f"><b>Stage open</b><span class="sb">The button becomes a static state. Nothing to press twice.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Rebalances</b><span class="sb">Cuts until the stripes are gone. What they cut, and in what order, is the output of the exercise.</span></div>
+      <div class="sc">S4</div>
+      <div class="cl f dim"><span class="sb">Runs the debrief off cut order and per-activity delta.</span></div>
+    </div>
+
+    <div class="lrow">
+      <div class="cl p"><b>Confirms</b><span class="sb">Enabled only when both day types fit. No auto-advance &mdash; someone who lands under 24 by accident should get to look at what they did.</span></div>
+      <div class="sc">S5</div>
+      <div class="cl f dim"><span class="sb">&mdash;</span></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h3>The three ways into S4</h3>
+    <p>The flag is one room-scoped boolean, and it has to handle a room that is not in one state. All three paths carry the same five-second floor.</p>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>State when the flag flips</th><th>What happens</th><th>Why the floor</th></tr></thead>
+      <tbody>
+        <tr><td>In S3, already waiting</td><td>Advance once 5&nbsp;s in S3 has elapsed</td><td>Already served</td></tr>
+        <tr><td>Finishes S2 after the flag is true</td><td>Enter S3, hold the full 5&nbsp;s, then S4</td><td>A late finisher who skips straight to the reveal loses the beat the pause creates</td></tr>
+        <tr><td>Still in S1 or S2</td><td>Snapshot, POST ready, S3, hold, S4</td><td>A forced participant needs a moment to stop editing</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="cap">Force-advance from S1 uses whatever has been answered, unanswered gates treated as <b>truthy</b>, and every remaining field falling to its pack default. A partly-default schedule beats leaving someone out of the reveal &mdash; and the defaults are mandatory now, or the promise doesn&rsquo;t hold.</p>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;7.6 &middot; &sect;8.3 &middot; the squeeze</p>
+  <h2>What the stripes are for</h2>
+  <div class="col">
+    <p class="lede">The reveal is the whole exercise compressed into one gesture. Everything about how it renders is chosen to keep the participant looking at the stack rather than solving an arithmetic problem.</p>
+
+    <p><strong>School goes on top, above sleep.</strong> Not appended at the bottom where it would read as optional. It displaces from the position of a fixed obligation, and everything below it moves down.</p>
+
+    <p><strong>The squeeze is silent.</strong> No number tells you how much you are over. No toast, no error, no <code>+3.7</code>. You cut until the stripes stop. The rim rule does not change appearance at breach and the stripes do not animate in.</p>
+
+    <p><strong>School only moves one way.</strong> 20&nbsp;h weekly minimum, in 5&nbsp;h steps upward. The decrement is disabled at the floor. Its sheet contains a stepper and nothing else &mdash; none of the questionnaire, because it is not something they told us about.</p>
+  </div>
+
+  <div class="pull">The participant cannot negotiate with the ask. They can only decide what it costs &mdash; and that decision, in the order they make it, is the finding.</div>
+
+  <div class="col">
+    <h3>The one numeric exception</h3>
+    <p>The toggle segment&rsquo;s hour count goes bold and red when its day breaches. On the day you are looking at, that duplicates the stripes deliberately: the number is already on screen and already changing, and leaving it neutral beside a striped stack reads as an oversight rather than as restraint. On the day you are <i>not</i> looking at, it is the only signal that exists &mdash; stripes cannot show you a stack that isn&rsquo;t rendered.</p>
+    <p>It still never states the excess. <code>27.7 hr</code>, not <code>+3.7</code>. The breach comes off a number they were already reading; the size of the problem comes off the striped region.</p>
+
+    <div class="warn"><strong>This is a departure from the 1.0 draft</strong>, which said the stripes were the entire signal and forbade any numeric overflow message anywhere. Both &sect;7.6 and the acceptance criterion were rewritten rather than quietly failed.</div>
+
+    <h3>When the squeeze doesn&rsquo;t bite</h3>
+    <p>Unallocated absorbs school before any band does. A participant with four or more hours of workday slack takes the reveal without breaching: no stripes, confirm enabled on arrival, cut order empty. That is a valid outcome and a real finding &mdash; their week had room &mdash; and the client neither marks it nor manufactures a breach to avoid it. Raising the ask to force a cut would make it a different ask for different people, and the shared moment is what the whole S3 hold exists to buy.</p>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;7.7 &middot; &sect;7.8 &middot; below the line</p>
+  <h2>Zero is not a band</h2>
+  <div class="col">
+    <p class="lede">An activity at zero hours renders nothing. A zero-height band is a dead tap target participants will try to hit, and a band at some arbitrary minimum height would misrepresent the total.</p>
+    <p>Those activities live in <strong>Not included</strong>, below the 24-hour line, reached by scrolling. Muted, unhued, no spine, no hour count &mdash; this list is inventory, not part of the instrument. A section gated out at S1 and a section answered with zeros look identical; the route to zero is telemetry, not UI.</p>
+    <p>Tapping a row opens that activity&rsquo;s sheet exactly as a band tap does, gate included and set to its falsy value. Give it hours and it slides into the stack at its pack order. At S4 the reverse is a legitimate move: cutting an activity to zero is how you solve the squeeze by removing something, and it logs as an <code>hours.change</code> to zero like any other reduction.</p>
+    <p><strong>Unallocated</strong> is the arithmetic remainder, not an activity. Dashed outline, no fill, no spine, no tap target, and it disappears entirely once there is nothing left. It is also the reason leisure had to be a real activity with its own questions: if leisure were the residual, the exercise would be asking what is left over rather than what was chosen.</p>
+    <div class="note">Discoverability is a footer count &mdash; <code>3 not included</code> &mdash; that scrolls to the list. The stack is never shrunk to fit the list on screen; the stack owning the viewport is what makes it read as a full day.</div>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;8.1 &middot; correction</p>
+  <h2>The sheet</h2>
+  <div class="col">
+    <p class="lede">Correction is a bottom sheet at 88% viewport height carrying that section&rsquo;s screens, prefilled &mdash; stacked and scrollable rather than paged, because replay is review and paging through four screens to fix one number is worse than scrolling.</p>
+    <p>Because the sheet occludes the stack, its header shows the activity&rsquo;s computed total, live, as fields change. The participant cannot see the consequence until dismissal, so the number stands in for the visual.</p>
+    <p>At the bottom sits the escape hatch: <strong>set directly</strong> flips the activity out of derivation and exposes plain numeric inputs for workday and weekend hours. It does not erase the underlying answers, and flipping back restores derivation from them. Constraints clamp silently &mdash; sleep stops at six hours, everything else at zero, and no error copy appears. The control simply stops.</p>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;4 &middot; content layer</p>
+  <h2>Everything sayable is data</h2>
+  <div class="col">
+    <p class="lede">No question, no label, no activity, and no hue is compiled into the client. The pack is versioned, fetched at session start, validated on load, and can be replaced without a release.</p>
+    <p>That includes copy, in a register the spec polices tightly: plain, neutral, sentence case, no encouragement, and specifically no phrasing that implies a norm, a benchmark, or a comparison. A prompt that says <i>most people underestimate this</i> changes the answer and has no place in the instrument.</p>
+
+    <h3>Three ways an activity gets its hours</h3>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Mode</th><th>Source</th><th>Who set it</th><th>Recoverable</th></tr></thead>
+      <tbody>
+        <tr><td><code>derived</code></td><td>An estimator over the answer map &mdash; either a fitted model or the plain <code>arith.freqDuration</code> path</td><td>The system, by default</td><td>&mdash;</td></tr>
+        <tr><td><code>direct</code></td><td>The participant&rsquo;s own number</td><td>The participant</td><td><b>No</b> &mdash; and deliberately so</td></tr>
+        <tr><td><code>fallback</code></td><td>A pack default, after the estimator threw</td><td>The system, under failure</td><td><b>Yes</b> &mdash; retried each pass</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p class="cap" style="margin-bottom:16px">The third mode is new in 1.1. Collapsing it into <code>direct</code> meant one dropped request pinned an activity to a default for the rest of the session, including after the participant edited the very inputs the estimator reads. A network failure is not a participant decision and must not be recorded as one.</p>
+
+    <p>Derived hours are <strong>never</strong> stored. They are recomputed from the flat answer map on every read, which is the invariant that makes question replay safe &mdash; editing one answer cannot leave a stale total anywhere in the system.</p>
+
+    <h3>Household, and why it ships as coefficients</h3>
+    <p>One activity is not arithmetic on its own answers. Household comes from a model fitted against the ATUS time-use extract, taking demographic and household inputs. It ships as <strong>closed-form coefficients inside the pack</strong>, evaluated client-side.</p>
+    <p>That is a decision about the room rather than about model quality. Forty phones on venue wifi, a network call inside a twenty-question flow, and a fallback rule that catches every failure with a default &mdash; a remote estimator degrades exactly when the workshop is busiest. <code>estimators/</code> is therefore build tooling: it fits offline and emits coefficients, and none of it reaches the client.</p>
+    <div class="note">If the model turns out not to reduce to a closed form, that is first a reason to reconsider the model, and only then a reason to reconsider this.</div>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;6.2 &middot; operator tooling</p>
+  <h2>One screen, one button</h2>
+  <div class="col">
+    <p class="lede">The console exists to answer a single question &mdash; has enough of the room finished? &mdash; and to act on the answer. It holds no local state; everything on screen came from the last poll.</p>
+    <p>Join code large and permanent, so a latecomer can be onboarded without navigating away. <code>ready / total</code> in the largest type on the page. Five stage counts beneath it. Values swap on the three-second poll with <strong>no transition animation</strong>, because a count that tweens is a count that can be misread mid-flight.</p>
+    <p>On poll failure the numbers stay, dimmed, with a small reconnecting note &mdash; the exact opposite of the participant&rsquo;s hold screen, and deliberately so. A stale hold screen worries someone for nothing; a stale console misleads someone who is about to make a decision from the numbers on it.</p>
+    <p>The button arms rather than fires, and the armed label restates <strong>total</strong> rather than ready, because the flag pulls in the seventeen who have not finished too. A press at 3/40 should look wrong at the moment of confirming it. It is not gated on any threshold: waiting is a facilitation judgement.</p>
+    <div class="warn"><strong>Unauthenticated by decision, not by oversight.</strong> The exposure is one boolean, in one room, for one supervised session, and the only thing protecting it is that the roomId never leaves the facilitator&rsquo;s browser. A second facilitator, a persistent room, or an unsupervised session all change that calculus.</div>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">&sect;10 &middot; the output</p>
+  <h2>What the debrief actually reads</h2>
+  <div class="col">
+    <p class="lede">The debrief is the point of the exercise and telemetry is the product. Everything else in the system exists to produce two fields, and if a build decision trades against them, the fields win.</p>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Field</th><th>Derivation</th><th>What it tells you</th></tr></thead>
+      <tbody>
+        <tr><td><b>Per-activity delta</b></td><td class="n">complete &minus; finish</td><td>What the ask cost, activity by activity</td></tr>
+        <tr><td><b>Cut order</b></td><td class="n">hours.change, to &lt; from</td><td>The sequence of decisions &mdash; the exercise&rsquo;s real output</td></tr>
+        <tr><td>First cut</td><td class="n">cut order [0]</td><td>The most diagnostic single field &mdash; with the caveat below</td></tr>
+        <tr><td>Slack at finish</td><td class="n">remaining('wd') at finish</td><td>How much was given up before any decision was made</td></tr>
+        <tr><td>Time to fit</td><td class="n">fits &minus; S4 entry</td><td>Individual rebalance effort</td></tr>
+        <tr><td>Time to fit, room</td><td class="n">fits &minus; stage.open</td><td>How the room moved together after the flag</td></tr>
+        <tr><td>Sleep floor hit</td><td class="n">clamp.hit on sleep</td><td>Someone who tried to solve it with sleep and was stopped</td></tr>
+        <tr><td>School above minimum</td><td class="n">weekly &gt; 20 at complete</td><td>Someone who chose to spend more than the ask</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="warn"><strong>Read cut order against slack at finish.</strong> Unallocated absorbs school before any band does, and that absorption emits no event. So the first <i>logged</i> cut is not the first real loss for anyone who had slack &mdash; it is the first loss they had to make a decision about. Both readings are useful and they are not the same reading. A debrief that quotes first cut without slack at finish is quoting a participant who may have already given up two hours silently.</div>
+    <p>Three snapshots carry the rest: end of S1, at Finish before the reveal, and at complete after the rebalance. The middle one is what makes per-activity delta a measurement of the ask rather than of the whole session.</p>
+  </div>
+</section>
+
+<section>
+  <div class="tickrule"></div>
+  <p class="sref">1.0 &rarr; 1.1 &middot; decision record</p>
+  <h2>What closed</h2>
+  <div class="col">
+    <p class="lede">Eleven things the first draft left open or contradicted. All eleven are now specified in place; the spec carries the same list in its changelog so a reader of 1.0 knows what moved.</p>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>#</th><th>Was</th><th>Now</th><th>Spec</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>&ldquo;The stack&rdquo;, singular &mdash; no way to reach the weekend</td><td>Day-type toggle, one stack at a time</td><td class="n">&sect;7.1 new</td></tr>
+        <tr><td class="n">2</td><td>S4 view unspecified</td><td>Forces <code>wd</code>, toggle stays live</td><td class="n">&sect;7.1 &sect;2.2 &sect;8.3</td></tr>
+        <tr><td class="n">3</td><td>Day total absent from the spec entirely</td><td>In the toggle segments, per day, occupied hours</td><td class="n">&sect;7.1</td></tr>
+        <tr><td class="n">4</td><td>&ldquo;The stripes are the entire signal&rdquo;</td><td>Breached segment goes bold red; stripes carry the rest</td><td class="n">&sect;7.6</td></tr>
+        <tr><td class="n">5</td><td>Even hue ring <i>and</i> &ge;40&deg; apart &mdash; unsatisfiable at ten activities</td><td>Even ring; the floor is 36&deg;</td><td class="n">&sect;7.5 &sect;4.6</td></tr>
+        <tr><td class="n">6</td><td>Ruler &ldquo;in a colour that holds contrast&rdquo;</td><td>Translucent scrim behind each tick</td><td class="n">&sect;7.3</td></tr>
+        <tr><td class="n">7</td><td>Estimator failure pinned an activity to <code>direct</code> forever</td><td>New <code>fallback</code> mode, recoverable</td><td class="n">&sect;3.2 &sect;4.3 &sect;4.4</td></tr>
+        <tr><td class="n">8</td><td>Rule 6 promised a full stack; derivation delivered zeros</td><td>Field defaults required in gated sections</td><td class="n">&sect;4.6 &sect;4.4</td></tr>
+        <tr><td class="n">9</td><td>Token persistence unstated; a refresh could mint a session</td><td>Session identity persists with the answers</td><td class="n">&sect;5 &sect;11</td></tr>
+        <tr><td class="n">10</td><td><i>Time to fit</i> meant two different things</td><td>Two fields, named apart, both recorded</td><td class="n">&sect;10 &sect;6.2.5</td></tr>
+        <tr><td class="n">11</td><td>Nothing covered school fitting inside existing slack</td><td>Valid outcome, specified</td><td class="n">&sect;8.4 &sect;10 &sect;11</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p class="cap">Section 7 renumbered by one to make room for the toggle. Acceptance criteria renumbered and extended; there are now 58.</p>
+    <h3>Accepted, not solved</h3>
+    <p>Decision 11 leaves first-cut misattributed for any participant who had slack, and decision 4 puts a second overflow signal on screen beside the stripes. Both were raised, both were chosen, and both are written into the spec as choices rather than left to be discovered as bugs. The rest of the build should treat them that way too.</p>
+  </div>
+</section>
+
+<footer>
+  <span>24 &middot; design document &middot; against build spec 1.1</span>
+  <span>hours-per-week</span>
+</footer>
+
+</div>
