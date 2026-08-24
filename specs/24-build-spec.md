@@ -1,8 +1,25 @@
 # 24 — Build Specification
 
 **Product:** a phone-first time-budget exercise for facilitated workshops.
-**Version:** 1.1 — build spec
+**Version:** 1.2 — build spec
 **Status of content:** the question list and the estimator models are *not* in this document. They are content, loaded as data, and are specified in §4 as interfaces. This document specifies the system that consumes them. A build is complete and testable with placeholder content.
+
+### Changes in 1.2
+
+Two places where 1.1 contradicted itself, resolved. Both are specified in place; this list exists so a reader of 1.1 knows what moved.
+
+| # | Was | Now | Where |
+|---|---|---|---|
+| 12 | §7.3 put each tick number on a translucent scrim; a later note removed it | No scrim. Exact ticks, numbers standing alone, white for now | §7.3, §12 AC 19 |
+| 13 | §6.1 returned `roomId` to every participant; §6.2.1 forbade it | `roomId` is facilitator-only; participants poll `GET /session/:id/stage` | §6.1, §6.2.1 |
+
+The criteria count is unchanged at 58. AC 19 keeps its number and its subject; only its test moved, from "sits on a scrim and is legible" to "is legible".
+
+**Known consequence, accepted (12).** §7.3's own argument was that no single ruler colour holds contrast against ten arbitrary hues at full saturation. Removing the plate reinstates exactly that risk, and white is exactly such a colour. It is accepted on the strength of the cleaner mark, and the tick colour is deliberately left open. If white fails against the light end of the hue ring, the answer is a colour, not the plate returning.
+
+**Known consequence, accepted (13).** The stage poll is now cacheable per session rather than per room — forty entries in a forty-phone room instead of one. That is the price of §6.2.6 meaning what it says.
+
+---
 
 ### Changes in 1.1
 
@@ -344,12 +361,14 @@ All endpoints JSON. Auth is a session token issued at start; no accounts. The fa
 ```
 POST /session
   body { joinCode: string }
-  →  { sessionId, token, roomId, packVersion, packUrl }
+  →  { sessionId, token, packVersion, packUrl }
      Resolves joinCode to a room. Unknown code → 404.
+     No roomId in the response — see §6.2.1.
 
-GET  /room/:roomId/stage
+GET  /session/:id/stage
   →  { stageOpen: boolean, serverTime: number }
      Poll interval 3 s. Cheap, cacheable for 1 s.
+     Token-authenticated; the server resolves session → room.
 
 POST /session/:id/ready
   body { schedule: ScheduleSnapshot }
@@ -385,6 +404,10 @@ The console lives at `/facilitate/:roomId`, returned as `consoleUrl`. Reloading 
 `joinCode` is short, unambiguous, and readable aloud across a room — four digits, no leading zero. Participants never see a roomId: they enter the code, or scan a QR encoding it, and `POST /session` resolves it. The code is valid for the life of the room.
 
 roomId is not derivable from joinCode. That separation is the only thing standing between a participant and the stage flag (§6.2.6), so roomId must never be sent to a participant client.
+
+**This governs §6.1.** The participant stage poll is `GET /session/:id/stage`, not a room-scoped route, and `POST /session` returns no roomId. No participant-facing route takes a roomId parameter, and roomId appears in no participant-facing state — not in a URL, not in localStorage, not in a telemetry payload. The room-scoped routes (`/room/:roomId/status`, `/room/:roomId/stage`) are the console's alone.
+
+The cost is that the poll caches per session rather than per room. That is accepted: a spec that hands every participant the one secret protecting the flag has not protected it, and §6.2.6's scope argument rests entirely on this separation holding.
 
 #### 6.2.2 Endpoints
 
@@ -542,7 +565,8 @@ Recomputed on resize and orientation change. A band's height is `hours × pxPerH
 - **Spine:** leftmost 8% of viewport width, full saturation of the band's hue.
 - **Body:** remaining 92%, same hue at 12% opacity.
 - **Hour scale:** ticks at 0, 3, 6, 9, 12, 15, 18, 21, 24. Positioned at the left edge, rendered *over* the spine. The scale is absolutely positioned against the stack container, not per-band — it is one continuous ruler.
-- **Tick scrim:** each tick number sits on a small translucent plate that spans the spine's width. No single ruler colour holds contrast against ten arbitrary hues at full saturation, so the contrast is guaranteed by the plate rather than assumed of the colour. The plate is the only element permitted to sit between the spine and the tick.
+- **Tick treatment:** exact ticks, and the numbers stand alone. **Nothing sits between the spine and the tick** — no plate, no scrim, no translucent stripe. The tick is a hairline rule and the number is set beside it.
+- **Tick colour:** white for now, and deliberately open. An earlier draft guaranteed contrast with a translucent plate behind each number, on the argument that no single colour holds against ten arbitrary hues at full saturation. That argument still stands and the plate is still gone: the mark is worth more than the guarantee, and the risk is carried by the colour instead. Legibility against every hue at full saturation is a build check (§12 AC 19), not an assumption. If white fails, the resolution is a different tick colour or an adjustment to the light end of the hue ring — not the plate returning.
 - **Label block:** activity label and hour count, right-aligned, inset 16 px from the right edge.
 
 ### 7.4 Type scaling
@@ -796,7 +820,7 @@ Everything else in this document exists to produce **per-activity delta** and **
 16. Stack is full-bleed: zero horizontal margin at every supported width.
 17. Spine is 8% of viewport width; body fill is the same hue at 12%.
 18. Hour scale renders over the spine, ticks at 0/3/…/24, as one continuous ruler.
-19. Each tick number sits on a translucent scrim and is legible against every activity hue at full saturation.
+19. Each tick number is legible against every activity hue at full saturation, with nothing rendered between the spine and the tick.
 20. Activity hues form an even ring at `360 / n`; no two are closer than that interval.
 21. A 0.25 h band is tappable (≥44 px hit area) though visually a rule.
 22. Label type scales with band height and clamps at 13 px / 34 px.
