@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** not started
+**Status:** Stage 0 complete
 
 ## How to use this document
 
@@ -106,15 +106,15 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
 
 ---
 
-## Stage 0 — Scaffold, tokens, database
+## Stage 0 — Scaffold, tokens, database ✅
 
-- [ ] **0.1 Next.js + TypeScript app** — App Router, strict TS, ESLint, Vitest, Playwright. `.gitignore` extended for `node_modules`, `.next`, `*.sqlite`; the existing `datasets/` ignore stays.
+- [x] **0.1 Next.js + TypeScript app** — App Router, strict TS, ESLint, Vitest, Playwright. `.gitignore` extended for `node_modules`, `.next`, `*.sqlite`; the existing `datasets/` ignore stays.
   *AC: none (enabling)*
 
-- [ ] **0.2 Design tokens** — `styles/tokens.css`: the ten-hue ring computed at `360/n`, the overflow red, spine/body opacities (100% / 12%), the two faces (display for labels, utility face with `tabular-nums` for numbers and the toggle), and the 24 h rim colour. One file, so §7.5's evenness has a single source rather than ten literals. (§7.3, §7.5, §7.6)
+- [x] **0.2 Design tokens** — `styles/tokens.css`: the ten-hue ring computed at `360/n`, the overflow red, spine/body opacities (100% / 12%), the two faces (display for labels, utility face with `tabular-nums` for numbers and the toggle), and the 24 h rim colour. One file, so §7.5's evenness has a single source rather than ten literals. (§7.3, §7.5, §7.6)
   *AC: none (enabling; 20 is tested in 1.5 and 4.3)*
 
-- [ ] **0.3 SQLite schema and migration runner** — `lib/db/schema.sql`, opened once per process, WAL on. (§2.1, §6.1)
+- [x] **0.3 SQLite schema and migration runner** — `lib/db/schema.sql`, opened once per process, WAL on. (§2.1, §6.1)
   ```sql
   rooms      (id TEXT PK, join_code TEXT UNIQUE, stage_open INT DEFAULT 0,
               opened_at INT, created_at INT)
@@ -128,7 +128,7 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
   `snapshots.kind` is one of `s1` / `finish` / `complete` (§10). `room_events` carries `stage.open` and nothing else in v1 (§6.2.5).
   *AC: none (enabling)*
 
-- [ ] **0.4 Shared types** — `lib/domain/types.ts` and `lib/pack/types.ts` transcribed from §3.2, §4.1, §4.2, §4.3, §5, §10. `DayValue.mode` is the three-member union `'derived' | 'direct' | 'fallback'` from the outset — §4.3 rule 5 is not retrofittable onto a boolean.
+- [x] **0.4 Shared types** — `lib/domain/types.ts` and `lib/pack/types.ts` transcribed from §3.2, §4.1, §4.2, §4.3, §5, §10. `DayValue.mode` is the three-member union `'derived' | 'direct' | 'fallback'` from the outset — §4.3 rule 5 is not retrofittable onto a boolean.
   *AC: none (enabling)*
 
 **Stage 0 done when:** `npm run dev` serves a blank shell, `npm test` runs, the schema applies to a fresh file, and `tsc --noEmit` is clean.
