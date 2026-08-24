@@ -1,0 +1,1 @@
+for the hour counter ruler, there should not be those visible translucent stripes. instead, there are exact ticks, and the numbers stand alone, will decide later with what color, for now just white
