@@ -24,7 +24,7 @@ import { ParticipantProvider, useParticipant } from '@/lib/client/participant';
 import { Intro } from './Intro';
 import { Join } from './Join';
 import { Questionnaire } from './Questionnaire';
-import { StackSummary } from './StackSummary';
+import { Editor } from '@/components/stack/Editor';
 
 /** A session in hand: the restored record, or the one a join just created. */
 interface Ready {
@@ -90,12 +90,12 @@ export function Participant() {
 }
 
 /**
- * S1 only. The Finish button, the S3 hold, the reveal and the rebalance are
- * Stages 4 through 7; `session.stage` is the seam they attach to, and it is
- * already persisted and already restored (§5).
+ * S1 and S2. The Finish button, the S3 hold, the reveal and the rebalance are
+ * Stages 6 and 7; `session.stage` is the seam they attach to, and it is already
+ * persisted and already restored (§5).
  */
 function Stages() {
-  const { index: packIndex, session, activities, patch } = useParticipant();
+  const { index: packIndex, session, patch } = useParticipant();
 
   if (!session.introSeen) {
     return <Intro pack={packIndex.pack} onContinue={() => patch({ introSeen: true })} />;
@@ -105,5 +105,7 @@ function Stages() {
     return <Questionnaire onComplete={() => patch({ stage: 's2' })} />;
   }
 
-  return <StackSummary pack={packIndex.pack} activities={activities} />;
+  // The sheet a band tap opens is Stage 5, so `onSelect` is deliberately absent
+  // here rather than stubbed: nothing yet has anywhere to send the participant.
+  return <Editor />;
 }

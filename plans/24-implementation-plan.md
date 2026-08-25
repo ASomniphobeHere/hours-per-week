@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 3 complete
+**Status:** Stage 4 complete
 
 ## How to use this document
 
@@ -86,6 +86,12 @@ Two places where the spec contradicted itself. Both are now decided; the build f
 **The risk that trade opens, and what happens if it fires.** §7.3's reasoning was that no single ruler colour holds contrast against ten arbitrary hues. Bare white is exactly such a colour, and the light end of the 36° ring — roughly hues 45°–90° — is where it will fail first. Tested in step 4.4, against all ten hues at full saturation, early in Stage 4 rather than at the acceptance sweep.
 
 If white fails, the scrim does **not** come back on its own. The note defers a colour decision, so a failure returns to the user as that decision — a darker tick colour, a hue-ring adjustment at the light end, or an explicit reversal to the plate. **Affects Stage 4, step 4.4.**
+
+**It fired, and the resolution is the hue ring.** Step 4.4's check found white failing on six of the ten hues — 1.56:1 at 72°, and under 4.5:1 everywhere from 36° to 180° plus 324°. Decided 2026-08-25 with the user: the ring moves from `hsl(h 72% 52%)` to `oklch(0.52 0.16 h)`, and white stays.
+
+The reason it is the ring rather than the tick is that HSL's `lightness` is not perceptual. At one HSL lightness the yellow end of the ring is nearly four times as luminous as the blue end, so the v1 ring was uneven in exactly the property §7.5 says must not distinguish one band from another — and white was reading that unevenness. At a fixed OKLCH lightness the ring is evenly light in fact as well as in notation, the 36° spacing is untouched, and white clears 4.5:1 on every hue with room to spare (5.15:1 worst, 5.15–6.02 across the ring). Rejected: a flat darker tick, which fails at 252° and is marginal at four more; a per-hue tick colour, which would stop the scale reading as one ruler; and reinstating the plate, which is the mark the note asked to remove. Cost: the bands read as deeper tones, and the greens and yellows lose their brightness.
+
+`components/stack/ruler-contrast.test.ts` asserts it, reading the tick colour and the spine's own declaration out of the stylesheets rather than restating either, so the ring and the tick cannot drift apart again without a red test. **Tokens: `--band-lightness`, `--band-chroma`.**
 
 ### RD-2 — `roomId` never reaches a participant
 
@@ -217,7 +223,7 @@ Pure functions, no DOM, no network. This is where §3.4's invariant lives and th
   *AC: 8*
 
 - [x] **3.5 Stack generation at S1 end** (§3.3, §7.7, §4.4) — on the last screen, derive the full stack: one band per non-zero activity in pack order, every zero-hour activity in Not included. A wholly unanswered section derives to non-zero hours from its field defaults and does **not** land in Not included — this is §4.6's default rule paying off, and it is what makes §4.2.1 rule 6 honest.
-  *AC: 9, 10*
+  *AC: 9, 10* — Stage 3 rendered this through a plain `StackSummary`, which said so in its own docblock and existed only until §7's instrument did. Stage 4 replaced it with the real editor; both criteria are now asserted against `components/stack/Stack.tsx`, which draws the same contents to §7's geometry.
 
 - [x] **3.6 Answer persistence** (§5) — every field change writes through to localStorage; a mid-session refresh costs nothing.
   *AC: 6*
@@ -226,33 +232,35 @@ Pure functions, no DOM, no network. This is where §3.4's invariant lives and th
 
 ---
 
-## Stage 4 — Editor: toggle, stack, ruler, Not included
+## Stage 4 — Editor: toggle, stack, ruler, Not included ✅
 
 The instrument. §7 is unusually specific and the criteria are correspondingly literal.
 
-- [ ] **4.1 Day-type toggle** (§7.1) — two segments above the stack, the only chrome between header and ruler. Each carries its day type's label and that day's **occupied hours** — `total(dt)`, not `remaining` — live, whether selected or not. Selecting changes which stack renders and nothing else: no answer, no derivation, no telemetry beyond a view event. Default `wd` on first entry to S2; the selection survives sheet open/close and refresh. Labels in the utility face, uppercase with letter-spacing; hours in `tabular-nums` so a changing total cannot reflow the tab.
+- [x] **4.1 Day-type toggle** (§7.1) — two segments above the stack, the only chrome between header and ruler. Each carries its day type's label and that day's **occupied hours** — `total(dt)`, not `remaining` — live, whether selected or not. Selecting changes which stack renders and nothing else: no answer, no derivation, no telemetry beyond a view event. Default `wd` on first entry to S2; the selection survives sheet open/close and refresh. Labels in the utility face, uppercase with letter-spacing; hours in `tabular-nums` so a changing total cannot reflow the tab.
   *AC: 11, 12, 14, 15*
 
-- [ ] **4.2 Breach signal on the toggle** (§7.1, §7.6) — when `total(dt) > 24`, that segment's hour count goes bold and overflow-red, selected or not. It shows occupied hours (`27.7 hr`), never `+3.7` and never `3.7 over`.
+- [x] **4.2 Breach signal on the toggle** (§7.1, §7.6) — when `total(dt) > 24`, that segment's hour count goes bold and overflow-red, selected or not. It shows occupied hours (`27.7 hr`), never `+3.7` and never `3.7 over`.
   *AC: 13*
 
-- [ ] **4.3 Geometry and band anatomy** (§7.2–§7.5) — full-bleed, zero horizontal margin at every supported width down to 320 px. `pxPerHour = (viewportHeight − headerH − toggleH − footerH) / 24`, recomputed on resize and orientation change. Band height is `hours × pxPerHour`, unclamped; the container is `max(24, total) × pxPerHour`, so an overflowing stack extends past the viewport and scrolls — intended, not a bug to fix. Spine at 8% of viewport width (25 px floor at 320 px) at full hue saturation; body at 92% in the same hue at 12% opacity. Label and hours right-aligned, inset 16 px. Hues read from the pack ring; colour is orientation, the label is identification.
+- [x] **4.3 Geometry and band anatomy** (§7.2–§7.5) — full-bleed, zero horizontal margin at every supported width down to 320 px. `pxPerHour = (viewportHeight − headerH − toggleH − footerH) / 24`, recomputed on resize and orientation change. Band height is `hours × pxPerHour`, unclamped; the container is `max(24, total) × pxPerHour`, so an overflowing stack extends past the viewport and scrolls — intended, not a bug to fix. Spine at 8% of viewport width (25 px floor at 320 px) at full hue saturation; body at 92% in the same hue at 12% opacity. Label and hours right-aligned, inset 16 px. Hues read from the pack ring; colour is orientation, the label is identification.
   *AC: 16, 17, 20*
 
-- [ ] **4.4 Continuous ruler** (§7.3 as amended by **RD-1**) — ticks at 0/3/6/9/12/15/18/21/24, absolutely positioned against the stack container rather than per band, so it reads as one ruler across ten spines, rendered over the spine. Exact hairline ticks, numbers standing alone in white, **no translucent scrim** — nothing sits between the spine and the tick.
+- [x] **4.4 Continuous ruler** (§7.3 as amended by **RD-1**) — ticks at 0/3/6/9/12/15/18/21/24, absolutely positioned against the stack container rather than per band, so it reads as one ruler across ten spines, rendered over the spine. Exact hairline ticks, numbers standing alone in white, **no translucent scrim** — nothing sits between the spine and the tick.
   **Legibility check, run here and not deferred to Stage 11:** render the ruler over all ten hues at full saturation and read every tick. The light end of the ring (roughly 45°–90°) is where bare white fails first. A failure returns to the user as the colour decision `specs/notes.txt` defers; it does not silently reinstate the plate.
   *AC: 18, 19 (19's test is "legible against every hue at full saturation" — see RD-1)*
 
-- [ ] **4.5 Type scaling and tap targets** (§7.4) — `labelSize = clamp(13px, bandHeight × 0.16, 34px)`, `hoursSize = labelSize × 0.72`; the label is omitted below a 20 px band. Tap target is independent of visual height: every band gets a ≥44 px transparent hit overlay that may overlap neighbours, and when overlays collide the **smaller** band wins — thin bands are the hard ones to hit.
+- [x] **4.5 Type scaling and tap targets** (§7.4) — `labelSize = clamp(13px, bandHeight × 0.16, 34px)`, `hoursSize = labelSize × 0.72`; the label is omitted below a 20 px band. Tap target is independent of visual height: every band gets a ≥44 px transparent hit overlay that may overlap neighbours, and when overlays collide the **smaller** band wins — thin bands are the hard ones to hit.
   *AC: 21, 22*
 
-- [ ] **4.6 Unallocated** (§7.8) — bottom band, dashed 1 px outline, no fill, no spine, label from `band.unallocated`. No tap target. Absent entirely when `remaining ≤ 0`.
+- [x] **4.6 Unallocated** (§7.8) — bottom band, dashed 1 px outline, no fill, no spine, label from `band.unallocated`. No tap target. Absent entirely when `remaining ≤ 0`.
   *AC: none directly (asserted in 7.7's no-squeeze path)*
 
-- [ ] **4.7 Not included** (§7.7) — membership is `hours('wd') === 0 && hours('we') === 0`; zero on one day type only keeps the activity in the stack, rendering a band on the day it has hours. Sits below the 24 h line, reached by scrolling. Heading in the utility face at the stack's right-label inset; one muted full-width row per activity, ≥44 px, label only — no hue, no spine, no hour count. Cause is not distinguished: gated-out and answered-to-zero look identical, and the route to zero is telemetry, not UI. A footer count (`3 not included`) scrolls to it. Absent entirely when empty, with no empty-state copy. The stack never shrinks to fit the list on screen.
+- [x] **4.7 Not included** (§7.7) — membership is `hours('wd') === 0 && hours('we') === 0`; zero on one day type only keeps the activity in the stack, rendering a band on the day it has hours. Sits below the 24 h line, reached by scrolling. Heading in the utility face at the stack's right-label inset; one muted full-width row per activity, ≥44 px, label only — no hue, no spine, no hour count. Cause is not distinguished: gated-out and answered-to-zero look identical, and the route to zero is telemetry, not UI. A footer count (`3 not included`) scrolls to it. Absent entirely when empty, with no empty-state copy. The stack never shrinks to fit the list on screen.
   *AC: 28, 29, 31*
 
-**Stage 4 done when:** the stack renders at 320 px, 375 px, and landscape with no horizontal scroll; both toggle totals stay live and correct; the ruler is legible over every hue; a 0.25 h band is reliably tappable.
+**Stage 4 done when:** the stack renders at 320 px, 375 px, and landscape with no horizontal scroll; both toggle totals stay live and correct; the ruler is legible over every hue; a 0.25 h band is reliably tappable. — **All four hold.** `e2e/s2-editor.spec.ts` carries the geometry criteria in a real layout engine; `components/stack/*.test.tsx` carries the arithmetic behind them. The ruler took the RD-1 decision above to get there.
+
+**Two things decided in the building, both small.** §9's copy table gains four more keys — `toggle.wd`, `toggle.we`, `toggle.hours` and `band.notIncludedCount` — on the same reasoning as the fourteen Stage 3 added: they are participant-facing strings the spec's table does not name, and a replacement pack that omits them leaves a room reading raw key names. The toggle's hours are one templated key rather than a number plus a unit, so a pack owns the whole figure. Separately, §7.4's 20 px label rule is applied to Unallocated as well as to bands: §7.8 calls it the bottom band, and a participant with six minutes of slack was getting a three-pixel dashed rule with a 13 px word spilling out of it across the 24-hour tick.
 
 ---
 

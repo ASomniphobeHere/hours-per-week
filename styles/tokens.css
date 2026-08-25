@@ -25,11 +25,19 @@
   --hue-8: calc(8 * var(--hue-step));
   --hue-9: calc(9 * var(--hue-step));
 
-  /* Saturation and lightness are constant across the ring. Bands are
-     distinguished by hue alone (§7.5) — at 12% opacity lightness differences
-     collapse to nothing, so varying them would buy nothing and cost evenness. */
-  --band-saturation: 72%;
-  --band-lightness: 52%;
+  /* Lightness and chroma are constant across the ring, so bands are
+     distinguished by hue alone (§7.5).
+
+     OKLCH rather than HSL, decided 2026-08-25 with the user under step 4.4's
+     legibility check. HSL's `lightness` is not perceptual — `hsl(72 72% 52%)`
+     is nearly four times as luminous as `hsl(252 72% 52%)` — so an HSL ring at
+     one lightness is uneven in exactly the property §7.5 says must not
+     distinguish a band, and white tick numbers failed on six of the ten hues
+     (§7.3, AC 19). At a fixed OKLCH lightness the ring is evenly light in fact
+     as well as in notation, and white clears 4.5:1 on every hue with room to
+     spare. `ruler-contrast.test.ts` measures it. */
+  --band-lightness: 0.52;
+  --band-chroma: 0.16;
 
   /* ── Band anatomy (§7.3) ────────────────────────────────────────────────── */
   --spine-width: 8vw;          /* leftmost 8% of viewport width; ≥25px at 320px */
@@ -39,8 +47,13 @@
 
   /* ── Ruler (§7.3, RD-1) ─────────────────────────────────────────────────
      Exact hairline ticks; the numbers stand alone. Nothing sits between the
-     spine and the tick — no plate, no scrim, no stripe. Tick colour is white
-     for now and deliberately open (AC 19 is a build check, not an assumption). */
+     spine and the tick — no plate, no scrim, no stripe.
+
+     White, and now settled rather than provisional: the ring above was evened
+     in OKLCH so that white clears 4.5:1 on every hue at full saturation, which
+     is what `specs/notes.txt` left open and what AC 19 tests. Changing either
+     this or the ring's lightness breaks `ruler-contrast.test.ts`, which is the
+     point of it. */
   --tick-color: #ffffff;
   --tick-weight: 1px;
   --tick-length: 12px;
