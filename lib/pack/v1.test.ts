@@ -40,9 +40,12 @@ describe('the v1 pack (§3.3, §4.1, §9)', () => {
   });
 
   it('states the multitasking rule once, in the questionnaire intro (§13)', () => {
+    expect(v1Pack.copy['intro.multitasking']).toBeTruthy();
+    // The statement has its own page before the first screen, so no screen
+    // carries it as a note — that is what makes "once" checkable: a second
+    // placement would be a second reading of the same rule.
     const notes = v1Pack.screens.map((screen) => screen.note).filter(Boolean);
-    expect(notes.filter((note) => note === 'intro.multitasking')).toHaveLength(1);
-    expect(v1Pack.screens[0]!.note).toBe('intro.multitasking');
+    expect(notes).not.toContain('intro.multitasking');
   });
 
   it('gates care and nothing else', () => {
@@ -175,7 +178,9 @@ describe('§9 copy register', () => {
   });
 
   it('asks in sentence case and ends questions with a question mark', () => {
-    const prompts = Object.keys(v1Pack.copy).filter((key) => key.endsWith('.prompt'));
+    // Taken from the screens rather than by key suffix: the client's own
+    // chrome has a `join.prompt` that is an instruction, not a question.
+    const prompts = v1Pack.screens.map((screen) => screen.prompt);
     expect(prompts.length).toBeGreaterThan(10);
     for (const key of prompts) {
       const text = v1Pack.copy[key]!;

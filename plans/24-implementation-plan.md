@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 2 complete
+**Status:** Stage 3 complete
 
 ## How to use this document
 
@@ -113,6 +113,14 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
 
 **`packUrl` points at a route handler.** §6.1 has `POST /session` return a `packUrl` but names no route to serve it, and `packs/v1/pack.json` sits outside `public/` where nothing serves it. Added `GET /api/pack/:version`, which runs §4.6 validation before the bytes leave the server; `packs/v1/pack.json` stays the single canonical copy. Rejected: moving the pack under `public/`, which serves it unvalidated and splits the file from the layout below. Unknown versions 404 rather than falling through to v1, so a client asking for a pack this build lacks hits its §11 retry and last-good path instead of being handed different content under the version it asked for. Decided 2026-08-25 with the user. **Stage 2, step 2.2.**
 
+**The multitasking statement gets its own page.** §13 requires it stated once in the questionnaire intro; the pack has the `intro.multitasking` key and §4.2's `Screen` has no slot for a standing note outside a screen. Stage 1 hung it on the first screen's `note`. Decided instead: a dedicated page before screen one, with its own Continue, and the dismissal persisted (`introSeen`) so "once" survives the refresh §11 requires be invisible. It is **not** counted in `s1.progress` — progress is over pack screens (§4.2.1), and this page is client chrome no pack declares. Decided 2026-08-25 with the user. **Stage 3, step 3.1.**
+
+**The join screen belongs to Stage 3.** No step builds it, and S1 is unreachable without one: `ensureSession` needs a join code. Built here as enabling work, claiming no acceptance criterion of its own — a four-digit code, `POST /session`, and nothing else. A 404 is a wrong code and says so; any other failure is a retry and must not tell forty people their code is bad. Stage 6 still owns the stage machine. Decided 2026-08-25 with the user. **Stage 3.**
+
+**§9's copy table is a floor, not a ceiling.** §9 requires that no string be hardcoded in the participant client, and its required-keys table names none of the client's own chrome — the navigation controls, the intro page, the join screen, the unit suffix beside a stepper. Fourteen keys added to the pack and to `REQUIRED_COPY_KEYS`, so a replacement pack cannot ship without them and leave a room reading raw key names. The facilitator console remains §9's stated exception and reads none of them. **Stage 3, steps 3.1–3.2.**
+
+**Media closes against fixtures, not pack content.** No v1 screen declares an image, so AC 3 and AC 4 are proved against fixture screens through the real renderer rather than by shipping placeholder artwork the workshop does not want. The cap of 2 stays a pack-validation failure (`media-cap`), not a renderer truncation. Decided 2026-08-25 with the user. **Stage 3, step 3.2.**
+
 ---
 
 ## Stage 0 — Scaffold, tokens, database ✅
@@ -194,24 +202,24 @@ Pure functions, no DOM, no network. This is where §3.4's invariant lives and th
 
 ---
 
-## Stage 3 — S1 questionnaire
+## Stage 3 — S1 questionnaire ✅
 
-- [ ] **3.1 Screen renderer** (§4.2) — screens in pack order, one page at a time, multiple fields per screen as the normal case. Field types: `count`, `duration`, `clock`, `number`, `choice`, `multichoice`. Two day-scoped fields on one screen capture independently — wake time on workdays and wake time on weekend days do not share state.
+- [x] **3.1 Screen renderer** (§4.2) — screens in pack order, one page at a time, multiple fields per screen as the normal case. Field types: `count`, `duration`, `clock`, `number`, `choice`, `multichoice`. Two day-scoped fields on one screen capture independently — wake time on workdays and wake time on weekend days do not share state.
   *AC: 1 (with 3.3), 2*
 
-- [ ] **3.2 Media** (§4.5) — 0–2 images. One sits between prompt and fields at full content width; two sit side by side at half. `aspect` reserves layout space before load so fields never jump. Every question is answerable with images blocked, and `alt` is required at pack validation.
+- [x] **3.2 Media** (§4.5) — 0–2 images. One sits between prompt and fields at full content width; two sit side by side at half. `aspect` reserves layout space before load so fields never jump. Every question is answerable with images blocked, and `alt` is required at pack validation.
   *AC: 3, 4*
 
-- [ ] **3.3 Gates** (§4.2.1) — one gate per section, on that section's first screen. A falsy answer skips the rest of that section and no other. No `showIf`, no field conditionals, no cross-section dependencies, no reordering. Flipping falsy→truthy reveals the remaining screens at their defaults, unanswered; truthy→falsy hides them and preserves their answers, so the round trip is lossless.
+- [x] **3.3 Gates** (§4.2.1) — one gate per section, on that section's first screen. A falsy answer skips the rest of that section and no other. No `showIf`, no field conditionals, no cross-section dependencies, no reordering. Flipping falsy→truthy reveals the remaining screens at their defaults, unanswered; truthy→falsy hides them and preserves their answers, so the round trip is lossless.
   *AC: 1, 7*
 
-- [ ] **3.4 Progress** (§4.2.1) — computed over reachable screens given current gate answers, recomputed when a gate changes. The total drops when a section is gated out; that is honest, and preferred over a bar that lies to stay monotonic.
+- [x] **3.4 Progress** (§4.2.1) — computed over reachable screens given current gate answers, recomputed when a gate changes. The total drops when a section is gated out; that is honest, and preferred over a bar that lies to stay monotonic.
   *AC: 8*
 
-- [ ] **3.5 Stack generation at S1 end** (§3.3, §7.7, §4.4) — on the last screen, derive the full stack: one band per non-zero activity in pack order, every zero-hour activity in Not included. A wholly unanswered section derives to non-zero hours from its field defaults and does **not** land in Not included — this is §4.6's default rule paying off, and it is what makes §4.2.1 rule 6 honest.
+- [x] **3.5 Stack generation at S1 end** (§3.3, §7.7, §4.4) — on the last screen, derive the full stack: one band per non-zero activity in pack order, every zero-hour activity in Not included. A wholly unanswered section derives to non-zero hours from its field defaults and does **not** land in Not included — this is §4.6's default rule paying off, and it is what makes §4.2.1 rule 6 honest.
   *AC: 9, 10*
 
-- [ ] **3.6 Answer persistence** (§5) — every field change writes through to localStorage; a mid-session refresh costs nothing.
+- [x] **3.6 Answer persistence** (§5) — every field change writes through to localStorage; a mid-session refresh costs nothing.
   *AC: 6*
 
 **Stage 3 done when:** a participant can complete the questionnaire, gate two sections out and back in without losing an answer, refresh mid-flow and resume in place, and reach a stack whose contents match §3.3.

@@ -30,6 +30,13 @@ export interface PersistedState {
   packVersion: string;
   dayType: DayType;
   stage: StageId;
+  /**
+   * §13's multitasking statement is shown once, on its own page before the
+   * first screen. Persisting the dismissal is what makes "once" survive a
+   * refresh on screen one — §5 wants a refresh to be invisible, and re-reading
+   * an instruction already read is a visible one.
+   */
+  introSeen: boolean;
   answers: AnswerMap;
 }
 
@@ -85,6 +92,10 @@ function parse(raw: string | null): PersistedState | null {
     packVersion: candidate.packVersion,
     dayType: candidate.dayType,
     stage: candidate.stage,
+    // Absent in a record written before the intro page existed. Treating that
+    // as unseen costs a returning participant one tap; treating a corrupt
+    // record as seen would skip the statement silently.
+    introSeen: candidate.introSeen === true,
     answers: candidate.answers,
   };
 }

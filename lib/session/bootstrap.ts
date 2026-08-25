@@ -65,6 +65,7 @@ export async function ensureSession({
     // §7.1's default view, and §5 persists it so a refresh is invisible.
     dayType: 'wd',
     stage: 's1',
+    introSeen: false,
     answers: {},
   };
   // Written before the participant answers anything: a refresh in the seconds
