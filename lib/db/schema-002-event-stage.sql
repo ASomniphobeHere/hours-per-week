@@ -1,0 +1,11 @@
+-- Schema v2 — the stage an `Event` of type `stage.enter` names.
+--
+-- §10's Event union carries no stage field. It is added because §6.2.2's
+-- `inStage` is derived server-side from these events (there is no endpoint that
+-- reports a participant's stage), and because *time to fit* is measured from
+-- the S4 entry recovered from this log (§10).
+--
+-- Deliberately not folded into `activity_id`: cut order and per-activity delta
+-- are read by grouping on that column (§10), and a column holding both
+-- 'leisure' and 's4' makes every such read carry a special case.
+ALTER TABLE events ADD COLUMN stage TEXT;

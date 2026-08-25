@@ -113,6 +113,14 @@ export interface Event {
   type: EventType;
   activityId?: string;
   fieldId?: string;
+  /**
+   * The stage entered, on `stage.enter` only. §10's union carries no such
+   * field; it is added because §6.2.2's `inStage` is derived from these events
+   * server-side and *time to fit* is measured from the S4 entry in the log
+   * (§10). Carrying it in `activityId` would leave that column holding two
+   * unrelated kinds of value.
+   */
+  stage?: StageId;
   /** hours, for edits */
   from?: number;
   to?: number;

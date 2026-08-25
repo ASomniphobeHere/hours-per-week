@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 1 complete
+**Status:** Stage 2 complete
 
 ## How to use this document
 
@@ -47,13 +47,16 @@ app/
     session/[id]/ready/route.ts
     session/[id]/complete/route.ts
     session/[id]/telemetry/route.ts
+    pack/[version]/route.ts         GET  — the packUrl target
 lib/
   domain/       activity, daytype, derive, fits, constraints
   pack/         types, loader, validator
   estimators/   registry, arith.freqDuration, household.v1 (coefficient eval)
   store/        answer map, localStorage persistence, session identity
+  session/      api client, one-shot bootstrap, jittered stage poll
+  api/          response + auth helpers, payload narrowing, stage ingest
   telemetry/    event queue, batching, snapshots
-  db/           schema.sql, migrations, queries
+  db/           schema.sql, migrations, ids, queries
 components/
   stack/        Stack, Band, Ruler, Unallocated, NotIncluded, DayToggle
   sheet/        Sheet, ScreenList, fields/*, DirectEntry
@@ -103,6 +106,12 @@ Same poll cost and same 1 s cache window, per session rather than per room — f
 ### Noted, resolved in-plan
 
 §6.2.2 requires `inStage` to sum to `total`, but no endpoint reports a participant's stage. The server derives furthest stage from the `stage.enter` events already arriving in telemetry batches (§10), taking the max and never decreasing. A session starts at `s1` on creation, so the sum holds from the first row. See step 2.5.
+
+**`stage.enter` carries a `stage` field.** §10's `Event` has `activityId` and `fieldId` and nothing that names a stage, so the derivation above had nowhere to read from. `Event` gains an optional `stage?: StageId`, with a matching `events.stage` column (schema v2). Rejected: folding it into `activityId`, which is grouped on to produce cut order and per-activity delta (§10) and would then hold both `leisure` and `s4`. Decided 2026-08-25 with the user. **Stage 2, step 2.5; consumed by Stage 10, step 10.4** — *time to fit* is measured from the S4 entry recovered from this column.
+
+**Token transport is `Authorization: Bearer`.** §6.1 says auth is a session token but never says how it travels. Bearer header on all four session-scoped routes, keeping the credential out of URLs, browser history, and proxy logs; §6.1's 1 s cache on the stage poll is marked `private`, since the body is one participant's view. A missing token, a wrong token, and an unknown session all return 401 — a 404 on the last would make the route an oracle for which session ids exist. Decided 2026-08-25 with the user. **Stage 2, steps 2.3–2.5.**
+
+**`packUrl` points at a route handler.** §6.1 has `POST /session` return a `packUrl` but names no route to serve it, and `packs/v1/pack.json` sits outside `public/` where nothing serves it. Added `GET /api/pack/:version`, which runs §4.6 validation before the bytes leave the server; `packs/v1/pack.json` stays the single canonical copy. Rejected: moving the pack under `public/`, which serves it unvalidated and splits the file from the layout below. Unknown versions 404 rather than falling through to v1, so a client asking for a pack this build lacks hits its §11 retry and last-good path instead of being handed different content under the version it asked for. Decided 2026-08-25 with the user. **Stage 2, step 2.2.**
 
 ---
 
@@ -161,24 +170,24 @@ Pure functions, no DOM, no network. This is where §3.4's invariant lives and th
 
 ---
 
-## Stage 2 — Session API and persistence
+## Stage 2 — Session API and persistence ✅
 
-- [ ] **2.1 Room lifecycle** (§6.2.1) — `POST /room` → `{ roomId, joinCode, consoleUrl }` with `stage_open = false`. `joinCode` is four digits, no leading zero (1000–9999), unique among live rooms, regenerated on collision. `roomId` is a UUID and is not derivable from the code.
+- [x] **2.1 Room lifecycle** (§6.2.1) — `POST /room` → `{ roomId, joinCode, consoleUrl }` with `stage_open = false`. `joinCode` is four digits, no leading zero (1000–9999), unique among live rooms, regenerated on collision. `roomId` is a UUID and is not derivable from the code.
   *AC: 49 (with 2.2)*
 
-- [ ] **2.2 Session creation** (§6.1, **RD-2**) — `POST /session { joinCode }` resolves the code to a room and returns `{ sessionId, token, packVersion, packUrl }`. Unknown code → 404. `roomId` is **not** in the response and appears nowhere in participant-facing state — not in the URL, not in localStorage, not in a telemetry payload. A test asserts this on the response body.
+- [x] **2.2 Session creation** (§6.1, **RD-2**) — `POST /session { joinCode }` resolves the code to a room and returns `{ sessionId, token, packVersion, packUrl }`. Unknown code → 404. `roomId` is **not** in the response and appears nowhere in participant-facing state — not in the URL, not in localStorage, not in a telemetry payload. A test asserts this on the response body.
   *AC: 49*
 
-- [ ] **2.3 Stage polling** (§6.1, §6.3, **RD-2**) — `GET /session/:id/stage` → `{ stageOpen, serverTime }`, token-authenticated, `Cache-Control: max-age=1`, resolving session → room server-side. The client polls at 3 s ± 500 ms jitter so forty phones do not align. Network failure keeps polling and surfaces nothing. No participant-facing route takes a `roomId` parameter.
+- [x] **2.3 Stage polling** (§6.1, §6.3, **RD-2**) — `GET /session/:id/stage` → `{ stageOpen, serverTime }`, token-authenticated, `Cache-Control: max-age=1`, resolving session → room server-side. The client polls at 3 s ± 500 ms jitter so forty phones do not align. Network failure keeps polling and surfaces nothing. No participant-facing route takes a `roomId` parameter.
   *AC: 34 (with 6.4)*
 
-- [ ] **2.4 Ready and complete** (§6.1) — `POST /session/:id/ready` stores the finish snapshot and sets `ready_at`; it does **not** touch the stage flag. `POST /session/:id/complete` stores the complete snapshot plus the trailing event batch and sets `completed_at`.
+- [x] **2.4 Ready and complete** (§6.1) — `POST /session/:id/ready` stores the finish snapshot and sets `ready_at`; it does **not** touch the stage flag. `POST /session/:id/complete` stores the complete snapshot plus the trailing event batch and sets `completed_at`.
   *AC: 32 (with 6.2)*
 
-- [ ] **2.5 Telemetry ingest and stage derivation** (§6.1, §10, §6.2.2) — `POST /session/:id/telemetry` accepts a batch and appends to `events`. The same handler advances `sessions.stage` to the max `stage.enter` in the batch, monotonically — this is what makes `inStage` sum to `total` without a stage endpoint the spec never defined. A session is `s1` from creation.
+- [x] **2.5 Telemetry ingest and stage derivation** (§6.1, §10, §6.2.2) — `POST /session/:id/telemetry` accepts a batch and appends to `events`. The same handler advances `sessions.stage` to the max `stage.enter` in the batch, monotonically — this is what makes `inStage` sum to `total` without a stage endpoint the spec never defined. A session is `s1` from creation.
   *AC: none directly (feeds 8.2, 10.x)*
 
-- [ ] **2.6 Idempotent session restore** (§5, §11) — the client calls `POST /session` exactly once per participant. On boot with a stored `sessionId` + `token` for the current pack version, it restores and resumes; it must not mint a second row, because `total` is the number the facilitator's decision rests on and a duplicate breaks `inStage` summing to it.
+- [x] **2.6 Idempotent session restore** (§5, §11) — the client calls `POST /session` exactly once per participant. On boot with a stored `sessionId` + `token` for the current pack version, it restores and resumes; it must not mint a second row, because `total` is the number the facilitator's decision rests on and a duplicate breaks `inStage` summing to it.
   *AC: 36 (with 1.1, 6.5)*
 
 **Stage 2 done when:** every endpoint has a route test, an unknown join code 404s, a token from room A cannot read room B's session, and repeated boots against one stored session produce exactly one row.

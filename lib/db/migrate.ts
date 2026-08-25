@@ -34,6 +34,11 @@ export const migrations: Migration[] = [
     name: 'initial schema',
     sql: () => readSql('schema.sql'),
   },
+  {
+    version: 2,
+    name: 'events.stage',
+    sql: () => readSql('schema-002-event-stage.sql'),
+  },
 ];
 
 export const SCHEMA_VERSION = migrations.reduce((max, m) => Math.max(max, m.version), 0);
