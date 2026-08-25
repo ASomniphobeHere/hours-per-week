@@ -72,6 +72,29 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   'sheet.setDirect',
   'sheet.done',
   'band.unallocated',
+  /*
+   * Beyond §9's table. §9's rule is that no string is hardcoded in the client,
+   * and its table lists the keys the *spec* names rather than every key the
+   * client needs — the questionnaire's own navigation, the intro page, the
+   * join screen and the unit suffix beside a stepper are all participant-facing
+   * and none appear there. Requiring them here is what stops a replacement pack
+   * shipping without them and leaving a room looking at raw key names.
+   */
+  's1.next',
+  's1.back',
+  'intro.multitasking',
+  'intro.continue',
+  'join.prompt',
+  'join.label',
+  'join.action',
+  'join.error.unknown',
+  'join.error.failed',
+  'unit.minutes',
+  'unit.hours',
+  'unit.times',
+  'a11y.decrease',
+  'a11y.increase',
+  'band.notIncluded',
 ] as const;
 
 export const S3_LINES_PREFIX = 's3.lines.';

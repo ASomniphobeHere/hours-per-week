@@ -1,0 +1,331 @@
+/*
+ * S1 surfaces: join, intro, questionnaire, and the stack the questionnaire
+ * ends on. Mobile-first and single-column throughout — §6.2's laptop-first
+ * note is about the facilitator console, not this.
+ *
+ * Every colour, face and size is a token from `styles/tokens.css`. Nothing
+ * here re-states a value the editor will also need (§7.5's evenness has one
+ * source), and nothing here is a literal the pack could have owned.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  gap: 24px;
+}
+
+.centred {
+  justify-content: center;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+
+.progress {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.prompt {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 6vw, 32px);
+  font-weight: 400;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.note {
+  font-family: var(--font-utility);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────── */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1 1 auto;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Media (§4.5) ─────────────────────────────────────────────────────── */
+
+.media {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+/* Two images sit side by side at half width; one takes the full content width. */
+.mediaPair {
+  grid-template-columns: 1fr 1fr;
+}
+
+/*
+ * `aspect` is declared in the pack so the box has its final height before a
+ * byte of the image arrives (§4.5). The image is decorative-to-supporting:
+ * with loading blocked the box stays and the fields below it never move.
+ */
+.mediaFrame {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(244, 244, 246, 0.06);
+}
+
+.mediaImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Field ────────────────────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-family: var(--font-utility);
+  font-size: 13px;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+/* ── Stepper: count, number, duration ─────────────────────────────────── */
+
+.stepper {
+  display: grid;
+  grid-template-columns: var(--tap-target-min) 1fr var(--tap-target-min);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.step {
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  height: 56px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.step:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+}
+
+.unit {
+  color: var(--fg-muted);
+  margin-left: 6px;
+  font-size: 15px;
+}
+
+/* ── Clock ────────────────────────────────────────────────────────────── */
+
+.clock {
+  height: 56px;
+  min-height: var(--tap-target-min);
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+}
+
+/* ── Choice ───────────────────────────────────────────────────────────── */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  padding: 14px 16px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.optionSelected {
+  border-color: var(--fg);
+  background: rgba(244, 244, 246, 0.1);
+}
+
+/* The native control, on the palette rather than the browser's default blue. */
+.option input {
+  accent-color: var(--fg);
+  width: 18px;
+  height: 18px;
+  margin: 0 12px 0 0;
+  flex: none;
+}
+
+/* ── Footer controls ──────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.primary {
+  flex: 1 1 auto;
+  min-height: var(--tap-target-min);
+  height: 56px;
+  border: none;
+  border-radius: 10px;
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--font-utility);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.secondary {
+  min-height: var(--tap-target-min);
+  height: 56px;
+  padding: 0 20px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  font-family: var(--font-utility);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.secondary:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+/* ── Join ─────────────────────────────────────────────────────────────── */
+
+.code {
+  height: 72px;
+  width: 100%;
+  padding: 0 16px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 34px;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.error {
+  font-family: var(--font-utility);
+  font-size: 15px;
+  color: var(--overflow-red);
+  margin: 0;
+}
+
+/* ── Stack at the end of S1 (§3.3, §7.7) ──────────────────────────────── */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.band {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-left: 4px solid
+    hsl(var(--band-hue) var(--band-saturation) var(--band-lightness));
+  background: hsl(var(--band-hue) var(--band-saturation) var(--band-lightness) / var(--body-opacity));
+}
+
+.bandLabel {
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.bandHours {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.notIncluded {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 24px;
+}
+
+.notIncludedHeading {
+  font-family: var(--font-utility);
+  font-size: 13px;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin: 0 0 8px;
+}
+
+.notIncludedRow {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  padding: 0 14px;
+  color: var(--fg-muted);
+  font-family: var(--font-display);
+  font-size: 17px;
+}

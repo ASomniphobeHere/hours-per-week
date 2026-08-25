@@ -19,6 +19,7 @@ function state(overrides: Partial<PersistedState> = {}): PersistedState {
     packVersion: 'v1',
     dayType: 'wd',
     stage: 's2',
+    introSeen: true,
     answers: setAnswer({}, 'sleep.wake.wd', '07:00', 100),
     ...overrides,
   };

@@ -82,6 +82,7 @@ describe('ensureSession', () => {
       packVersion: 'v1',
       dayType: 'we',
       stage: 's4',
+      introSeen: true,
       answers: setAnswer({}, 'sleep.wake.wd', '07:00', 1000),
     });
     const fetchImpl = stubFetch(CREATED);
@@ -103,6 +104,7 @@ describe('ensureSession', () => {
       packVersion: 'v0',
       dayType: 'wd',
       stage: 's4',
+      introSeen: true,
       answers: {
         ...setAnswer({}, 'sleep.wake.wd', '07:00', 1000),
         ...setAnswer({}, 'gone.field', 3, 1000),

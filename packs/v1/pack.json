@@ -83,7 +83,6 @@
       "id": "sleep.wake",
       "sectionId": "sleep",
       "prompt": "q.sleep.wake.prompt",
-      "note": "intro.multitasking",
       "fields": [
         {
           "id": "sleep.wake.wd",
@@ -799,6 +798,8 @@
     "opt.no": "No",
 
     "s1.progress": "{current} of {total}",
+    "s1.next": "Next",
+    "s1.back": "Back",
     "s2.finish": "Finish",
     "s3.title": "Working through your answers",
     "s3.lines.0": "Reading your answers",
@@ -811,6 +812,18 @@
     "s4.confirm": "Confirm",
     "sheet.setDirect": "Set directly",
     "sheet.done": "Done",
-    "band.unallocated": "Unallocated"
+    "band.unallocated": "Unallocated",
+    "band.notIncluded": "Not included",
+    "intro.continue": "Continue",
+    "join.prompt": "Enter the room code",
+    "join.label": "Room code",
+    "join.action": "Join",
+    "join.error.unknown": "That code does not match a room.",
+    "join.error.failed": "Could not reach the server. Try again.",
+    "unit.minutes": "min",
+    "unit.hours": "h",
+    "unit.times": "times",
+    "a11y.decrease": "Decrease",
+    "a11y.increase": "Increase"
   }
 }
