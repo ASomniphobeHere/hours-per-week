@@ -1,0 +1,157 @@
+/**
+ * A minimal pack that passes all fourteen §4.6 rules, so a validator test can
+ * break exactly one thing and assert exactly one rule fires.
+ *
+ * Two activities, so the hue ring step is 180°. `beta` is gated, which is what
+ * exercises the three §4.6 additions.
+ */
+
+import type { ContentPack } from '../types';
+
+export function minimalPack(): ContentPack {
+  return structuredClone(MINIMAL);
+}
+
+const MINIMAL: ContentPack = {
+  version: 'test',
+  activities: [
+    {
+      id: 'alpha',
+      label: 'act.alpha',
+      hue: 0,
+      order: 0,
+      fallbackHours: { wd: 1, we: 1 },
+    },
+    {
+      id: 'beta',
+      label: 'act.beta',
+      hue: 180,
+      order: 1,
+      gateField: 'beta.any',
+      gateSkipValue: 'no',
+      fallbackHours: { wd: 2, we: 2 },
+    },
+  ],
+  screens: [
+    {
+      id: 'alpha.time',
+      sectionId: 'alpha',
+      prompt: 'q.alpha.prompt',
+      fields: [
+        {
+          id: 'alpha.minutes.wd',
+          label: 'q.day.wd',
+          type: 'duration',
+          dayType: 'wd',
+          unit: 'minutes',
+          required: true,
+          default: 60,
+        },
+        {
+          id: 'alpha.minutes.we',
+          label: 'q.day.we',
+          type: 'duration',
+          dayType: 'we',
+          unit: 'minutes',
+          required: true,
+          default: 120,
+        },
+      ],
+    },
+    {
+      id: 'beta.gate',
+      sectionId: 'beta',
+      prompt: 'q.beta.gate.prompt',
+      gate: true,
+      fields: [
+        {
+          id: 'beta.any',
+          label: 'q.beta.gate.label',
+          type: 'choice',
+          required: true,
+          default: 'yes',
+          options: [
+            { id: 'yes', label: 'opt.yes' },
+            { id: 'no', label: 'opt.no' },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'beta.time',
+      sectionId: 'beta',
+      prompt: 'q.beta.time.prompt',
+      fields: [
+        {
+          id: 'beta.minutes.wd',
+          label: 'q.day.wd',
+          type: 'duration',
+          dayType: 'wd',
+          unit: 'minutes',
+          required: true,
+          default: 30,
+        },
+        {
+          id: 'beta.minutes.we',
+          label: 'q.day.we',
+          type: 'duration',
+          dayType: 'we',
+          unit: 'minutes',
+          required: true,
+          default: 30,
+        },
+      ],
+    },
+  ],
+  estimators: [
+    {
+      id: 'arith.freqDuration',
+      activityId: 'alpha',
+      inputs: ['alpha.minutes.wd', 'alpha.minutes.we'],
+      outputs: ['wd', 'we'],
+      params: {
+        terms: [
+          { kind: 'duration', field: 'alpha.minutes.wd', dayType: 'wd' },
+          { kind: 'duration', field: 'alpha.minutes.we', dayType: 'we' },
+        ],
+      },
+    },
+    {
+      id: 'arith.freqDuration',
+      activityId: 'beta',
+      inputs: ['beta.minutes.wd', 'beta.minutes.we'],
+      outputs: ['wd', 'we'],
+      params: {
+        terms: [
+          { kind: 'duration', field: 'beta.minutes.wd', dayType: 'wd' },
+          { kind: 'duration', field: 'beta.minutes.we', dayType: 'we' },
+        ],
+      },
+    },
+  ],
+  copy: {
+    'act.alpha': 'Alpha',
+    'act.beta': 'Beta',
+    'q.alpha.prompt': 'How long does alpha take?',
+    'q.beta.gate.prompt': 'Do you do beta?',
+    'q.beta.gate.label': 'Beta',
+    'q.beta.time.prompt': 'How long does beta take?',
+    'q.day.wd': 'On a workday',
+    'q.day.we': 'On a weekend day',
+    'opt.yes': 'Yes',
+    'opt.no': 'No',
+    's1.progress': '{current} of {total}',
+    's2.finish': 'Finish',
+    's3.title': 'Working through your answers',
+    's3.lines.0': 'One',
+    's3.lines.1': 'Two',
+    's3.lines.2': 'Three',
+    's3.lines.3': 'Four',
+    's4.reveal.title': 'One more commitment',
+    's4.reveal.body': 'Fit it into your week.',
+    's4.confirm': 'Confirm',
+    'sheet.setDirect': 'Set directly',
+    'sheet.done': 'Done',
+    'band.unallocated': 'Unallocated',
+  },
+};

@@ -1,0 +1,816 @@
+{
+  "version": "v1",
+  "activities": [
+    {
+      "id": "school",
+      "label": "act.school",
+      "hue": 0,
+      "order": 0,
+      "locked": true,
+      "constraint": { "minWeekly": 20, "stepWeekly": 5, "weekendAllowed": false },
+      "fallbackHours": { "wd": 4, "we": 0 }
+    },
+    {
+      "id": "sleep",
+      "label": "act.sleep",
+      "hue": 36,
+      "order": 1,
+      "constraint": { "minDaily": 6, "weekendAllowed": true },
+      "fallbackHours": { "wd": 8, "we": 8.5 }
+    },
+    {
+      "id": "work",
+      "label": "act.work",
+      "hue": 72,
+      "order": 2,
+      "fallbackHours": { "wd": 8, "we": 0 }
+    },
+    {
+      "id": "commute",
+      "label": "act.commute",
+      "hue": 108,
+      "order": 3,
+      "fallbackHours": { "wd": 0.75, "we": 0 }
+    },
+    {
+      "id": "eating",
+      "label": "act.eating",
+      "hue": 144,
+      "order": 4,
+      "fallbackHours": { "wd": 1.5, "we": 2 }
+    },
+    {
+      "id": "household",
+      "label": "act.household",
+      "hue": 180,
+      "order": 5,
+      "fallbackHours": { "wd": 1.7, "we": 2.5 }
+    },
+    {
+      "id": "care",
+      "label": "act.care",
+      "hue": 216,
+      "order": 6,
+      "gateField": "care.any",
+      "gateSkipValue": "no",
+      "fallbackHours": { "wd": 0.5, "we": 0.75 }
+    },
+    {
+      "id": "hygiene",
+      "label": "act.hygiene",
+      "hue": 252,
+      "order": 7,
+      "fallbackHours": { "wd": 0.75, "we": 0.75 }
+    },
+    {
+      "id": "admin",
+      "label": "act.admin",
+      "hue": 288,
+      "order": 8,
+      "fallbackHours": { "wd": 0.5, "we": 1.5 }
+    },
+    {
+      "id": "leisure",
+      "label": "act.leisure",
+      "hue": 324,
+      "order": 9,
+      "fallbackHours": { "wd": 2.25, "we": 5.5 }
+    }
+  ],
+
+  "screens": [
+    {
+      "id": "sleep.wake",
+      "sectionId": "sleep",
+      "prompt": "q.sleep.wake.prompt",
+      "note": "intro.multitasking",
+      "fields": [
+        {
+          "id": "sleep.wake.wd",
+          "label": "q.day.wd",
+          "type": "clock",
+          "dayType": "wd",
+          "unit": "clock",
+          "required": true,
+          "default": "07:00"
+        },
+        {
+          "id": "sleep.wake.we",
+          "label": "q.day.we",
+          "type": "clock",
+          "dayType": "we",
+          "unit": "clock",
+          "required": true,
+          "default": "09:00"
+        }
+      ]
+    },
+    {
+      "id": "sleep.bed",
+      "sectionId": "sleep",
+      "prompt": "q.sleep.bed.prompt",
+      "fields": [
+        {
+          "id": "sleep.bed.wd",
+          "label": "q.day.wd",
+          "type": "clock",
+          "dayType": "wd",
+          "unit": "clock",
+          "required": true,
+          "default": "23:00"
+        },
+        {
+          "id": "sleep.bed.we",
+          "label": "q.day.we",
+          "type": "clock",
+          "dayType": "we",
+          "unit": "clock",
+          "required": true,
+          "default": "00:30"
+        }
+      ]
+    },
+
+    {
+      "id": "work.status",
+      "sectionId": "work",
+      "prompt": "q.work.status.prompt",
+      "fields": [
+        {
+          "id": "work.status",
+          "label": "q.work.status.label",
+          "type": "choice",
+          "required": true,
+          "default": "full",
+          "options": [
+            { "id": "full", "label": "opt.work.full" },
+            { "id": "part", "label": "opt.work.part" },
+            { "id": "self", "label": "opt.work.self" },
+            { "id": "none", "label": "opt.work.none" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "work.hours",
+      "sectionId": "work",
+      "prompt": "q.work.hours.prompt",
+      "note": "q.work.hours.note",
+      "fields": [
+        {
+          "id": "work.hours.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "hours",
+          "min": 0,
+          "max": 24,
+          "step": 0.5,
+          "required": true,
+          "default": 8
+        },
+        {
+          "id": "work.hours.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "hours",
+          "min": 0,
+          "max": 24,
+          "step": 0.5,
+          "required": true,
+          "default": 0
+        }
+      ]
+    },
+
+    {
+      "id": "commute.time",
+      "sectionId": "commute",
+      "prompt": "q.commute.prompt",
+      "note": "q.commute.note",
+      "fields": [
+        {
+          "id": "commute.minutes.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 480,
+          "step": 5,
+          "required": true,
+          "default": 45
+        },
+        {
+          "id": "commute.minutes.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 480,
+          "step": 5,
+          "required": true,
+          "default": 0
+        }
+      ]
+    },
+
+    {
+      "id": "eating.meals",
+      "sectionId": "eating",
+      "prompt": "q.eating.meals.prompt",
+      "fields": [
+        {
+          "id": "eating.meals.wd",
+          "label": "q.day.wd",
+          "type": "count",
+          "dayType": "wd",
+          "unit": "times",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "required": true,
+          "default": 3
+        },
+        {
+          "id": "eating.meals.we",
+          "label": "q.day.we",
+          "type": "count",
+          "dayType": "we",
+          "unit": "times",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "required": true,
+          "default": 3
+        }
+      ]
+    },
+    {
+      "id": "eating.minutes",
+      "sectionId": "eating",
+      "prompt": "q.eating.minutes.prompt",
+      "note": "q.eating.minutes.note",
+      "fields": [
+        {
+          "id": "eating.minutes.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 240,
+          "step": 5,
+          "required": true,
+          "default": 30
+        },
+        {
+          "id": "eating.minutes.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 240,
+          "step": 5,
+          "required": true,
+          "default": 40
+        }
+      ]
+    },
+
+    {
+      "id": "household.people",
+      "sectionId": "household",
+      "prompt": "q.household.people.prompt",
+      "fields": [
+        {
+          "id": "household.size",
+          "label": "q.household.size.label",
+          "type": "number",
+          "min": 1,
+          "max": 20,
+          "step": 1,
+          "required": true,
+          "default": 2
+        },
+        {
+          "id": "household.children",
+          "label": "q.household.children.label",
+          "type": "number",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "required": true,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "household.partner",
+      "sectionId": "household",
+      "prompt": "q.household.partner.prompt",
+      "fields": [
+        {
+          "id": "household.partner",
+          "label": "q.household.partner.label",
+          "type": "choice",
+          "required": true,
+          "default": "yes",
+          "options": [
+            { "id": "yes", "label": "opt.yes" },
+            { "id": "no", "label": "opt.no" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "care.gate",
+      "sectionId": "care",
+      "prompt": "q.care.any.prompt",
+      "note": "q.care.any.note",
+      "gate": true,
+      "fields": [
+        {
+          "id": "care.any",
+          "label": "q.care.any.label",
+          "type": "choice",
+          "required": true,
+          "default": "yes",
+          "options": [
+            { "id": "yes", "label": "opt.yes" },
+            { "id": "no", "label": "opt.no" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "care.time",
+      "sectionId": "care",
+      "prompt": "q.care.time.prompt",
+      "fields": [
+        {
+          "id": "care.minutes.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 720,
+          "step": 15,
+          "required": true,
+          "default": 30
+        },
+        {
+          "id": "care.minutes.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 720,
+          "step": 15,
+          "required": true,
+          "default": 45
+        }
+      ]
+    },
+
+    {
+      "id": "hygiene.time",
+      "sectionId": "hygiene",
+      "prompt": "q.hygiene.prompt",
+      "fields": [
+        {
+          "id": "hygiene.minutes.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 300,
+          "step": 5,
+          "required": true,
+          "default": 45
+        },
+        {
+          "id": "hygiene.minutes.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 300,
+          "step": 5,
+          "required": true,
+          "default": 45
+        }
+      ]
+    },
+
+    {
+      "id": "admin.times",
+      "sectionId": "admin",
+      "prompt": "q.admin.times.prompt",
+      "note": "q.admin.times.note",
+      "fields": [
+        {
+          "id": "admin.times.wd",
+          "label": "q.day.wd",
+          "type": "count",
+          "dayType": "wd",
+          "unit": "times",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "required": true,
+          "default": 1
+        },
+        {
+          "id": "admin.times.we",
+          "label": "q.day.we",
+          "type": "count",
+          "dayType": "we",
+          "unit": "times",
+          "min": 0,
+          "max": 12,
+          "step": 1,
+          "required": true,
+          "default": 2
+        }
+      ]
+    },
+    {
+      "id": "admin.minutes",
+      "sectionId": "admin",
+      "prompt": "q.admin.minutes.prompt",
+      "fields": [
+        {
+          "id": "admin.minutes.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 480,
+          "step": 5,
+          "required": true,
+          "default": 30
+        },
+        {
+          "id": "admin.minutes.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 480,
+          "step": 5,
+          "required": true,
+          "default": 45
+        }
+      ]
+    },
+
+    {
+      "id": "leisure.screen",
+      "sectionId": "leisure",
+      "prompt": "q.leisure.screen.prompt",
+      "note": "q.leisure.screen.note",
+      "fields": [
+        {
+          "id": "leisure.screen.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 90
+        },
+        {
+          "id": "leisure.screen.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 150
+        }
+      ]
+    },
+    {
+      "id": "leisure.social",
+      "sectionId": "leisure",
+      "prompt": "q.leisure.social.prompt",
+      "note": "q.leisure.social.note",
+      "fields": [
+        {
+          "id": "leisure.social.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 30
+        },
+        {
+          "id": "leisure.social.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 90
+        }
+      ]
+    },
+    {
+      "id": "leisure.other",
+      "sectionId": "leisure",
+      "prompt": "q.leisure.other.prompt",
+      "note": "q.leisure.other.note",
+      "fields": [
+        {
+          "id": "leisure.other.wd",
+          "label": "q.day.wd",
+          "type": "duration",
+          "dayType": "wd",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 15
+        },
+        {
+          "id": "leisure.other.we",
+          "label": "q.day.we",
+          "type": "duration",
+          "dayType": "we",
+          "unit": "minutes",
+          "min": 0,
+          "max": 960,
+          "step": 15,
+          "required": true,
+          "default": 90
+        }
+      ]
+    }
+  ],
+
+  "estimators": [
+    {
+      "id": "arith.freqDuration",
+      "activityId": "sleep",
+      "inputs": ["sleep.bed.wd", "sleep.wake.wd", "sleep.bed.we", "sleep.wake.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "clockSpan", "from": "sleep.bed.wd", "to": "sleep.wake.wd", "dayType": "wd" },
+          { "kind": "clockSpan", "from": "sleep.bed.we", "to": "sleep.wake.we", "dayType": "we" }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "work",
+      "inputs": ["work.hours.wd", "work.hours.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "duration", "field": "work.hours.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "work.hours.we", "dayType": "we" }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "commute",
+      "inputs": ["commute.minutes.wd", "commute.minutes.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "duration", "field": "commute.minutes.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "commute.minutes.we", "dayType": "we" }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "eating",
+      "inputs": ["eating.meals.wd", "eating.minutes.wd", "eating.meals.we", "eating.minutes.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          {
+            "kind": "freqDuration",
+            "freq": "eating.meals.wd",
+            "duration": "eating.minutes.wd",
+            "dayType": "wd"
+          },
+          {
+            "kind": "freqDuration",
+            "freq": "eating.meals.we",
+            "duration": "eating.minutes.we",
+            "dayType": "we"
+          }
+        ]
+      }
+    },
+    {
+      "id": "household.v1",
+      "activityId": "household",
+      "inputs": ["household.size", "household.children", "household.partner", "work.status"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "wd": {
+          "intercept": 1.0,
+          "terms": [
+            { "field": "household.size", "coef": 0.25 },
+            { "field": "household.children", "coef": 0.35 },
+            { "field": "household.partner", "levels": { "yes": 0.2, "no": 0 } },
+            {
+              "field": "work.status",
+              "levels": { "full": 0, "part": 0.3, "self": 0.2, "none": 0.8 }
+            }
+          ]
+        },
+        "we": {
+          "intercept": 1.65,
+          "terms": [
+            { "field": "household.size", "coef": 0.3 },
+            { "field": "household.children", "coef": 0.4 },
+            { "field": "household.partner", "levels": { "yes": 0.25, "no": 0 } },
+            {
+              "field": "work.status",
+              "levels": { "full": 0, "part": 0.1, "self": 0.1, "none": 0.3 }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "care",
+      "inputs": ["care.minutes.wd", "care.minutes.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "duration", "field": "care.minutes.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "care.minutes.we", "dayType": "we" }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "hygiene",
+      "inputs": ["hygiene.minutes.wd", "hygiene.minutes.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "duration", "field": "hygiene.minutes.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "hygiene.minutes.we", "dayType": "we" }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "admin",
+      "inputs": ["admin.times.wd", "admin.minutes.wd", "admin.times.we", "admin.minutes.we"],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          {
+            "kind": "freqDuration",
+            "freq": "admin.times.wd",
+            "duration": "admin.minutes.wd",
+            "dayType": "wd"
+          },
+          {
+            "kind": "freqDuration",
+            "freq": "admin.times.we",
+            "duration": "admin.minutes.we",
+            "dayType": "we"
+          }
+        ]
+      }
+    },
+    {
+      "id": "arith.freqDuration",
+      "activityId": "leisure",
+      "inputs": [
+        "leisure.screen.wd",
+        "leisure.social.wd",
+        "leisure.other.wd",
+        "leisure.screen.we",
+        "leisure.social.we",
+        "leisure.other.we"
+      ],
+      "outputs": ["wd", "we"],
+      "params": {
+        "terms": [
+          { "kind": "duration", "field": "leisure.screen.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "leisure.social.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "leisure.other.wd", "dayType": "wd" },
+          { "kind": "duration", "field": "leisure.screen.we", "dayType": "we" },
+          { "kind": "duration", "field": "leisure.social.we", "dayType": "we" },
+          { "kind": "duration", "field": "leisure.other.we", "dayType": "we" }
+        ]
+      }
+    }
+  ],
+
+  "copy": {
+    "act.school": "StartSchool",
+    "act.sleep": "Sleep",
+    "act.work": "Work",
+    "act.commute": "Commute",
+    "act.eating": "Eating",
+    "act.household": "Household",
+    "act.care": "Care",
+    "act.hygiene": "Personal care",
+    "act.admin": "Admin & errands",
+    "act.leisure": "Leisure",
+
+    "intro.multitasking": "Each hour belongs to one activity. If you often do two things at once, count the hour once, under whichever you would name first.",
+
+    "q.day.wd": "On a workday",
+    "q.day.we": "On a weekend day",
+
+    "q.sleep.wake.prompt": "What time do you wake up?",
+    "q.sleep.bed.prompt": "What time do you fall asleep?",
+
+    "q.work.status.prompt": "How would you describe your work?",
+    "q.work.status.label": "Your work",
+    "opt.work.full": "In paid work, full time",
+    "opt.work.part": "In paid work, part time",
+    "opt.work.self": "Self-employed",
+    "opt.work.none": "Not in paid work",
+    "q.work.hours.prompt": "How many hours do you spend working?",
+    "q.work.hours.note": "Count paid work and study, including work you take home.",
+
+    "q.commute.prompt": "How long do you spend travelling to and from work or study?",
+    "q.commute.note": "Count the whole journey, both directions.",
+
+    "q.eating.meals.prompt": "How many times a day do you eat a meal or a snack?",
+    "q.eating.minutes.prompt": "How long does one of those take, start to finish?",
+    "q.eating.minutes.note": "Include preparing the food and clearing up afterwards.",
+
+    "q.household.people.prompt": "Who lives in your home?",
+    "q.household.size.label": "People in your home, including you",
+    "q.household.children.label": "How many of them are under 18",
+    "q.household.partner.prompt": "Do you live with a partner?",
+    "q.household.partner.label": "Living with a partner",
+
+    "q.care.any.prompt": "Do you regularly look after someone who needs care?",
+    "q.care.any.note": "A child, an older relative, or anyone else who depends on you.",
+    "q.care.any.label": "Regular care",
+    "q.care.time.prompt": "How long do you spend on that care?",
+
+    "q.hygiene.prompt": "How long do you spend washing, dressing and on personal care?",
+
+    "q.admin.times.prompt": "How many times a day do you deal with errands, admin or paperwork?",
+    "q.admin.times.note": "Shopping, bills, appointments, repairs, forms.",
+    "q.admin.minutes.prompt": "How long does one of those take?",
+
+    "q.leisure.screen.prompt": "How long do you spend on screens for your own time?",
+    "q.leisure.screen.note": "Television, video, games, social feeds, reading on a phone.",
+    "q.leisure.social.prompt": "How long do you spend with other people, socially?",
+    "q.leisure.social.note": "In person, on a call, or messaging back and forth.",
+    "q.leisure.other.prompt": "How long do you spend on other things you do for yourself?",
+    "q.leisure.other.note": "Reading, sport, hobbies, music, going out.",
+
+    "opt.yes": "Yes",
+    "opt.no": "No",
+
+    "s1.progress": "{current} of {total}",
+    "s2.finish": "Finish",
+    "s3.title": "Working through your answers",
+    "s3.lines.0": "Reading your answers",
+    "s3.lines.1": "Converting durations to hours",
+    "s3.lines.2": "Building your workday",
+    "s3.lines.3": "Building your weekend day",
+    "s3.lines.4": "Preparing the editor",
+    "s4.reveal.title": "One more commitment",
+    "s4.reveal.body": "StartSchool takes 20 hours a week, spread across your workdays. Fit it into your week.",
+    "s4.confirm": "Confirm",
+    "sheet.setDirect": "Set directly",
+    "sheet.done": "Done",
+    "band.unallocated": "Unallocated"
+  }
+}
