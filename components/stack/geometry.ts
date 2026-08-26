@@ -7,19 +7,15 @@
  * result in; nothing in this file touches the DOM.
  *
  * The one rule worth stating twice is the tap overlay (§7.4). A band's hit area
- * is independent of its visual height: it is centred on the band, grown to at
- * least 44 px, and allowed to overlap its neighbours. Where two overlays
- * collide the **smaller band wins**, because a thin band is the one that is
- * hard to hit and a fat one has plenty of area left over.
+ * is exactly its visual box: overlays never overlap, so a tap always opens the
+ * band under the finger. A thin band is correspondingly thin to hit — a floor
+ * that stole area from its neighbours cost them more taps than it saved.
  */
 
 import { HOURS_PER_DAY } from '@/lib/domain/types';
 
 /** §7.3 — ticks at 0, 3, 6 … 24, on one continuous ruler. */
 export const RULER_HOURS: readonly number[] = [0, 3, 6, 9, 12, 15, 18, 21, 24] as const;
-
-/** §7.4 — the minimum hit area, whatever the band looks like. */
-export const MIN_TAP_PX = 44;
 
 /** §7.4 — `labelSize = clamp(13px, bandHeight × 0.16, 34px)`. */
 export const LABEL_MIN_PX = 13;
@@ -98,34 +94,27 @@ export interface BandBox<T extends BandInput = BandInput> {
   labelPx: number;
   hoursPx: number;
   labelled: boolean;
-  /** Hit overlay, which may overlap neighbours (§7.4). */
+  /** Hit overlay, which covers the band exactly and nothing else (§7.4). */
   hitTop: number;
   hitHeight: number;
-  /** Stacking order for the overlay: higher wins the overlap. */
-  hitZ: number;
 }
 
 /**
  * Lays a day's bands out top to bottom in pack order, with their tap overlays.
  *
- * Overlays are clamped into the container so the top band's does not reach up
- * into the toggle and the bottom band's does not reach down into Not included —
- * both would be taps landing on an activity the participant is not pointing at.
+ * The overlay tracks its band exactly, so no tap can land on an activity the
+ * participant is not pointing at and none can reach up into the toggle or down
+ * into Not included.
  */
 export function layoutBands<T extends BandInput>(
   bands: readonly T[],
   perHour: number,
-  containerHeight: number,
 ): BandBox<T>[] {
   let cursor = 0;
   const boxes = bands.map((band): BandBox<T> => {
     const height = band.hours * perHour;
     const top = cursor;
     cursor += height;
-
-    const hitHeight = Math.max(MIN_TAP_PX, height);
-    const centred = top + (height - hitHeight) / 2;
-    const hitTop = Math.max(0, Math.min(centred, containerHeight - hitHeight));
 
     return {
       band,
@@ -134,21 +123,10 @@ export function layoutBands<T extends BandInput>(
       labelPx: labelSize(height),
       hoursPx: hoursSize(height),
       labelled: showsLabel(height),
-      hitTop,
-      hitHeight,
-      hitZ: 1,
+      hitTop: top,
+      hitHeight: height,
     };
   });
-
-  // Tallest first, so the smallest band ends up with the highest z-index and
-  // takes the overlap (§7.4). Equal heights fall back to pack order, which is
-  // arbitrary but stable — two bands of the same height overlap only when both
-  // are thin, and neither is the harder to hit.
-  [...boxes]
-    .sort((a, b) => b.height - a.height || a.top - b.top)
-    .forEach((box, rank) => {
-      box.hitZ = rank + 1;
-    });
 
   return boxes;
 }

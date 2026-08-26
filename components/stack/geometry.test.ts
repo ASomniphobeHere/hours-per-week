@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   LABEL_MAX_PX,
   LABEL_MIN_PX,
-  MIN_TAP_PX,
   RULER_HOURS,
   hoursSize,
   labelSize,
@@ -56,7 +55,6 @@ describe('type scaling (§7.4, AC 22)', () => {
 
 describe('layoutBands (§7.2, §7.4)', () => {
   const perHour = 26;
-  const container = 24 * perHour;
 
   it('stacks bands top to bottom in the order given, at hours x pxPerHour', () => {
     const boxes = layoutBands(
@@ -65,7 +63,6 @@ describe('layoutBands (§7.2, §7.4)', () => {
         { id: 'work', hours: 8 },
       ],
       perHour,
-      container,
     );
     expect(boxes.map((box) => [box.top, box.height])).toEqual([
       [0, 208],
@@ -73,8 +70,8 @@ describe('layoutBands (§7.2, §7.4)', () => {
     ]);
   });
 
-  it('gives a 0.25 h band a 44 px hit area centred on it (AC 21)', () => {
-    // 0.25 h at 26 px/h is a 6.5 px rule. The overlay is seven times that.
+  it('gives a 0.25 h band the hit area its own height buys it (AC 21)', () => {
+    // 0.25 h at 26 px/h is a 6.5 px rule, and the overlay is the same rule.
     const boxes = layoutBands(
       [
         { id: 'sleep', hours: 8 },
@@ -82,32 +79,33 @@ describe('layoutBands (§7.2, §7.4)', () => {
         { id: 'work', hours: 8 },
       ],
       perHour,
-      container,
     );
     const commute = boxes[1]!;
     expect(commute.height).toBeCloseTo(6.5);
-    expect(commute.hitHeight).toBe(MIN_TAP_PX);
-    // Centred: the overlay's midpoint is the band's midpoint.
-    expect(commute.hitTop + commute.hitHeight / 2).toBeCloseTo(commute.top + commute.height / 2);
+    expect(commute.hitHeight).toBeCloseTo(commute.height);
+    expect(commute.hitTop).toBeCloseTo(commute.top);
     expect(commute.labelled).toBe(false);
   });
 
-  it('lets the smaller band win the overlap (§7.4)', () => {
+  it('never lets one overlay reach into a neighbouring band (§7.4)', () => {
     const boxes = layoutBands(
       [
         { id: 'big', hours: 8 },
         { id: 'thin', hours: 0.25 },
+        { id: 'rest', hours: 15.75 },
       ],
       perHour,
-      container,
     );
-    const [big, thin] = boxes as [(typeof boxes)[number], (typeof boxes)[number]];
-    // They do overlap — the thin band's overlay reaches back into the big one.
-    expect(thin.hitTop).toBeLessThan(big.top + big.height);
-    expect(thin.hitZ).toBeGreaterThan(big.hitZ);
+    const [big, thin, rest] = boxes as [
+      (typeof boxes)[number],
+      (typeof boxes)[number],
+      (typeof boxes)[number],
+    ];
+    expect(thin.hitTop).toBeGreaterThanOrEqual(big.hitTop + big.hitHeight);
+    expect(rest.hitTop).toBeGreaterThanOrEqual(thin.hitTop + thin.hitHeight);
   });
 
-  it('clamps an overlay into the container at both ends', () => {
+  it('keeps the overlays inside the container at both ends', () => {
     const boxes = layoutBands(
       [
         { id: 'first', hours: 0.25 },
@@ -115,14 +113,9 @@ describe('layoutBands (§7.2, §7.4)', () => {
         { id: 'last', hours: 0.25 },
       ],
       perHour,
-      container,
     );
     expect(boxes[0]!.hitTop).toBe(0);
-    expect(boxes[2]!.hitTop + boxes[2]!.hitHeight).toBeCloseTo(container);
-  });
-
-  it('leaves a lone band ordered even with nothing to collide with', () => {
-    expect(layoutBands([{ id: 'only', hours: 24 }], perHour, container)[0]!.hitZ).toBe(1);
+    expect(boxes[2]!.hitTop + boxes[2]!.hitHeight).toBeCloseTo(24 * perHour);
   });
 });
 

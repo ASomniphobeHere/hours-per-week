@@ -580,7 +580,7 @@ hoursSize = labelSize × 0.72
 
 The lower clamp corresponds to roughly a 1-hour band. Below that, the band still renders its label at 13 px if there is vertical room, and omits it if `bandHeight < 20px`.
 
-**Tap target is independent of visual height.** Any band, however thin, has a minimum 44 px hit area, achieved with a transparent overlay that may overlap neighbours. When overlays collide, the smaller band wins the overlap — thin bands are the hard ones to hit.
+**Tap target tracks visual height.** Each band's hit area is a transparent overlay covering exactly the band and nothing else, so overlays never collide and a tap always opens the band under the finger. A thin band is correspondingly thin to hit; an earlier draft grew every overlay to a 44 px minimum, which bought the thin band area by stealing it from the neighbours a participant was far more likely to be aiming at.
 
 ### 7.5 Colour
 
@@ -822,7 +822,7 @@ Everything else in this document exists to produce **per-activity delta** and **
 18. Hour scale renders over the spine, ticks at 0/3/…/24, as one continuous ruler.
 19. Each tick number is legible against every activity hue at full saturation, with nothing rendered between the spine and the tick.
 20. Activity hues form an even ring at `360 / n`; no two are closer than that interval.
-21. A 0.25 h band is tappable (≥44 px hit area) though visually a rule.
+21. Every band is tappable over exactly its own height, and no overlay reaches into a neighbour.
 22. Label type scales with band height and clamps at 13 px / 34 px.
 23. Tapping a band opens its section's screens prefilled; changing a field updates the sheet header total live.
 24. Sheet close animates the band; body scroll is locked while open; Escape closes.

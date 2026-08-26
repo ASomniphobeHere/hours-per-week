@@ -55,7 +55,7 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
 
   const total = present.reduce((sum, entry) => sum + entry.hours, 0);
   const containerHeight = stackHours(total) * perHour;
-  const boxes = layoutBands(present, perHour, containerHeight);
+  const boxes = layoutBands(present, perHour);
 
   const remaining = HOURS_PER_DAY - total;
   const hoursUnit = copyOf(pack, 'unit.hours');
@@ -106,7 +106,7 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
             type="button"
             className={styles.hit}
             data-hit={id}
-            style={{ top: `${box.hitTop}px`, height: `${box.hitHeight}px`, zIndex: box.hitZ }}
+            style={{ top: `${box.hitTop}px`, height: `${box.hitHeight}px` }}
             onClick={() => onSelect?.(id)}
           >
             <span className={styles.hitName}>{copyOf(pack, activity.label)}</span>
