@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The participant client's boot, and the S1 leg of §2.2's stage machine.
+ * The participant client's boot: join or resume, and nothing else.
  *
  * Boot is §5 and AC 36 in three lines: look for a stored session, resume it if
  * there is one, and only mint a new one from a join code when there is not.
@@ -13,6 +13,12 @@
  * start so content can be replaced without a client release; the fetch, its
  * three backed-off retries and the last-good cache are §11's, and land with
  * Stage 11. Nothing above this line assumes which of the two produced it.
+ *
+ * §2.2's stage machine begins one level down, in `Stages`. It is separated
+ * because the two answer different questions: this file decides *whose*
+ * session is on the phone, and that decision is settled before any stage
+ * exists — a reset replaces the session, and remounting the provider on its id
+ * is what stops the new one inheriting the old one's state.
  */
 
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
@@ -20,11 +26,9 @@ import { v1Index } from '@/lib/pack/v1';
 import { fieldIds } from '@/lib/pack';
 import { browserStorage, restore, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { ensureSession, resetToNewSession } from '@/lib/session/bootstrap';
-import { ParticipantProvider, useParticipant } from '@/lib/client/participant';
-import { Intro } from './Intro';
+import { ParticipantProvider } from '@/lib/client/participant';
 import { Join } from './Join';
-import { Questionnaire } from './Questionnaire';
-import { Editor } from '@/components/stack/Editor';
+import { Stages } from './Stages';
 
 /** A session in hand: the restored record, or the one a join just created. */
 interface Ready {
@@ -121,26 +125,4 @@ export function Participant() {
       <Stages />
     </ParticipantProvider>
   );
-}
-
-/**
- * S1 and S2. The Finish button, the S3 hold, the reveal and the rebalance are
- * Stages 6 and 7; `session.stage` is the seam they attach to, and it is already
- * persisted and already restored (§5).
- */
-function Stages() {
-  const { index: packIndex, session, patch } = useParticipant();
-
-  if (!session.introSeen) {
-    return <Intro pack={packIndex.pack} onContinue={() => patch({ introSeen: true })} />;
-  }
-
-  if (session.stage === 's1') {
-    return <Questionnaire onComplete={() => patch({ stage: 's2' })} />;
-  }
-
-  // The editor owns the sheet a band tap opens (§8.1): both entry points into
-  // it — a band and a Not-included row — are its own, so nothing about the
-  // replay surfaces here.
-  return <Editor />;
 }

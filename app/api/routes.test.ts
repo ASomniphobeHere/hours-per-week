@@ -11,6 +11,7 @@ import { resetDatabase, teardownDatabase, setupMemoryDatabase } from '@/lib/db/t
 setupMemoryDatabase();
 
 import { POST as createRoom } from './room/route';
+import { POST as openRoomStage } from './room/[id]/stage/route';
 import { POST as createSession } from './session/route';
 import { GET as getStage } from './session/[id]/stage/route';
 import { POST as postReady } from './session/[id]/ready/route';
@@ -201,6 +202,71 @@ describe('GET /session/:id/stage', () => {
       params({ id: inB.sessionId }),
     );
     expect(response.status).toBe(401);
+  });
+});
+
+/* ── 8.5 (pulled forward for Stage 6) — the flip ────────────────────────── */
+
+describe('POST /room/:roomId/stage', () => {
+  it('opens the room and stamps the moment it opened', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+
+    const response = await openRoomStage(
+      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
+      params({ id: room.roomId }),
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()) as { ok: boolean; stageOpen: boolean }).toMatchObject({
+      ok: true,
+      stageOpen: true,
+    });
+
+    // The participant's own poll follows it, which is the whole point.
+    const polled = await getStage(
+      get(`/api/session/${session.sessionId}/stage`, session.token),
+      params({ id: session.sessionId }),
+    );
+    expect(((await polled.json()) as { stageOpen: boolean }).stageOpen).toBe(true);
+  });
+
+  it('is idempotent and keeps the first `opened_at` (§2.2 one-way)', async () => {
+    const room = await newRoom();
+    const request = () =>
+      openRoomStage(
+        postJson(`/api/room/${room.roomId}/stage`, { open: true }),
+        params({ id: room.roomId }),
+      );
+
+    const first = (await (await request()).json()) as { openedAt: number };
+    const second = (await (await request()).json()) as { ok: boolean; openedAt: number };
+    expect(second.ok).toBe(true);
+    // The room's `t = 0` for *time to fit, room* (§10) does not move under a
+    // facilitator's double-press.
+    expect(second.openedAt).toBe(first.openedAt);
+  });
+
+  it('refuses anything but `{ open: true }` — the flag does not close', async () => {
+    const room = await newRoom();
+    for (const body of [{}, { open: false }, { open: 'true' }]) {
+      const response = await openRoomStage(
+        postJson(`/api/room/${room.roomId}/stage`, body),
+        params({ id: room.roomId }),
+      );
+      expect(response.status).toBe(400);
+    }
+    const flag = getDatabase()
+      .prepare('SELECT stage_open FROM rooms WHERE id = ?')
+      .get(room.roomId);
+    expect(flag).toEqual({ stage_open: 0 });
+  });
+
+  it('404s on an unknown room', async () => {
+    const response = await openRoomStage(
+      postJson('/api/room/nope/stage', { open: true }),
+      params({ id: 'nope' }),
+    );
+    expect(response.status).toBe(404);
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { minimalPack } from './__fixtures__/minimal';
-import { copyOf, formatCopy, unitKey } from './copy';
-import { REQUIRED_COPY_KEYS } from './validate';
+import { copyOf, formatCopy, holdLines, unitKey } from './copy';
+import { REQUIRED_COPY_KEYS, S3_LINES_MINIMUM } from './validate';
 import { v1Pack } from './v1';
 
 const pack = minimalPack();
@@ -42,5 +42,29 @@ describe('§9: no string is hardcoded in the client', () => {
     for (const key of REQUIRED_COPY_KEYS) {
       expect(typeof v1Pack.copy[key], key).toBe('string');
     }
+  });
+});
+
+describe('§9 s3.lines[]', () => {
+  it('reassembles the flat keys into index order', () => {
+    expect(holdLines(pack)).toEqual(['One', 'Two', 'Three', 'Four']);
+  });
+
+  it('sorts numerically, so a tenth line does not land between the first two', () => {
+    const wide = minimalPack();
+    for (let i = 4; i < 11; i += 1) wide.copy[`s3.lines.${i}`] = `Line ${i}`;
+    expect(holdLines(wide).slice(4)).toEqual([
+      'Line 4',
+      'Line 5',
+      'Line 6',
+      'Line 7',
+      'Line 8',
+      'Line 9',
+      'Line 10',
+    ]);
+  });
+
+  it('ships at least four in the v1 pack (§9)', () => {
+    expect(holdLines(v1Pack).length).toBeGreaterThanOrEqual(S3_LINES_MINIMUM);
   });
 });

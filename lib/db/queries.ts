@@ -69,6 +69,33 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+/**
+ * §6.2.4's flip, and the only write that opens a room.
+ *
+ * Idempotent, and `opened_at` records the *first* flip: S3 → S4 is one-way
+ * (§2.2), so a second call is a facilitator's double-press rather than a
+ * second event, and overwriting the timestamp would move the room's `t = 0`
+ * for *time to fit, room* (§10) after participants had already been measured
+ * against it.
+ *
+ * Pulled forward from step 8.5 so Stage 6's machine could be driven by a real
+ * flag rather than a faked one; the console that presses it, and the
+ * `stage.open` record it writes (step 8.6), are still Stage 8's.
+ *
+ * Returns the room as it stands, or null when there is none.
+ */
+export function openStage(
+  roomId: string,
+  db: Database.Database = getDatabase(),
+  now = Date.now(),
+): RoomRow | null {
+  const room = findRoomById(roomId, db);
+  if (room === null) return null;
+  if (room.stage_open === 1) return room;
+  db.prepare('UPDATE rooms SET stage_open = 1, opened_at = ? WHERE id = ?').run(now, roomId);
+  return { ...room, stage_open: 1, opened_at: now };
+}
+
 export function findRoomById(roomId: string, db: Database.Database = getDatabase()): RoomRow | null {
   return (db.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId) as RoomRow | undefined) ?? null;
 }
