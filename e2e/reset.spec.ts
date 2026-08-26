@@ -164,8 +164,10 @@ test.describe('starting over (§7.9)', () => {
 
   test('the tab does not move when the stack is scrolled (§7.9)', async ({ page }) => {
     // A breaching day, so the stack runs past the viewport and there is
-    // somewhere to scroll to (§7.2).
-    await seedEditor(page, { 'sleep.wake.wd': answer('23:00') });
+    // somewhere to scroll to (§7.2). Waking at 21:00 against the pack's 23:00
+    // bedtime is 22 h of sleep — the seed has to move the *derived* total, and
+    // an earlier wake time on its own moves it the wrong way.
+    await seedEditor(page, { 'sleep.wake.wd': answer('21:00') });
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
     await expect(page.getByTestId('stack')).toBeVisible();

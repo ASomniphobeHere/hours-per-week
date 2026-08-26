@@ -12,18 +12,25 @@
  */
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { Activity, AnswerMap, DayType, Event } from '@/lib/domain/types';
+import type { Activity, AnswerMap, DayType, Event, StageId } from '@/lib/domain/types';
 import { DAY_TYPES } from '@/lib/domain/types';
 import { clearDirect, derive, isFullyDerived, setDirect } from '@/lib/domain/derive';
 import { clampDaily, clampEvent } from '@/lib/domain/constraints';
 import { isAnswered, setAnswer } from '@/lib/store/answers';
-import { save, type PersistedState, type StorageLike } from '@/lib/store/persist';
+import { furthestStage, save, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { buildEstimators } from '@/lib/estimators/registry';
 import type { Field } from '@/lib/pack/types';
 import type { PackIndex } from '@/lib/pack';
 
-/** The fields of the session record a stage is allowed to move. */
-export type SessionPatch = Partial<Pick<PersistedState, 'dayType' | 'stage' | 'introSeen'>>;
+/**
+ * The fields of the session record a screen is allowed to move.
+ *
+ * `stage` is deliberately not among them. §2.2's machine only ever runs
+ * forward — S3 → S4 is one-way and nothing re-enters S1 — and §11 resumes a
+ * refresh at the *furthest* stage reached, so the one mover is `advance`,
+ * which cannot go backwards.
+ */
+export type SessionPatch = Partial<Pick<PersistedState, 'dayType' | 'introSeen'>>;
 
 export interface Participant {
   index: PackIndex;
@@ -45,6 +52,20 @@ export interface Participant {
    */
   commitDefaults: (fields: readonly Field[]) => void;
   patch: (partial: SessionPatch) => void;
+  /**
+   * §2.2's one stage mover, and §11's "resume at furthest stage reached".
+   *
+   * Monotonic: a call naming an earlier stage is a no-op. That is what makes
+   * the persisted `stage` a high-water mark rather than a cursor, and it is
+   * why S2's band replay — which re-enters S2 from itself — cannot undo a
+   * participant's progress by asking for the stage they are already in.
+   *
+   * `stage.enter` is emitted here rather than at each call site, because an
+   * entry that logs nothing is one the server cannot count: §6.2.2 derives
+   * `inStage` from these events, and *time to fit* is measured from the S4
+   * entry in the log (§10).
+   */
+  advance: (stage: StageId) => void;
   /**
    * §4.3 rule 4 — the participant set this activity's hours themselves, so the
    * estimator stops running for it.
@@ -188,6 +209,20 @@ export function ParticipantProvider({
     [storage],
   );
 
+  const advance = useCallback(
+    (stage: StageId) => {
+      const next = furthestStage(session.stage, stage);
+      if (next === session.stage) return;
+      setSession((current) => {
+        const updated = { ...current, stage: furthestStage(current.stage, stage) };
+        save(storage, updated);
+        return updated;
+      });
+      record({ t: Date.now(), type: 'stage.enter', stage: next });
+    },
+    [session.stage, storage, record],
+  );
+
   /**
    * The write path for a direct edit: clamp, log what the clamp refused, then
    * store the value and log the change.
@@ -284,6 +319,7 @@ export function ParticipantProvider({
       answer,
       commitDefaults,
       patch,
+      advance,
       setHours,
       takeDirect,
       revertToDerived,
@@ -297,6 +333,7 @@ export function ParticipantProvider({
       answer,
       commitDefaults,
       patch,
+      advance,
       setHours,
       takeDirect,
       revertToDerived,

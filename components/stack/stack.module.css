@@ -347,6 +347,23 @@
   cursor: pointer;
 }
 
+/*
+ * S2's Finish, in the footer beside §7.7's count. Sized to the tap target and
+ * no wider than its own label: the footer is `space-between`, and a
+ * full-width primary here would push the count off the row it shares.
+ */
+.finish {
+  min-height: var(--tap-target-min);
+  padding: 0 24px;
+  border: none;
+  border-radius: 10px;
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--font-utility);
+  font-size: 17px;
+  cursor: pointer;
+}
+
 .notIncludedCount {
   min-height: var(--tap-target-min);
   padding: 0;

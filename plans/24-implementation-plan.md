@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.3 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a)
 **Written:** 2026-08-24
-**Status:** Stage 5 complete
+**Status:** Stage 6 complete
 
 ## How to use this document
 
@@ -316,24 +316,38 @@ The hour count is the line that goes instead, because it is the one restated els
 
 ---
 
-## Stage 6 — Stage machine: Finish, hold, force-advance
+## Stage 6 — Stage machine: Finish, hold, force-advance ✅
 
-- [ ] **6.1 Stage machine** (§2.2) — S1 → S2 → S3 → S4 → S5, with S2 re-enterable from itself on band replay and S3 → S4 one-way. Furthest stage reached is persisted, and is what a refresh resumes to.
+- [x] **6.1 Stage machine** (§2.2) — S1 → S2 → S3 → S4 → S5, with S2 re-enterable from itself on band replay and S3 → S4 one-way. Furthest stage reached is persisted, and is what a refresh resumes to.
   *AC: none directly (asserted in 6.2–6.5)*
 
-- [ ] **6.2 Finish → ready** (§6.1, §6.3) — Finish snapshots the schedule, POSTs `/ready`, and enters S3. It marks the participant ready; it does **not** advance the stage. Stage advance is the facilitator's flag, never a participant action.
+- [x] **6.2 Finish → ready** (§6.1, §6.3) — Finish snapshots the schedule, POSTs `/ready`, and enters S3. It marks the participant ready; it does **not** advance the stage. Stage advance is the facilitator's flag, never a participant action.
   *AC: 32*
 
-- [ ] **6.3 Hold screen** (§9, §6.3) — `s3.title` plus `s3.lines[]` cycling, four or more, plausible and dull: a joke here signals the wait is theatre and the pause stops working. Minimum 5 s in **every** path, including when the flag is already true when the participant finishes. A refresh during S3 restarts the floor.
+- [x] **6.3 Hold screen** (§9, §6.3) — `s3.title` plus `s3.lines[]` cycling, four or more, plausible and dull: a joke here signals the wait is theatre and the pause stops working. Minimum 5 s in **every** path, including when the flag is already true when the participant finishes. A refresh during S3 restarts the floor.
   *AC: 33*
 
-- [ ] **6.4 Silent polling** (§6.3) — poll at 3 s ± 500 ms jitter throughout S3. On failure, keep polling and show nothing: a connection warning on the hold screen reads as a broken app. This is deliberately the opposite of the console rule in §6.2.3.
+- [x] **6.4 Silent polling** (§6.3) — poll at 3 s ± 500 ms jitter throughout S3. On failure, keep polling and show nothing: a connection warning on the hold screen reads as a broken app. This is deliberately the opposite of the console rule in §6.2.3.
   *AC: 34*
 
-- [ ] **6.5 Force-advance** (§6.3, §4.2.1 rule 6, §4.6) — a participant still in S1 or S2 when the flag flips has their current schedule snapshotted and `/ready` POSTed, then enters S3 for the full 5 s hold. Unanswered gates resolve **truthy** and unanswered sections derive from field defaults, so a participant pulled forward from question 2 reaches S4 with a full stack of pack-default hours rather than a hollow one. Emit `forced.advance`.
+- [x] **6.5 Force-advance** (§6.3, §4.2.1 rule 6, §4.6) — a participant still in S1 or S2 when the flag flips has their current schedule snapshotted and `/ready` POSTed, then enters S3 for the full 5 s hold. Unanswered gates resolve **truthy** and unanswered sections derive from field defaults, so a participant pulled forward from question 2 reaches S4 with a full stack of pack-default hours rather than a hollow one. Emit `forced.advance`.
   *AC: 35, 36*
 
-**Stage 6 done when:** all three §6.3 entry paths reach S4 with the 5 s floor intact, a force-advance from a fully unanswered S1 produces a full stack, and a refresh at each stage resumes correctly against one session row.
+**Stage 6 done when:** all three §6.3 entry paths reach S4 with the 5 s floor intact, a force-advance from a fully unanswered S1 produces a full stack, and a refresh at each stage resumes correctly against one session row. — **All three hold.** `components/participant/Stages.test.tsx` drives the machine against an injected `fetch`, so the flag is a variable a test flips at the moment it means to; `e2e/s3-hold.spec.ts` drives the same machine against the real endpoints, because what the unit tests cannot prove is that the poll, the flag and the floor are the same three things on both sides of the wire.
+
+**The flip endpoint is pulled forward from step 8.5** (decided with the user, 2026-08-26). Stage 6's entire subject is a boolean the facilitator sets, and until Stage 8 there was nothing to set it with — the machine could only be driven against a faked `fetch`, leaving the one integration the stage exists for untested for two stages. `POST /room/:roomId/stage` and `openStage()` land here; the console that presses the button, and the `stage.open` record it writes (step 8.6), stay Stage 8's. Step 8.5's remaining criteria (54, 55) are console states and are untouched.
+
+**Four things decided in the building.**
+
+**Force-advance keys off the observed flip, not off a truthy flag.** §6.3's third row force-advances a participant "still in S1 or S2 when the flag flips"; §11's second row gives a participant who *joins* with the flag already true a full S1 → S2 "at their own pace". Read as a rule about the current value of the boolean the two contradict — a late joiner's first poll returns true and yanks them out of question three. Read as a rule about the transition they agree exactly, so the client remembers whether it has ever seen the flag closed and pulls a participant forward only on a false → true it actually watched. Confirmed with the user: a late joiner is not yanked at any point. The cost is that a phone which slept across the flip, or joined late and then stalled, can only be reached by the facilitator asking them out loud — which is what a facilitator in a room does anyway.
+
+**`/ready` is delivered, not fired.** Neither §6.1 nor §11 says what happens when it fails, and the two halves of the answer pull apart: the participant must not be blocked, because §6.3's floor is a beat in the room rather than a network wait, but `ready / total` is the number the facilitator decides from (§6.2.2) and a dropped POST undercounts someone who is in fact finished. So the transition is immediate and the delivery is persistent — retried until it lands, with an exponentially backed-off delay capped at 30 s so a room that loses its uplink does not come back to forty phones retrying every half-second (decided with the user, 2026-08-26). A 4xx is not retried: a session the server has forgotten or a snapshot it refused will never accept the same request twice.
+
+**`stage.enter` is emitted by the advance itself.** §6.2.2 derives `inStage` from these events and §10 measures *time to fit* from the S4 entry in the log, so an entry that logs nothing is one the server cannot count. Putting the emission inside the one stage mover — rather than at each call site — is what makes that unforgettable, and the mover is monotonic, so `session.stage` is a high-water mark rather than a cursor and S2's replay of itself cannot walk a participant backwards. `stage` left `SessionPatch` for the same reason: with `advance` the only way to move it, the type says what §2.2 says.
+
+**The snapshot carries every activity, including the zeros.** §10's three snapshots are read as a set — per-activity delta is `complete − finish` — and an activity absent from the finish snapshot is indistinguishable from one that went 0 → 4. So `buildSnapshot` takes the whole activity set, unrevealed school included; a zero contributes zero to `total`, so the honesty is free. Steps 10.1–10.3 still own emission, batching and the S1 snapshot; what landed here is the shape they will all write.
+
+**One test in `e2e/reset.spec.ts` had a seed that never did what it said.** §7.9's "the tab does not move when the stack is scrolled" seeded a wake time of 23:00 against the pack's 23:00 bedtime, which is *less* sleep, not more — the day summed to 15.95 h and the page was two pixels taller than the viewport by accident. S2's footer growing a Finish button removed those two pixels and the test failed, correctly. The seed now wakes at 21:00, which is 22 h of sleep and a genuinely breaching day, and the assertion is about scrolling again rather than about rounding.
 
 ---
 
@@ -402,7 +416,7 @@ Strings are hardcoded (§9): this is operator tooling for one known person, and 
 - [ ] **8.4 Arming button** (§6.2.4) — Idle → Armed → POST. The armed label restates **`total`**, not `ready`, because the flag force-advances the whole room and a press at 3/40 should look wrong at the moment of confirming it. Armed reverts to Idle after 5 s without a second press. Enabled as soon as the room has one participant, and never gated on a ready threshold: waiting is a facilitation judgement, and a console that refuses to open the stage at 3/40 is wrong about who is running the room.
   *AC: 53*
 
-- [ ] **8.5 Flip outcomes** (§6.2.4, §6.2.2) — `POST /room/:roomId/stage { open: true }` is idempotent; a second call on an open room is a no-op returning ok. Success replaces the button with a static **Stage open** state that cannot be pressed again — S3 → S4 is one-way and there is nothing to press twice. Failure returns to Idle with an inline error, never to a state implying the stage opened.
+- [ ] **8.5 Flip outcomes** (§6.2.4, §6.2.2) — `POST /room/:roomId/stage { open: true }` is idempotent; a second call on an open room is a no-op returning ok. **The endpoint itself landed in Stage 6**, which had no other way to drive the flag it exists to react to; what is left here is the console half — the two button states below, and nothing about the route. Success replaces the button with a static **Stage open** state that cannot be pressed again — S3 → S4 is one-way and there is nothing to press twice. Failure returns to Idle with an inline error, never to a state implying the stage opened.
   *AC: 54, 55*
 
 - [ ] **8.6 `stage.open` record** (§6.2.5) — written server-side once, when the flag flips, carrying `{ roomId, t, ready, total }`. No client involvement, and the §10 participant event union is unchanged. This is the room's `t = 0` for *time to fit, room*; without it that moment can only be inferred from the earliest `forced.advance` in the room, which does not exist if everyone had already finished.

@@ -271,3 +271,19 @@
   color: var(--overflow-red);
   margin: 0;
 }
+
+/* ── Hold (§6.3, §9) ──────────────────────────────────────────────────── */
+
+/*
+ * One line, and the box never resizes as the text swaps: a status line that
+ * reflows the page every second is motion the participant is meant to be
+ * pausing through.
+ */
+.holdLine {
+  font-family: var(--font-utility);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: calc(15px * 1.5);
+  color: var(--fg-muted);
+  margin: 0;
+}

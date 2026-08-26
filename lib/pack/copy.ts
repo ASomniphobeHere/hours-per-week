@@ -17,6 +17,7 @@
  */
 
 import type { ContentPack } from './types';
+import { S3_LINES_PREFIX } from './validate';
 
 /** Resolves a copy key. Returns the key itself when the pack has no entry. */
 export function copyOf(pack: ContentPack, key: string): string {
@@ -43,4 +44,22 @@ export function formatCopy(
 /** Unit suffix beside a numeric control, e.g. `45 min`. Untyped units have none. */
 export function unitKey(unit: string | undefined): string | undefined {
   return unit === undefined || unit === 'clock' ? undefined : `unit.${unit}`;
+}
+
+/**
+ * §9's `s3.lines[]`, in index order.
+ *
+ * The pack's copy map is flat, so the array is spelled `s3.lines.0` upward and
+ * reassembled here — one shape for the client, one for the validator, and no
+ * nested value in a table every other key reads as a string. Sorted
+ * numerically rather than lexically, so a pack with ten lines does not put
+ * `.10` between `.1` and `.2`.
+ */
+export function holdLines(pack: ContentPack): string[] {
+  return Object.keys(pack.copy)
+    .filter((key) => key.startsWith(S3_LINES_PREFIX))
+    .map((key) => ({ key, index: Number(key.slice(S3_LINES_PREFIX.length)) }))
+    .filter(({ index }) => Number.isInteger(index) && index >= 0)
+    .sort((a, b) => a.index - b.index)
+    .map(({ key }) => copyOf(pack, key));
 }
