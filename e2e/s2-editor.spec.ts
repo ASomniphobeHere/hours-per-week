@@ -204,6 +204,47 @@ test.describe('editor geometry (§7.2, §7.3)', () => {
       expect(size).toBeLessThanOrEqual(34);
     }
   });
+
+  /*
+   * §7.4 as amended 2026-08-26: the label is never hidden, and the hour count
+   * is what a thin band drops. §7.5 is the reason — colour orients, the label
+   * identifies — so a band with no name is only findable by hue, which is the
+   * one thing a participant in greyscale cannot do.
+   */
+  test('names every band, and drops only the hour count on a thin one (§7.4)', async ({
+    page,
+  }) => {
+    await openEditor(page, { width: 375, height: 667 });
+
+    const lines = await page
+      .getByTestId('stack')
+      .locator('[data-activity]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const box = node.getBoundingClientRect();
+          const labels = node.querySelector('span:nth-of-type(3)');
+          return {
+            id: node.getAttribute('data-activity'),
+            height: box.height,
+            name: labels?.firstElementChild?.textContent ?? '',
+            lines: labels?.childElementCount ?? 0,
+          };
+        }),
+      );
+
+    expect(lines.length).toBeGreaterThan(0);
+    for (const band of lines) {
+      // Every band is named, however thin — and the name is really painted,
+      // not clipped away by a box smaller than the type in it.
+      expect(band.name, `${band.id} at ${band.height}px`).not.toBe('');
+      expect(band.lines, `${band.id} at ${band.height}px`).toBe(band.height >= 20 ? 2 : 1);
+    }
+
+    // The v1 defaults put both cases on screen at this size, so the assertion
+    // above is not passing by only ever seeing one of them.
+    expect(lines.some((band) => band.lines === 1)).toBe(true);
+    expect(lines.some((band) => band.lines === 2)).toBe(true);
+  });
 });
 
 test.describe('the day-type toggle (§7.1)', () => {

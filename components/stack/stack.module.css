@@ -169,6 +169,16 @@
   top: 50%;
   right: var(--label-inset);
   transform: translateY(-50%);
+  /*
+   * Above the fills, below the ruler (2) and the tap overlays (3).
+   *
+   * A band thinner than its own 13 px label overflows its box — that is what
+   * keeps it named, now that the label is never hidden — and bands paint in
+   * document order, so without this the overflow is dimmed by the fill of the
+   * band beneath it. `.band` sets no z-index and so opens no stacking context,
+   * which is what lets one band's label sit over another band's body.
+   */
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;

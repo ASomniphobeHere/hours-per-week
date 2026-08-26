@@ -11,7 +11,7 @@
 
 import type { ContentPack } from '@/lib/pack/types';
 import { copyOf } from '@/lib/pack/copy';
-import { showsLabel } from './geometry';
+import { showsSlackLabel } from './geometry';
 import styles from './stack.module.css';
 
 export interface UnallocatedProps {
@@ -29,11 +29,14 @@ export function Unallocated({ pack, top, height }: UnallocatedProps) {
       style={{ top: `${top}px`, height: `${height}px` }}
     >
       {/*
-       * §7.4's label rule, applied here too: §7.8 calls this the bottom band,
-       * and a participant with six minutes of slack gets a two-pixel dashed
-       * rule with a 13 px word spilling out of it over the 24-hour tick.
+       * Unallocated's label *is* omitted on a sliver, where a band's label is
+       * not. §7.5's argument for keeping a band named — colour orients, the
+       * label identifies — has nothing to say here: this is the shape of what
+       * is left, it identifies no activity, and a participant with six minutes
+       * of slack was getting a two-pixel dashed rule with a 13 px word spilling
+       * out of it across the 24-hour tick.
        */}
-      {showsLabel(height) ? (
+      {showsSlackLabel(height) ? (
         <span className={styles.unallocatedLabel}>{copyOf(pack, 'band.unallocated')}</span>
       ) : null}
     </div>

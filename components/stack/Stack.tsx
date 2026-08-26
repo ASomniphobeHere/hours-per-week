@@ -105,14 +105,20 @@ export function Stack({
         >
           <span className={styles.spine} />
           <span className={styles.fill} />
-          {box.labelled ? (
-            <span className={styles.labels}>
-              <span className={styles.bandLabel}>{copyOf(pack, activity.label)}</span>
+          {/*
+            * The label always renders — §7.5 makes it the band's only
+            * identification, and a band with no name is unusable in greyscale.
+            * The hour count is what a thin band drops: the toggle and the sheet
+            * header both restate it, and the label is restated nowhere.
+            */}
+          <span className={styles.labels}>
+            <span className={styles.bandLabel}>{copyOf(pack, activity.label)}</span>
+            {box.showsHours ? (
               <span className={styles.bandHours}>
                 {formatAmount(hours)} {hoursUnit}
               </span>
-            </span>
-          ) : null}
+            ) : null}
+          </span>
         </div>
       ))}
 

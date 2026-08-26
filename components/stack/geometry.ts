@@ -25,8 +25,23 @@ export const LABEL_RATIO = 0.16;
 /** §7.4 — `hoursSize = labelSize × 0.72`. */
 export const HOURS_RATIO = 0.72;
 
-/** §7.4 — below this the band renders no label block at all. */
-export const LABEL_HIDE_BELOW_PX = 20;
+/**
+ * Below this height a band shows its label alone, without its hour count.
+ *
+ * §7.4 as written omits the whole label block under 20 px. Decided with the
+ * user (2026-08-26): **the label is never hidden.** §7.5 is the reason —
+ * "colour is orientation, not identification; the label identifies the band" —
+ * so a band with no label is a band a participant can only name by its hue,
+ * which is the one thing §7.5 says they must not have to do, and it has to
+ * hold in greyscale. The hour count is the line that goes, because it is the
+ * one the toggle and the sheet header both restate; the label is stated
+ * nowhere else on the band.
+ *
+ * The number is unchanged, only what it governs: 20 px is where the two
+ * stacked lines stop fitting — 13 px of label, a 2 px gap, and 9.4 px of hours
+ * is 24 px, so a band under 20 px was never showing both honestly.
+ */
+export const HOURS_HIDE_BELOW_PX = 20;
 
 /**
  * §8.1 — the sheet's close animates the changed band over 200 ms.
@@ -83,12 +98,27 @@ export function hoursSize(bandHeight: number): number {
 }
 
 /**
- * §7.4 — the label is omitted below a 20 px band. The hour count goes with it:
- * §7.3 calls the two one *label block*, and a 9 px number alone in a 14 px band
- * is not a smaller version of the band, it is a different thing.
+ * Whether a band has room for the second line of its label block.
+ *
+ * The label itself has no such test: it always renders (see the constant
+ * above). A thin band's label overflows its own box and is centred on it,
+ * which is what makes a 0.25 h band nameable at all.
  */
-export function showsLabel(bandHeight: number): boolean {
-  return bandHeight >= LABEL_HIDE_BELOW_PX;
+export function showsHours(bandHeight: number): boolean {
+  return bandHeight >= HOURS_HIDE_BELOW_PX;
+}
+
+/**
+ * Unallocated's own rule, which this change does not touch.
+ *
+ * §7.8's bottom band is not an activity and identifies nothing — it is the
+ * shape of what is left — so there is no §7.5 argument for keeping its word on
+ * screen, and six minutes of slack with "Unallocated" spilling across the
+ * 24-hour tick is the case step 4.7 already ruled on. Same threshold, stated
+ * separately because it is a different rule that happens to agree.
+ */
+export function showsSlackLabel(height: number): boolean {
+  return height >= HOURS_HIDE_BELOW_PX;
 }
 
 export interface BandInput {
@@ -104,7 +134,8 @@ export interface BandBox<T extends BandInput = BandInput> {
   height: number;
   labelPx: number;
   hoursPx: number;
-  labelled: boolean;
+  /** False on a band too thin for the hour count. The label renders regardless. */
+  showsHours: boolean;
   /** Hit overlay, which covers the band exactly and nothing else (§7.4). */
   hitTop: number;
   hitHeight: number;
@@ -133,7 +164,7 @@ export function layoutBands<T extends BandInput>(
       height,
       labelPx: labelSize(height),
       hoursPx: hoursSize(height),
-      labelled: showsLabel(height),
+      showsHours: showsHours(height),
       hitTop: top,
       hitHeight: height,
     };

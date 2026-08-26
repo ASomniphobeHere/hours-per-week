@@ -9,7 +9,8 @@ import {
   labelSize,
   layoutBands,
   pxPerHour,
-  showsLabel,
+  showsHours,
+  showsSlackLabel,
   stackHours,
 } from './geometry';
 
@@ -49,9 +50,14 @@ describe('type scaling (§7.4, AC 22)', () => {
     expect(labelSize(4000)).toBe(LABEL_MAX_PX);
   });
 
-  it('omits the label block below a 20 px band', () => {
-    expect(showsLabel(19.9)).toBe(false);
-    expect(showsLabel(20)).toBe(true);
+  it('drops the hour count below a 20 px band', () => {
+    expect(showsHours(19.9)).toBe(false);
+    expect(showsHours(20)).toBe(true);
+  });
+
+  it('still drops Unallocated’s own label on a sliver (§7.8)', () => {
+    expect(showsSlackLabel(19.9)).toBe(false);
+    expect(showsSlackLabel(20)).toBe(true);
   });
 });
 
@@ -86,7 +92,7 @@ describe('layoutBands (§7.2, §7.4)', () => {
     expect(commute.height).toBeCloseTo(6.5);
     expect(commute.hitHeight).toBeCloseTo(commute.height);
     expect(commute.hitTop).toBeCloseTo(commute.top);
-    expect(commute.labelled).toBe(false);
+    expect(commute.showsHours).toBe(false);
   });
 
   it('never lets one overlay reach into a neighbouring band (§7.4)', () => {
