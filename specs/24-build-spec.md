@@ -1,8 +1,23 @@
 # 24 — Build Specification
 
 **Product:** a phone-first time-budget exercise for facilitated workshops.
-**Version:** 1.2 — build spec
+**Version:** 1.3 — build spec
 **Status of content:** the question list and the estimator models are *not* in this document. They are content, loaded as data, and are specified in §4 as interfaces. This document specifies the system that consumes them. A build is complete and testable with placeholder content.
+
+### Changes in 1.3
+
+The S4 reveal becomes two screens, and the school stepper gains a top. Both are specified in place; this list exists so a reader of 1.2 knows what moved.
+
+| # | Was | Now | Where |
+|---|---|---|---|
+| 14 | §7.1 and §8.3 delivered the ask and the stack in one screen, and the weekly stepper appeared only in the sheet | The reveal is two screens — the commitment, then the pace: stepper, per-workday figure, and the outcome at the level set. The same three-part control is what the sheet carries | §1, §2.2, §7.1, §8.3, §9, §12 |
+| 15 | School was "adjustable upward only" with no maximum | Ceiling of 40 h/week = 8 h/workday; the increment control disables at 40 exactly as the decrement disables at 20 | §8.2, §8.3, §11, §12 AC 39 |
+
+AC 37, 39 and 40 keep their numbers and their subjects; 37a and 39a are added on the §7.9 precedent, so nothing renumbers.
+
+**Known consequence, accepted (14).** The pace is chosen before its cost is visible. That is the intent — a pace picked in front of a striped stack is a pace picked to clear the stripes — but it means some participants commit to 40 h and retreat under the breach. That retreat is a finding, not a failure of the screen, and §10 now records the pace twice so it survives into the debrief instead of being flattened into one figure read at complete.
+
+**Known consequence, accepted (14, second).** The outcome ladder is the only place in the participant client that states an expectation of any kind. §9 forbids norms and benchmarks in *question* copy, and the ladder is not question copy: it describes what the programme returns at a pace, never what the participant's week is like and never what anyone else chose. The distinction is load-bearing, and any rewrite of those five strings has to keep it.
 
 ### Changes in 1.2
 
@@ -49,7 +64,7 @@ Section 7 subsections renumbered by one to make room for §7.1. Acceptance crite
 
 A participant opens the app on their phone in a workshop room. They answer a questionnaire about their week. The system turns those answers into a schedule — a day rendered as a vertical stack of activity bands filling a 24-hour container, with a toggle above it for the two day types the week is made of: a workday and a weekend day. They review it, correct anything wrong by tapping bands and re-answering, and press Finish.
 
-They then wait on a loader while the rest of the room finishes. When the facilitator opens the next stage, every participant sees the same thing at the same moment: they forgot StartSchool, which requires a minimum of 20 hours per week. The school band appears at the top of their stack and the stack no longer fits — everything below the 24-hour line is struck through with red diagonal stripes.
+They then wait on a loader while the rest of the room finishes. When the facilitator opens the next stage, every participant sees the same thing at the same moment: they forgot StartSchool, which requires a minimum of 20 hours per week. On a second screen they choose how much of their week to give it — 20 to 40 hours, each level stating what the programme returns at that pace — before any of it is drawn against their day. Then the school band appears at the top of their stack and the stack no longer fits: everything below the 24-hour line is struck through with red diagonal stripes.
 
 They rebalance until the stripes are gone. What they cut, and in what order, is the output of the exercise.
 
@@ -87,6 +102,8 @@ S1 questionnaire ──Finish──> S3 hold ──flag──> S4 reveal
 | S5 done | — | — |
 
 S2 is re-enterable from itself (band replay). S3 → S4 is one-way. A participant who is still in S1 or S2 when the flag flips is force-advanced (§6.3).
+
+S4 opens on two screens before the stack — the commitment and the pace (§8.3) — and the participant reaches the striped stack only after committing to a weekly figure.
 
 Entry to S4 forces the day-type selection to `wd` (§7.1); it is the only stage transition that touches view state.
 
@@ -126,6 +143,7 @@ interface Activity {
 
 interface Constraint {
   minWeekly?: number;     // school: 20
+  maxWeekly?: number;     // school: 40
   minDaily?: number;      // sleep: 6
   stepWeekly?: number;    // school: 5
   weekendAllowed: boolean;// school: false
@@ -531,7 +549,7 @@ The toggle changes which stack is rendered. It changes nothing else: no answer, 
 
 **Default.** `wd` on first entry to S2. The selected day type persists across sheet open and close, and across refresh.
 
-**At S4.** Entry to S4 forces the selection to `wd`, because school is workday-only (§8.3) and a participant sitting on the weekend segment would otherwise experience the reveal as nothing happening. The toggle stays live afterwards — a participant whose weekend was already over 24 at S1 (§11) must be able to reach it, or `fits()` blocks confirm with the cause off-screen.
+**At S4.** The toggle is behind the two reveal screens (§8.3) and is first seen with school already in the stack. Entry to S4 forces the selection to `wd`, because school is workday-only (§8.3) and a participant sitting on the weekend segment would otherwise experience the reveal as nothing happening. The toggle stays live afterwards — a participant whose weekend was already over 24 at S1 (§11) must be able to reach it, or `fits()` blocks confirm with the cause off-screen.
 
 **Breach.** When `total(dt) > 24`, that segment's hour count is set bold and in the overflow red. This applies to both segments, selected or not. See §7.6 — this is a deliberate exception to the stripes-only rule, and the only numeric overflow signal in the client.
 
@@ -683,7 +701,7 @@ At the bottom of the sheet: a direct-entry control. "Set directly" flips the act
 | Activity | Constraint | Enforcement |
 |---|---|---|
 | `sleep` | ≥ 6 h per day | Input clamps at 6; stepper disables below |
-| `school` | ≥ 20 h/week, 5 h steps, workdays only | See §8.3 |
+| `school` | 20–40 h/week, 5 h steps, workdays only | See §8.3 |
 | all others | ≥ 0 | Input clamps at 0 |
 
 Clamping is silent. No error copy. The control simply stops.
@@ -692,12 +710,43 @@ Clamping is silent. No error copy. The control simply stops.
 
 School appears only at S4 and sits at `order: 0` — **above sleep, at the top of the stack**.
 
+**The reveal is two screens, and the stack is on neither of them.**
+
+1. **The commitment.** `s4.reveal.title` / `s4.reveal.body`: StartSchool is happening, and it takes a share of the week. One continue control. No number is asked for on this screen.
+2. **The pace.** The weekly stepper, the per-workday figure it implies (`weekly / 5`), and beneath both the outcome at the level currently set. All three update on every step. Continue commits the level; the stack is then entered with school already at that height.
+
+Splitting them is the point, not a layout convenience. A pace chosen in front of a striped stack is a pace chosen to remove the stripes — 20 for everyone, measuring nothing. Chosen before the cost is on screen, it is a statement of what the participant wants out of the programme, and what they then cut to afford it is the output of the exercise (§10).
+
+The per-workday figure is the one cost the pace screen does show, and it is deliberately the general one: a participant should know that 40 h a week is eight hours of every workday before choosing it. What it takes from *their* week stays off-screen until the stack.
+
+**The ladder.**
+
+| Weekly | Per workday | Outcome |
+|---|---|---|
+| 20 h | 4 h | You will learn some things about product development. |
+| 25 h | 5 h | *Placeholder — to be authored.* |
+| 30 h | 6 h | *Placeholder — to be authored.* |
+| 35 h | 7 h | *Placeholder — to be authored.* |
+| 40 h | 8 h | You have a real chance to succeed developing your own startup. |
+
+The endpoints are fixed content. The three middle rungs ship as placeholders in the pack until they are authored, and they interpolate that range under §9's register — plain, neutral, no encouragement, no second-person judgement. A build is complete and testable with the placeholders in place, on the same principle as the rest of §4's content.
+
+The outcome copy is what makes the stepper a decision at all: a number that changes nothing but a band height is not something a participant can have a view about. It is also the only expectation the client states anywhere, and it states one about the programme — never about the participant's week, never about what other people in the room chose, and never implying that a rung is the right one.
+
+**The rules.**
+
 - Weekly minimum **20 h**, distributed across the 5 workdays → 4 h per workday
-- Adjustable **upward only**, in **5 h weekly increments** → 25 h (5 h/day), 30 h (6 h/day), and so on
-- The decrement control is disabled at 20 h
+- Adjustable in **5 h weekly increments**, from 20 up to a maximum of **40 h** → 8 h per workday
+- The decrement control is disabled at 20 h; the increment control is disabled at 40 h
 - **Zero hours on weekend days.** School contributes nothing to the weekend stack.
 
-School's sheet contains only the weekly-hours stepper. It carries none of the questionnaire.
+**Why there is a ceiling.** 1.2 and earlier said "adjustable upward only" and named no maximum, which was harmless while the number meant nothing but a band height. Once every level states an outcome, an unbounded stepper walks past the last claim the pack can make, and 45 h sitting under the 40 h text is a worse screen than a disabled control. 40 h is also a full working day of school on every workday, on top of everything the participant already answered — the point at which the ask is visibly more than a week holds.
+
+The outcome keys are addressed by weekly value (§9), so extending the ladder is a pack edit plus a `maxWeekly` change, not a client change.
+
+School's sheet contains the same three-part control — stepper, per-workday figure, outcome — and nothing else. It carries none of the questionnaire. The pace screen and the sheet render **one** control, so the ladder a participant chose against is the ladder they meet again on the band.
+
+**Lowering the pace is a legitimate route to fitting**, down to the 20 h floor. Giving up outcome rather than hours is one of the decisions this exercise exists to surface, and it appears in cut order like any other `hours.change` (§10).
 
 Because school is workday-only, the weekend stack is unaffected by the reveal and will normally still fit. `fits()` is therefore effectively a workday condition — but implement it as the general form in §3.4 so a future weekend-bearing commitment doesn't require a rewrite.
 
@@ -709,7 +758,7 @@ When `fits()` becomes true, the stripes disappear and a confirm control becomes 
 
 The participant may continue adjusting after fitting and before confirming. Do not auto-advance on `fits()` — a participant who lands under 24 by accident should get to look at what they did.
 
-**`fits()` may already be true on entry to S4.** Unallocated (§7.8) absorbs school before any band does, so a participant with 4 h or more of workday slack takes the reveal without breaching: no stripes, confirm enabled immediately, cut order empty. This is a valid outcome and a real finding — their week had room — and nothing in the client marks it or compensates for it. See §11.
+**`fits()` may already be true on entry to S4.** Unallocated (§7.8) absorbs school before any band does, so a participant whose workday slack covers the per-workday figure they chose — 4 h at 20 h/week, 8 h at 40 — takes the reveal without breaching: no stripes, confirm enabled immediately, cut order empty. This is a valid outcome and a real finding — their week had room — and nothing in the client marks it or compensates for it. See §11.
 
 ---
 
@@ -735,10 +784,16 @@ This applies to every section without exception, including screen time, sleep, a
 | `s3.lines[]` | Cycling status lines, ≥4 |
 | `s4.reveal.title` | Reveal heading |
 | `s4.reveal.body` | Reveal body — the StartSchool ask |
+| `s4.pace.title` | Pace screen heading |
+| `s4.pace.perDay` | Per-workday figure on the pace screen and in the sheet, templated `{hours}` |
+| `s4.pace.continue` | Pace screen continue control |
+| `s4.school.outcome.20` … `.40` | The five ladder rungs (§8.3), addressed by weekly value |
 | `s4.confirm` | Confirm button, enabled when `fits()` |
 | `sheet.setDirect` | Direct-entry toggle |
 | `sheet.done` | Sheet dismiss |
 | `band.unallocated` | Unallocated band label |
+
+**The outcome ladder** is content like every other string here, and the register applies to it in full. It is not question copy — it describes the programme at a pace rather than asking the participant anything — but the prohibition on comparison survives the move: no rung may reference other participants, other cohorts, or what is typical. Three of the five ship as placeholders (§8.3) and a pack is valid with them in place.
 
 **S3 status lines** must be plausible and dull. They describe evaluation in generic terms. Nothing witty — a joke here signals that the wait is theatre, and the pause stops working.
 
@@ -777,13 +832,16 @@ type EventType =
 | First cut | first element of cut order — the most diagnostic single field |
 | Sheet opens per activity during rebalance | count of `sheet.open` after S4 entry |
 | Sleep floor hit | any `clamp.hit` on `sleep` |
-| School above minimum | school weekly > 20 at complete |
+| Pace at reveal | school weekly committed on the pace screen — chosen before any cost was on screen |
+| School above minimum | school weekly > 20 at complete — the pace that survived the rebalance |
 | Time to fit | `fits` timestamp − S4 entry, per participant |
 | Time to fit, room | `fits` timestamp − `stage.open`, shared clock |
 | Slack at finish | `remaining('wd')` in the finish snapshot |
 | No-squeeze | `fits()` already true on S4 entry — slack ≥ school |
 
 **Two times to fit, named apart.** §6.2.5 measures against the room's `stage.open`; the per-participant measure runs from that participant's S4 entry. For anyone force-advanced they differ by the 5 s hold plus their snapshot. Both are derivable from the event log at no cost, so record both rather than pick: the first compares rebalance effort between participants, the second plots how the room moved after the flag flipped. Do not use one name for both.
+
+**Record the pace twice.** The pace screen (§8.3) puts the school figure in the participant's hands before the breach is visible, so *school above minimum* read at complete alone is two different facts wearing one name: what they wanted, and what they kept. A participant who takes 40 h and retreats to 25 under the stripes is the most interesting row in the debrief, and one figure erases them. The pace screen's commit is logged as `hours.change` like any other, so both ends are recoverable from the event log; report both.
 
 **Read cut order against slack at finish.** Unallocated absorbs school before any band does, and that absorption emits no event (§7.8). So the first *logged* cut is not the first real loss for any participant who had slack — it is the first loss they had to make a decision about. Both readings are useful and they are not the same reading. A debrief that quotes first cut without slack at finish is quoting a participant who may have already given up two hours silently.
 
@@ -808,7 +866,7 @@ Everything else in this document exists to produce **per-activity delta** and **
 | Every activity zeroed | Stack is entirely Unallocated; every activity sits in Not included. Valid state. |
 | School pushes weekend over 24 | Cannot occur (school is workday-only), but `fits()` must still evaluate both day types. |
 | **Weekend already over 24 at S4** | `fits()` is false for a cause the forced workday view does not show. The weekend segment reads bold and red (§7.6) and the toggle stays live (§7.1) so the participant can reach it. Confirm stays disabled until both days fit. |
-| **School fits inside existing slack** | Valid. No stripes, `fits()` true on S4 entry, confirm enabled immediately, cut order empty. Do not manufacture a breach: the ask is 20 h for everyone and a participant whose week had room is a finding, not a failure. Read against *slack at finish* (§10). |
+| **School fits inside existing slack** | Valid. No stripes, `fits()` true on S4 entry, confirm enabled immediately, cut order empty. The threshold is the pace they chose, not a fixed 4 h — 8 h of slack at 40 h/week — so the same participant can be slack-rich or breaching on a choice made one screen earlier. Do not manufacture a breach: a participant whose week had room is a finding, not a failure. Read against *slack at finish* (§10). |
 | **Force-advance from S1 with nothing answered** | Every gate resolves truthy (§4.2.1 rule 6) and every section derives from its field defaults (§4.6), so the participant reaches S4 with a full stack of pack-default hours rather than an empty one. |
 | Day-type toggle at S4 | Selection is forced to `wd` on S4 entry and remains changeable thereafter (§7.1). |
 
@@ -866,9 +924,11 @@ Everything else in this document exists to produce **per-activity delta** and **
 
 **S4**
 37. Entry to S4 forces the toggle to `wd`; the toggle remains operable afterwards.
+37a. The reveal is two screens — the commitment, then the pace — and neither renders the stack. The stack is reached only after the pace is committed.
 38. School renders at the top of the stack, above sleep.
-39. School weekly hours: minimum 20, increments of 5, decrement disabled at 20, zero on weekend days.
-40. School's sheet exposes only the weekly stepper — no questionnaire content.
+39. School weekly hours: minimum 20, maximum 40, increments of 5, decrement disabled at 20, increment disabled at 40, zero on weekend days.
+39a. The pace screen shows the per-workday figure and the outcome for the level currently set, and both change on every step. The band enters the stack at the committed level.
+40. School's sheet exposes the same three-part control as the pace screen — stepper, per-workday figure, outcome — and no questionnaire content.
 41. Portions of bands below the 24 h line carry 45° red stripes; the rim rule's appearance is identical before and after breach.
 42. The only numeric overflow signal anywhere in the client is the toggle segment's bold red hour count. No message, toast, delta, or excess figure appears — the segment shows occupied hours, never `+3.7`.
 43. Confirm enables only when `fits()` for **both** day types; the app does not auto-advance on `fits()`.

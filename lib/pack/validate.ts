@@ -16,6 +16,7 @@
  */
 
 import { DAY_TYPES } from '@/lib/domain/types';
+import type { Constraint } from '@/lib/domain/types';
 import type { ActivityDef, ContentPack, EstimatorDef, Field, Screen } from './types';
 import { ARITH_ID, arithTermInputs, isArithParams } from '@/lib/estimators/arith';
 import { hasImplementation } from '@/lib/estimators/registry';
@@ -68,6 +69,9 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   's3.title',
   's4.reveal.title',
   's4.reveal.body',
+  's4.pace.title',
+  's4.pace.perDay',
+  's4.pace.continue',
   's4.confirm',
   'sheet.setDirect',
   'sheet.done',
@@ -110,6 +114,27 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
 
 export const S3_LINES_PREFIX = 's3.lines.';
 export const S3_LINES_MINIMUM = 4;
+
+/** §8.3's ladder key for a weekly level, e.g. `s4.school.outcome.25`. */
+export const outcomeKey = (weekly: number): string => `s4.school.outcome.${weekly}`;
+
+/**
+ * The weekly levels the school stepper can reach, from its own constraint
+ * (§8.3). Every one of them states an outcome, so the levels are what the
+ * required-key check is derived from rather than a list repeated here — adding
+ * a rung stays a pack edit plus a `maxWeekly` change, and a pack that raises
+ * the ceiling without writing the copy for the new rung fails to load.
+ */
+export function weeklyLevels(constraint: Constraint | undefined): number[] {
+  const minimum = constraint?.minWeekly;
+  const maximum = constraint?.maxWeekly;
+  const step = constraint?.stepWeekly;
+  if (minimum === undefined || maximum === undefined || step === undefined) return [];
+  if (step <= 0 || maximum < minimum) return [];
+  const levels: number[] = [];
+  for (let weekly = minimum; weekly <= maximum; weekly += step) levels.push(weekly);
+  return levels;
+}
 
 function allScreenFields(pack: ContentPack): { screen: Screen; field: Field; path: string }[] {
   return pack.screens.flatMap((screen, screenIndex) =>
@@ -373,6 +398,12 @@ export function validatePack(pack: ContentPack): PackIssue[] {
     });
   });
   for (const key of REQUIRED_COPY_KEYS) requireCopy(key, 'copy');
+
+  pack.activities.forEach((activity, index) => {
+    for (const weekly of weeklyLevels(activity.constraint)) {
+      requireCopy(outcomeKey(weekly), `activities[${index}].constraint`);
+    }
+  });
 
   const lines = Object.keys(copy).filter((key) => key.startsWith(S3_LINES_PREFIX));
   if (lines.length < S3_LINES_MINIMUM) {

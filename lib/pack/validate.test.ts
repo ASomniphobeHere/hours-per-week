@@ -68,6 +68,34 @@ describe('§4.6 rules', () => {
     expect(rulesFired(pack)).toContain('copy-key-exists');
   });
 
+  it('copy-key-exists — a weekly level on the ladder with no outcome copy (§8.3)', () => {
+    const pack = minimalPack();
+    pack.activities[0]!.constraint = {
+      minWeekly: 20,
+      maxWeekly: 40,
+      stepWeekly: 5,
+      weekendAllowed: false,
+    };
+    for (const weekly of [20, 25, 30, 35]) {
+      pack.copy[`s4.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
+    }
+    expect(rulesFired(pack)).toContain('copy-key-exists');
+  });
+
+  it('copy-key-exists — every level on the ladder answered', () => {
+    const pack = minimalPack();
+    pack.activities[0]!.constraint = {
+      minWeekly: 20,
+      maxWeekly: 40,
+      stepWeekly: 5,
+      weekendAllowed: false,
+    };
+    for (const weekly of [20, 25, 30, 35, 40]) {
+      pack.copy[`s4.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
+    }
+    expect(validatePack(pack)).toEqual([]);
+  });
+
   it('copy-key-exists — fewer than four s3.lines (§9: at least four)', () => {
     const pack = minimalPack();
     delete pack.copy['s3.lines.3'];
