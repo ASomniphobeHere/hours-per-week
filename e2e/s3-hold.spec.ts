@@ -60,6 +60,11 @@ test.describe('S3', () => {
     await page.getByTestId('finish').click();
     await expect(page.getByTestId('hold')).toBeVisible();
 
+    // The ellipsis fills a dot at a time (§6.3), so the line reaches three
+    // dots six seconds in and the swap follows the pause.
+    await expect(page.getByTestId('hold-line')).toHaveText(/\.\.\.$/, { timeout: 10_000 });
+    await expect(page.getByTestId('hold-line')).not.toHaveText(/\.$/, { timeout: 10_000 });
+
     // The flag is still closed, so the hold is open-ended. Finish marked the
     // participant ready; it did not advance anyone (AC 32).
     await page.waitForTimeout(HOLD_MS + 1_000);

@@ -276,8 +276,12 @@
 
 /*
  * One line, and the box never resizes as the text swaps: a status line that
- * reflows the page every second is motion the participant is meant to be
- * pausing through.
+ * reflows the page is motion the participant is meant to be pausing through.
+ * The ellipsis grows at the end of the text for the same reason — dots added
+ * after the last word move nothing above them.
+ *
+ * The enter animation runs on mount, which is every swap: the line is keyed by
+ * its index, so React replaces the element rather than patching its text.
  */
 .holdLine {
   font-family: var(--font-utility);
@@ -286,4 +290,43 @@
   min-height: calc(15px * 1.5);
   color: var(--fg-muted);
   margin: 0;
+  animation: holdLineIn var(--hold-swap-ms) ease-out both;
+}
+
+.holdLineLeaving {
+  animation: holdLineOut var(--hold-swap-ms) ease-in both;
+}
+
+@keyframes holdLineIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes holdLineOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/*
+ * The timing is untouched — only the motion goes. Keeping one code path for
+ * both preferences is what stops the reduced-motion phone running the cycle at
+ * a different speed from the one beside it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .holdLine,
+  .holdLineLeaving {
+    animation: none;
+  }
 }
