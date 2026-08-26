@@ -43,6 +43,17 @@ export interface Participant {
    */
   commitDefaults: (fields: readonly Field[]) => void;
   patch: (partial: SessionPatch) => void;
+  /**
+   * §5's reset — destroys the session on the server and on the phone, then
+   * starts a fresh one in the same room.
+   *
+   * It is supplied from above rather than implemented here, because what
+   * follows a reset is a different session record entirely: this provider is
+   * seeded once from `initial`, so the component that owns that value is the
+   * one that can replace it. Rejects on a network failure, with nothing
+   * destroyed.
+   */
+  reset: () => Promise<void>;
 }
 
 const ParticipantContext = createContext<Participant | null>(null);
@@ -57,6 +68,7 @@ export interface ParticipantProviderProps {
   index: PackIndex;
   initial: PersistedState;
   storage: StorageLike;
+  reset: () => Promise<void>;
   children: React.ReactNode;
 }
 
@@ -64,6 +76,7 @@ export function ParticipantProvider({
   index,
   initial,
   storage,
+  reset,
   children,
 }: ParticipantProviderProps) {
   const [session, setSession] = useState<PersistedState>(initial);
@@ -142,8 +155,9 @@ export function ParticipantProvider({
       answer,
       commitDefaults,
       patch,
+      reset,
     }),
-    [index, session, activities, answer, commitDefaults, patch],
+    [index, session, activities, answer, commitDefaults, patch, reset],
   );
 
   return <ParticipantContext.Provider value={value}>{children}</ParticipantContext.Provider>;

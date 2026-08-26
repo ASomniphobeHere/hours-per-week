@@ -12,8 +12,8 @@
  */
 
 import type { PersistedState, StorageLike } from '@/lib/store/persist';
-import { restore, save } from '@/lib/store/persist';
-import { createSession, type FetchLike } from './client';
+import { clear, restore, save } from '@/lib/store/persist';
+import { ApiError, createSession, resetSession, type FetchLike } from './client';
 
 export interface PackIdentity {
   version: string;
@@ -73,4 +73,60 @@ export async function ensureSession({
   save(storage, state);
 
   return { state, created: true, packChanged: false, dropped: [], packUrl: created.packUrl };
+}
+
+export interface ResetOptions {
+  storage: StorageLike;
+  /** The session being discarded — its credentials authorise its own deletion. */
+  state: PersistedState;
+  fetchImpl: FetchLike;
+}
+
+/**
+ * §5's reset: destroy the session server-side, then locally, then start a new
+ * one in the same room.
+ *
+ * The order is the whole of the error handling. Local state is cleared only
+ * once the server has confirmed the delete, so a reset that fails on the
+ * network costs the participant nothing and can simply be tapped again.
+ *
+ * The exception is a 401, which on this route means the row is already gone —
+ * a second tap racing the first, or a token no longer matching anything. There
+ * is nothing left to authorise a retry with, so the stored record is worthless
+ * and keeping it would strand the participant on a session the server has
+ * forgotten. It is cleared and `null` returned, which drops the client to the
+ * join screen: one code re-entry, rather than a phone that can neither continue
+ * nor reset.
+ */
+export async function resetToNewSession({
+  storage,
+  state,
+  fetchImpl,
+}: ResetOptions): Promise<PersistedState | null> {
+  const credentials = { sessionId: state.sessionId, token: state.token };
+
+  let created;
+  try {
+    created = await resetSession(credentials, fetchImpl);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      clear(storage, state.sessionId);
+      return null;
+    }
+    throw error;
+  }
+
+  clear(storage, state.sessionId);
+  const next: PersistedState = {
+    sessionId: created.sessionId,
+    token: created.token,
+    packVersion: created.packVersion,
+    dayType: 'wd',
+    stage: 's1',
+    // A reset is a fresh participant, so §13's statement is unread again.
+    introSeen: false,
+    answers: {},
+  };
+  save(storage, next);
+  return next;
 }

@@ -31,15 +31,27 @@ export interface Harness extends RenderResult {
 
 export function renderParticipant(
   children: ReactNode,
-  options: { pack?: ContentPack; state?: PersistedState; storage?: StorageLike } = {},
+  options: {
+    pack?: ContentPack;
+    state?: PersistedState;
+    storage?: StorageLike;
+    /** §5's reset. Defaults to a no-op: most components never call it. */
+    reset?: () => Promise<void>;
+  } = {},
 ): Harness {
   const pack = options.pack ?? minimalPack();
   const state = options.state ?? sessionState();
   const storage = options.storage ?? memoryStorage();
+  const reset = options.reset ?? (() => Promise.resolve());
   save(storage, state);
 
   const result = render(
-    <ParticipantProvider index={indexPack(pack)} initial={state} storage={storage}>
+    <ParticipantProvider
+      index={indexPack(pack)}
+      initial={state}
+      storage={storage}
+      reset={reset}
+    >
       {children}
     </ParticipantProvider>,
   );

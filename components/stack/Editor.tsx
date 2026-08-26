@@ -26,6 +26,7 @@ import { useParticipant } from '@/lib/client/participant';
 import { DayToggle } from './DayToggle';
 import { Stack } from './Stack';
 import { NotIncluded } from './NotIncluded';
+import { Options } from './Options';
 import { useEditorGeometry } from './useEditorGeometry';
 import styles from './stack.module.css';
 
@@ -39,7 +40,7 @@ export interface EditorProps {
 }
 
 export function Editor({ onSelect, header, footer }: EditorProps) {
-  const { index, session, activities, patch } = useParticipant();
+  const { index, session, activities, patch, reset } = useParticipant();
   const pack = index.pack;
 
   // §3.3 — school exists from S4 onward and nowhere earlier.
@@ -75,6 +76,9 @@ export function Editor({ onSelect, header, footer }: EditorProps) {
 
   return (
     <main className={styles.editor}>
+      {/* Fixed to the right edge, so it takes no part in the geometry below (§7.9). */}
+      <Options pack={pack} onReset={reset} />
+
       <div className={styles.chrome}>
         <header ref={headerRef as React.Ref<HTMLElement>} className={styles.header}>
           {header}

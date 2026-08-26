@@ -19,7 +19,7 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { v1Index } from '@/lib/pack/v1';
 import { fieldIds } from '@/lib/pack';
 import { browserStorage, restore, type PersistedState, type StorageLike } from '@/lib/store/persist';
-import { ensureSession } from '@/lib/session/bootstrap';
+import { ensureSession, resetToNewSession } from '@/lib/session/bootstrap';
 import { ParticipantProvider, useParticipant } from '@/lib/client/participant';
 import { Intro } from './Intro';
 import { Join } from './Join';
@@ -50,7 +50,14 @@ export function Participant() {
     () => true,
     () => false,
   );
-  const [joined, setJoined] = useState<Ready | null>(null);
+  /*
+   * Boxed, so "no override yet" and "overridden to nothing" are distinguishable.
+   * A join overrides the restored record with a new session; a reset that
+   * cannot mint one overrides it with `null`, and an unboxed `Ready | null`
+   * would fall straight back through to the stale record `restored` still
+   * holds — resuming the session the participant just destroyed.
+   */
+  const [override, setOverride] = useState<{ value: Ready | null } | null>(null);
 
   /*
    * §5's restore. It writes back on a pack-version change — pruning answers to
@@ -74,16 +81,43 @@ export function Participant() {
       joinCode,
       fetchImpl: (input, init) => fetch(input, init),
     });
-    setJoined({ state: result.state, storage });
+    setOverride({ value: { state: result.state, storage } });
   }, []);
 
-  const ready = joined ?? restored;
+  const ready = override === null ? restored : override.value;
+
+  /*
+   * §5's reset. `resetToNewSession` clears local state only once the server has
+   * confirmed the delete, so a rejection here has destroyed nothing and the
+   * participant can tap again; `null` back means even the reset could not be
+   * authorised, and the join screen is the only honest place left to go.
+   */
+  const reset = useCallback(async (): Promise<void> => {
+    if (ready === null) return;
+    const next = await resetToNewSession({
+      storage: ready.storage,
+      state: ready.state,
+      fetchImpl: (input, init) => fetch(input, init),
+    });
+    setOverride({ value: next === null ? null : { state: next, storage: ready.storage } });
+  }, [ready]);
 
   if (!hydrated) return <main />;
   if (ready === null) return <Join pack={pack} onJoin={join} />;
 
   return (
-    <ParticipantProvider index={index} initial={ready.state} storage={ready.storage}>
+    /*
+     * Keyed by session id, so a reset remounts the provider rather than
+     * patching it. `initial` seeds `useState` once; without the key the new
+     * session's empty answer map would never reach the tree.
+     */
+    <ParticipantProvider
+      key={ready.state.sessionId}
+      index={index}
+      initial={ready.state}
+      storage={ready.storage}
+      reset={reset}
+    >
       <Stages />
     </ParticipantProvider>
   );

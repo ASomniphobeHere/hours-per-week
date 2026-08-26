@@ -16,6 +16,7 @@ import { GET as getStage } from './session/[id]/stage/route';
 import { POST as postReady } from './session/[id]/ready/route';
 import { POST as postComplete } from './session/[id]/complete/route';
 import { POST as postTelemetry } from './session/[id]/telemetry/route';
+import { POST as postReset } from './session/[id]/reset/route';
 import { GET as getPack } from './pack/[version]/route';
 import { get, params, postJson } from '@/lib/api/testing';
 import { getDatabase } from '@/lib/db/index';
@@ -418,6 +419,138 @@ describe('POST /session/:id/telemetry', () => {
     );
     expect(response.status).toBe(401);
     expect(getDatabase().prepare('SELECT count(*) AS n FROM events').get()).toEqual({ n: 0 });
+  });
+});
+
+/* ── Reset (§5) ─────────────────────────────────────────────────────────── */
+
+describe('POST /session/:id/reset', () => {
+  function rows(table: string, sessionId: string): number {
+    const row = getDatabase()
+      .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE session_id = ?`)
+      .get(sessionId);
+    return (row as { n: number }).n;
+  }
+
+  it('destroys the session and its data, and returns a replacement', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+    await postReady(
+      postJson(`/api/session/${session.sessionId}/ready`, { schedule: snapshot('finish') }, session.token),
+      params({ id: session.sessionId }),
+    );
+    await postTelemetry(
+      postJson(`/api/session/${session.sessionId}/telemetry`, { events: [{ t: 1, type: 'fits' }] }, session.token),
+      params({ id: session.sessionId }),
+    );
+
+    const response = await postReset(
+      postJson(`/api/session/${session.sessionId}/reset`, {}, session.token),
+      params({ id: session.sessionId }),
+    );
+    expect(response.status).toBe(201);
+
+    const next = (await response.json()) as Session;
+    expect(next.sessionId).not.toBe(session.sessionId);
+    expect(next.token).not.toBe(session.token);
+    expect(next.packUrl).toBe('/api/pack/v1');
+
+    expect(rows('snapshots', session.sessionId)).toBe(0);
+    expect(rows('events', session.sessionId)).toBe(0);
+    expect(
+      getDatabase().prepare('SELECT id FROM sessions WHERE id = ?').get(session.sessionId),
+    ).toBeUndefined();
+  });
+
+  it('carries no roomId, like every other participant response (RD-2)', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+
+    const response = await postReset(
+      postJson(`/api/session/${session.sessionId}/reset`, {}, session.token),
+      params({ id: session.sessionId }),
+    );
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(Object.keys(body).sort()).toEqual(['packUrl', 'packVersion', 'sessionId', 'token']);
+    expect(JSON.stringify(body)).not.toContain(room.roomId);
+  });
+
+  it('keeps the participant in the same room, so no join code is needed again', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+
+    const response = await postReset(
+      postJson(`/api/session/${session.sessionId}/reset`, {}, session.token),
+      params({ id: session.sessionId }),
+    );
+    const next = (await response.json()) as Session;
+
+    const row = getDatabase()
+      .prepare('SELECT room_id, stage FROM sessions WHERE id = ?')
+      .get(next.sessionId);
+    expect(row).toEqual({ room_id: room.roomId, stage: 's1' });
+  });
+
+  it('leaves the room at one session row per participant (§6.2.2)', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+    await postReset(
+      postJson(`/api/session/${session.sessionId}/reset`, {}, session.token),
+      params({ id: session.sessionId }),
+    );
+
+    const row = getDatabase()
+      .prepare('SELECT COUNT(*) AS n FROM sessions WHERE room_id = ?')
+      .get(room.roomId);
+    expect(row).toEqual({ n: 1 });
+  });
+
+  it('401s without a token, and destroys nothing', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+
+    const response = await postReset(
+      postJson(`/api/session/${session.sessionId}/reset`, {}),
+      params({ id: session.sessionId }),
+    );
+    expect(response.status).toBe(401);
+    expect(
+      getDatabase().prepare('SELECT id FROM sessions WHERE id = ?').get(session.sessionId),
+    ).toEqual({ id: session.sessionId });
+  });
+
+  it('401s on a foreign token — one participant cannot reset another', async () => {
+    const room = await newRoom();
+    const mine = await join(room.joinCode);
+    const theirs = await join(room.joinCode);
+
+    const response = await postReset(
+      postJson(`/api/session/${theirs.sessionId}/reset`, {}, mine.token),
+      params({ id: theirs.sessionId }),
+    );
+    expect(response.status).toBe(401);
+    expect(
+      getDatabase().prepare('SELECT id FROM sessions WHERE id = ?').get(theirs.sessionId),
+    ).toEqual({ id: theirs.sessionId });
+  });
+
+  it('401s the second tap of a double reset rather than minting a third row', async () => {
+    const room = await newRoom();
+    const session = await join(room.joinCode);
+    const request = () =>
+      postReset(
+        postJson(`/api/session/${session.sessionId}/reset`, {}, session.token),
+        params({ id: session.sessionId }),
+      );
+
+    expect((await request()).status).toBe(201);
+    expect((await request()).status).toBe(401);
+
+    const row = getDatabase()
+      .prepare('SELECT COUNT(*) AS n FROM sessions WHERE room_id = ?')
+      .get(room.roomId);
+    expect(row).toEqual({ n: 1 });
   });
 });
 
