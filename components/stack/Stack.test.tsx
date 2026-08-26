@@ -10,7 +10,7 @@ import { derive } from '@/lib/domain/derive';
 import { buildStack } from '@/lib/domain/stack';
 import { setAnswer } from '@/lib/store/answers';
 import type { AnswerMap, DayType } from '@/lib/domain/types';
-import { LABEL_MAX_PX, LABEL_MIN_PX, MIN_TAP_PX, RULER_HOURS } from './geometry';
+import { LABEL_MAX_PX, LABEL_MIN_PX, RULER_HOURS } from './geometry';
 import { Stack } from './Stack';
 
 const pack = minimalPack();
@@ -111,20 +111,22 @@ describe('type scaling (§7.4, AC 22)', () => {
 });
 
 describe('tap targets (§7.4, AC 21)', () => {
-  it('gives every band at least a 44 px hit area, however thin', () => {
+  it('covers each band with a hit area of exactly its own height', () => {
     renderStack();
     const hits = [...screen.getByTestId('stack').querySelectorAll('[data-hit]')] as HTMLElement[];
     expect(hits).toHaveLength(2);
-    for (const hit of hits) expect(px(hit, 'height')).toBeGreaterThanOrEqual(MIN_TAP_PX);
+    for (const hit of hits) {
+      const owner = band(hit.getAttribute('data-hit')!);
+      expect(px(hit, 'height')).toBeCloseTo(px(owner, 'height'));
+      expect(px(hit, 'top')).toBeCloseTo(px(owner, 'top'));
+    }
   });
 
-  it('lets the smaller band win the overlap', () => {
+  it('keeps the overlays clear of one another', () => {
     renderStack();
-    const hits = [...screen.getByTestId('stack').querySelectorAll('[data-hit]')].map(
-      (node) => Number((node as HTMLElement).style.zIndex),
-    );
-    // beta is the half-hour band; alpha is the hour.
-    expect(hits[1]).toBeGreaterThan(hits[0]!);
+    const hits = [...screen.getByTestId('stack').querySelectorAll('[data-hit]')] as HTMLElement[];
+    // beta is the half-hour band; alpha is the hour above it.
+    expect(px(hits[1]!, 'top')).toBeGreaterThanOrEqual(px(hits[0]!, 'top') + px(hits[0]!, 'height'));
   });
 
   it('opens the band it belongs to', async () => {

@@ -42,28 +42,40 @@ function useMeasuredHeight(): [React.RefObject<HTMLElement | null>, number] {
   return [ref, height];
 }
 
-/**
- * The viewport, as an external store rather than state kept in sync by an
- * effect — `window.innerHeight` is exactly that, something React does not own.
- *
- * Orientation change fires without a resize on some mobile browsers, and a
- * resize without an orientation change on every desktop one (§7.2).
- */
-function subscribeViewport(onChange: () => void): () => void {
-  window.addEventListener('resize', onChange);
-  window.addEventListener('orientationchange', onChange);
-  return () => {
-    window.removeEventListener('resize', onChange);
-    window.removeEventListener('orientationchange', onChange);
-  };
+let probe: HTMLDivElement | null = null;
+let viewport = 0;
+
+function ensureProbe(): HTMLDivElement {
+  if (probe === null) {
+    probe = document.createElement('div');
+    probe.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 0; height: 100svh; visibility: hidden';
+    document.documentElement.append(probe);
+  }
+  return probe;
+}
+
+function measureViewport(): number {
+  viewport = ensureProbe().getBoundingClientRect().height || window.innerHeight;
+  return viewport;
 }
 
 function readViewport(): number {
-  return window.innerHeight;
+  return viewport || measureViewport();
+}
+
+function subscribeViewport(onChange: () => void): () => void {
+  if (typeof ResizeObserver === 'undefined') return () => {};
+
+  const observer = new ResizeObserver(() => {
+    measureViewport();
+    onChange();
+  });
+  observer.observe(ensureProbe());
+  return () => observer.disconnect();
 }
 
 export interface EditorGeometry extends ChromeHeights {
-  /** §7.2's `pxPerHour`. Zero until the first measurement lands. */
   perHour: number;
   headerRef: React.RefObject<HTMLElement | null>;
   toggleRef: React.RefObject<HTMLElement | null>;
