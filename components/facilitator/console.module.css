@@ -190,3 +190,97 @@
   color: var(--fg-muted);
   margin: 0;
 }
+
+/* ── Landing screen (step 8.7) ────────────────────────────────────────────
+   `/facilitate` — the way into a room. Shares `.console`, `.button`, `.error`
+   and `.roomLabel` with the room screen: it is the same instrument and a
+   second palette for the way in would say otherwise. Its own action block
+   drops the room screen's `margin-top: auto`, because there is nothing here
+   to push the button to the bottom of. */
+
+.create {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.rooms {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roomList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.roomRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.roomLink {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--tap-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid rgba(244, 244, 246, 0.16);
+  border-radius: 10px;
+  font-family: var(--font-utility);
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.roomCode {
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+}
+
+.roomWhen {
+  font-size: 13px;
+  color: var(--fg-muted);
+  /* The code is the identity; the date gives way first at narrow widths. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quiet on purpose. A list that can only grow is wrong within a fortnight,
+   but forgetting a room is housekeeping and never the reason this screen is
+   open. */
+.forget {
+  flex: 0 0 auto;
+  width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.forget:hover,
+.forget:focus-visible {
+  border-color: rgba(244, 244, 246, 0.16);
+  color: var(--fg);
+}

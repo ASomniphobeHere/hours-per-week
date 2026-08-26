@@ -38,6 +38,61 @@ async function joinAsParticipant(page: Page, room: Room): Promise<void> {
 
 const stageButton = (page: Page) => page.getByTestId('stage-button');
 
+test.describe('the landing screen (step 8.7)', () => {
+  test('creates a room, lands on its console, and remembers it (AC 49a)', async ({
+    page,
+    context,
+  }) => {
+    await page.goto('/facilitate');
+
+    // Nothing to list yet, and no empty-state copy saying so.
+    await expect(page.getByTestId('remembered-rooms')).toHaveCount(0);
+
+    await page.getByTestId('new-room').click();
+
+    // Landed on the room's own console, which is where the code is read from.
+    await expect(page.getByTestId('console-joincode')).toBeVisible(SETTLE);
+    await expect(page).toHaveURL(/\/facilitate\/.+/);
+    const joinCode = (await page.getByTestId('console-joincode').textContent()) ?? '';
+    expect(joinCode).toMatch(/^[1-9]\d{3}$/);
+    await expect(page.getByTestId('console-ready')).toHaveText('0 / 0');
+
+    // The code the console shows is the code a phone can join on — the one
+    // thing a stubbed launcher cannot prove.
+    const phone = await context.newPage();
+    await page.goto('/');
+    await joinAsParticipant(phone, { roomId: '', joinCode, consoleUrl: '' });
+    await page.goBack();
+    await expect(page.getByTestId('console-ready')).toHaveText('0 / 1', SETTLE);
+
+    // And the room is reachable again from the landing screen, with no
+    // endpoint anywhere that enumerates rooms (§6.2.1, RD-2).
+    await page.goto('/facilitate');
+    const row = page.getByTestId(`remembered-${joinCode}`);
+    await expect(row).toBeVisible();
+    await row.click();
+    await expect(page.getByTestId('console-joincode')).toHaveText(joinCode, SETTLE);
+
+    await phone.close();
+  });
+
+  test('forgetting a room removes the row, not the room', async ({ page }) => {
+    await page.goto('/facilitate');
+    await page.getByTestId('new-room').click();
+    await expect(page.getByTestId('console-joincode')).toBeVisible(SETTLE);
+    const joinCode = (await page.getByTestId('console-joincode').textContent()) ?? '';
+    const consoleUrl = page.url();
+
+    await page.goto('/facilitate');
+    await page.getByTestId(`forget-${joinCode}`).click();
+    await expect(page.getByTestId(`remembered-${joinCode}`)).toHaveCount(0);
+
+    // The list is a note this browser wrote to itself; the room is untouched.
+    await page.goto(consoleUrl);
+    await expect(page.getByTestId('console-joincode')).toHaveText(joinCode, SETTLE);
+  });
+});
+
 test.describe('facilitator console', () => {
   test('shows the room, arms, and opens the stage (AC 50, 53, 54)', async ({ page, context }) => {
     const room = await newRoom(page);

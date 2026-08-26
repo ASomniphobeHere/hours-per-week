@@ -18,6 +18,24 @@ export interface RoomStatus {
   inStage: Record<StageId, number>;
 }
 
+export interface CreatedRoom {
+  roomId: string;
+  joinCode: string;
+  consoleUrl: string;
+}
+
+/**
+ * §6.2.1's room lifecycle, from the landing screen (step 8.7).
+ *
+ * `consoleUrl` is used as returned rather than reassembled from `roomId`: the
+ * server owns the shape of that path, and a client that built its own would be
+ * a second definition of it.
+ */
+export async function createRoom(fetchImpl: FetchLike): Promise<CreatedRoom> {
+  const response = await fetchImpl('/api/room', { method: 'POST' });
+  return (await expectOk(response)) as CreatedRoom;
+}
+
 export async function fetchRoomStatus(
   roomId: string,
   fetchImpl: FetchLike,
