@@ -638,7 +638,9 @@ Rendered as the bottom band, dashed 1 px outline, no fill, no spine, label "Unal
 
 ### 7.9 Options tab
 
-A sliver on the **right edge at mid-height**: a tab 15% of the viewport tall and three dots wide, rounded on its left side only, carrying a vertical ellipsis. It is `position: fixed` and therefore outside §7.2's chrome measurement — a tab in flow would shorten the day by its own width.
+A sliver on the **right edge at mid-height**: a tab 15% of the viewport tall and three dots wide, rounded on its left side only, carrying a vertical ellipsis. It is `position: fixed` and therefore outside §7.2's chrome measurement — a tab in flow would shorten the day by its own width. Its height *and its offset from the top* are both in `svh`: a percentage resolves against the layout viewport, which is what a mobile address bar resizes, so `top: 50%` would walk the tab up and down the edge as the participant scrolls.
+
+The panel it opens is inset from the right by the tab's own width plus a gap, so the control that opened it is never underneath it, and is anchored to the same `svh` offset so the two cannot drift apart mid-scroll. In the menu view it is sized to its one item; the confirmation takes the width its sentence needs.
 
 The right edge is chosen because the rest of the editor's chrome is spoken for: the header fills with the S4 reveal, the footer with the Not included count and Finish. It is a sliver because §7.6's silence rule holds here too — nothing beside the stack may read as an alert or an instruction.
 

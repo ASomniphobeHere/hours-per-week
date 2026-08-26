@@ -126,7 +126,7 @@ export function Options({ pack, onReset }: OptionsProps) {
           <div
             ref={panelRef}
             id={panelId}
-            className={styles.panel}
+            className={`${styles.panel} ${view === 'menu' ? styles.menu : styles.confirmPanel}`}
             role={view === 'confirm' ? 'dialog' : 'menu'}
             aria-modal={view === 'confirm' ? true : undefined}
             aria-label={view === 'menu' ? copyOf(pack, 'options.open') : undefined}

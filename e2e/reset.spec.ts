@@ -18,7 +18,10 @@ interface Seeded {
 
 const answer = (value: unknown) => ({ value, at: 1, revision: 1 });
 
-async function seedEditor(page: Page): Promise<Seeded> {
+async function seedEditor(
+  page: Page,
+  answers: Record<string, unknown> = { 'sleep.wake.wd': answer('05:30') },
+): Promise<Seeded> {
   const room = await page.request.post('/api/room');
   expect(room.ok()).toBe(true);
   const { roomId, joinCode } = (await room.json()) as { roomId: string; joinCode: string };
@@ -39,7 +42,7 @@ async function seedEditor(page: Page): Promise<Seeded> {
     stage: 's2',
     introSeen: true,
     // Something to lose, so a reset that silently kept the answer map would fail.
-    answers: { 'sleep.wake.wd': answer('05:30') },
+    answers,
   };
 
   await page.addInitScript((record) => {
@@ -128,6 +131,52 @@ test.describe('starting over (§7.9)', () => {
       },
     });
     expect(stage.status()).toBe(200);
+  });
+
+  test('the panel clears the tab, and the menu is sized to its one item (§7.9)', async ({
+    page,
+  }) => {
+    await seedEditor(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+    await expect(page.getByTestId('stack')).toBeVisible();
+
+    const tab = (await page.getByTestId('options-tab').boundingBox())!;
+
+    await page.getByTestId('options-tab').click();
+    const menu = (await page.getByTestId('options-reset').boundingBox())!;
+
+    // The panel does not sit on the control that opened it — a covered tab is
+    // no way back out.
+    const panel = page.locator('[role="menu"]');
+    const menuPanel = (await panel.boundingBox())!;
+    expect(menuPanel.x + menuPanel.width).toBeLessThanOrEqual(tab.x);
+
+    // One short word, not a dialog's worth of width.
+    await page.getByTestId('options-reset').click();
+    const confirmPanel = (await page.locator('[role="dialog"]').boundingBox())!;
+    expect(menuPanel.width).toBeLessThan(confirmPanel.width);
+    expect(menuPanel.width).toBeLessThan(menu.width + 4);
+
+    // And the confirmation clears the tab too.
+    expect(confirmPanel.x + confirmPanel.width).toBeLessThanOrEqual(tab.x);
+  });
+
+  test('the tab does not move when the stack is scrolled (§7.9)', async ({ page }) => {
+    // A breaching day, so the stack runs past the viewport and there is
+    // somewhere to scroll to (§7.2).
+    await seedEditor(page, { 'sleep.wake.wd': answer('23:00') });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+    await expect(page.getByTestId('stack')).toBeVisible();
+
+    const before = (await page.getByTestId('options-tab').boundingBox())!;
+    await page.mouse.wheel(0, 400);
+    await page.waitForFunction(() => window.scrollY > 0);
+    const after = (await page.getByTestId('options-tab').boundingBox())!;
+
+    expect(after.y).toBeCloseTo(before.y, 0);
+    expect(after.x).toBeCloseTo(before.x, 0);
   });
 
   test('the tab is a sliver on the right edge at mid-height (§7.9)', async ({ page }) => {

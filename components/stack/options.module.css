@@ -5,6 +5,12 @@
  * and shortens the day. Everything is a token from `styles/tokens.css`.
  */
 
+.overlay,
+.tab {
+  /* Shared by the tab's own width and by the panel's inset from it. */
+  --options-tab-w: 20px;
+}
+
 /* ── The sliver (§7.9) ─────────────────────────────────────────────────────
    A folder tab on the right edge at mid-height: 15% of the viewport tall, wide
    enough for three dots and a thumb's worth of edge, rounded on the left only
@@ -12,12 +18,19 @@
 .tab {
   position: fixed;
   right: 0;
-  top: 50%;
+  /*
+     `svh`, not `%` — same reason the stack is sized from it. A percentage on a
+     fixed element resolves against the layout viewport, which is the thing a
+     mobile address bar resizes as it shows and hides, so `top: 50%` walks the
+     tab up and down the edge while the participant scrolls. `50svh` is a
+     constant, and the tab stays where it was put.
+  */
+  top: 50svh;
   transform: translateY(-50%);
   z-index: 5;
 
   height: 15svh;
-  width: 20px;
+  width: var(--options-tab-w);
   min-height: var(--tap-target-min);
   padding: 0;
 
@@ -65,18 +78,38 @@
   background: var(--backdrop-dim);
 }
 
-/* Anchored to the tab it came out of: same edge, same mid-height. */
+/*
+ * Anchored to the tab it came out of: same edge, same mid-height, and clear of
+ * it. The tab is `--options-tab-w` on the right edge, so the panel is inset by
+ * that plus a gap — a panel sitting on top of the control that opened it hides
+ * the way back out.
+ */
 .panel {
   position: absolute;
-  right: 12px;
-  top: 50%;
+  right: calc(var(--options-tab-w) + 12px);
+  /* Anchored the same way as the tab, so the two cannot drift apart mid-scroll. */
+  top: 50svh;
   transform: translateY(-50%);
-  width: min(320px, calc(100vw - 24px));
+  max-width: calc(100vw - var(--options-tab-w) - 24px);
 
   border-radius: var(--sheet-radius);
   background: #1a1a20;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+}
+
+/*
+ * The menu is one short word, so it is sized to that word rather than to the
+ * confirmation that follows it. A 320 px panel holding "Start over" reads as a
+ * dialog the participant has not been asked anything by yet.
+ */
+.menu {
+  width: max-content;
+}
+
+/* The confirmation has a sentence to fit, and wants the room. */
+.confirmPanel {
+  width: min(320px, calc(100vw - var(--options-tab-w) - 24px));
 }
 
 .item {
