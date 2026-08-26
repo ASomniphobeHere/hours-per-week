@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
    * Development only — it has no effect on `next start`, and the LAN origins
    * a rehearsal needs are Stage 12's to add.
    */
-  allowedDevOrigins: ['127.0.0.1'],
+  allowedDevOrigins: ['127.0.0.1',
+    '172.29.228.70'
+  ],
 };
 
 export default nextConfig;
