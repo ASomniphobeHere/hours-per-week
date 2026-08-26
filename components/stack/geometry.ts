@@ -28,6 +28,17 @@ export const HOURS_RATIO = 0.72;
 /** §7.4 — below this the band renders no label block at all. */
 export const LABEL_HIDE_BELOW_PX = 20;
 
+/**
+ * §8.1 — the sheet's close animates the changed band over 200 ms.
+ *
+ * The duration lives in `--band-transition` and the editor needs the same
+ * number in JavaScript to know when the settle is over. `geometry.test.ts`
+ * reads the token back out of the stylesheet and asserts the two agree, on the
+ * pattern `ruler-contrast.test.ts` set: a value stated twice is a value that
+ * drifts, unless a test refuses to let it.
+ */
+export const BAND_TRANSITION_MS = 200;
+
 export interface ChromeHeights {
   viewportHeight: number;
   headerH: number;

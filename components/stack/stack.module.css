@@ -119,6 +119,22 @@
   flex: none;
 }
 
+/*
+ * §8.1's close animation, and only it.
+ *
+ * The class is on for the 200 ms after a sheet is dismissed and off at every
+ * other moment, which is what keeps the day-type toggle instant: §7.1 says
+ * selecting a day changes which stack renders "and nothing else", and a
+ * standing transition on the bands would make it a slide. `--band-transition`
+ * is 0 ms under `prefers-reduced-motion`, so the same rule covers §8.1's skip.
+ */
+.settling .band,
+.settling .unallocated {
+  transition:
+    top var(--band-transition) ease,
+    height var(--band-transition) ease;
+}
+
 /* ── Band anatomy (§7.3) ──────────────────────────────────────────────── */
 
 .band {

@@ -67,6 +67,7 @@ export async function ensureSession({
     stage: 's1',
     introSeen: false,
     answers: {},
+    authored: {},
   };
   // Written before the participant answers anything: a refresh in the seconds
   // between joining and the first field is still a refresh (§11).
@@ -126,6 +127,7 @@ export async function resetToNewSession({
     // A reset is a fresh participant, so §13's statement is unread again.
     introSeen: false,
     answers: {},
+    authored: {},
   };
   save(storage, next);
   return next;

@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 4 complete
+**Status:** Stage 5 complete
 
 ## How to use this document
 
@@ -269,24 +269,42 @@ The instrument. §7 is unusually specific and the criteria are correspondingly l
 
 ---
 
-## Stage 5 — The sheet
+## Stage 5 — The sheet ✅
 
-- [ ] **5.1 Sheet shell** (§8.1) — rises from the bottom to 88% viewport height, rounded top corners, backdrop at 45% dim. Locks body scroll, traps focus, focuses the first focusable element on open. Closes on backdrop tap, Escape, downward drag past 25% of sheet height, or explicit Done. On close, the changed band animates to its new height over 200 ms, skipped under `prefers-reduced-motion`.
+- [x] **5.1 Sheet shell** (§8.1) — rises from the bottom to 88% viewport height, rounded top corners, backdrop at 45% dim. Locks body scroll, traps focus, focuses the first focusable element on open. Closes on backdrop tap, Escape, downward drag past 25% of sheet height, or explicit Done. On close, the changed band animates to its new height over 200 ms, skipped under `prefers-reduced-motion`.
   *AC: 24*
 
-- [ ] **5.2 Prefilled replay and live header total** (§8.1) — the section's screens stacked vertically and scrollable, not paged: replay is review, and paging through four screens to fix one number is worse. Because the sheet occludes the stack, its header shows the activity's current computed total, updating live as fields change — the number substitutes for the visual the participant cannot see.
+- [x] **5.2 Prefilled replay and live header total** (§8.1) — the section's screens stacked vertically and scrollable, not paged: replay is review, and paging through four screens to fix one number is worse. Because the sheet occludes the stack, its header shows the activity's current computed total, updating live as fields change — the number substitutes for the visual the participant cannot see.
   *AC: 23*
 
-- [ ] **5.3 Constraints in the sheet** (§8.2) — sleep clamps at 6 h with the stepper disabled below; everything else clamps at 0. Clamping is silent, with no error copy — the control simply stops. Each clamp emits `clamp.hit`.
+- [x] **5.3 Constraints in the sheet** (§8.2) — sleep clamps at 6 h with the stepper disabled below; everything else clamps at 0. Clamping is silent, with no error copy — the control simply stops. Each clamp emits `clamp.hit`.
   *AC: 25*
 
-- [ ] **5.4 Direct entry** (§8.1, §4.3 rules 4–5) — "Set directly" flips the activity to `mode: 'direct'` and exposes numeric inputs for workday and weekend hours. It does not erase the underlying answers; reverting restores derivation from them unchanged. The estimator never reclaims a `direct` activity on its own.
+- [x] **5.4 Direct entry** (§8.1, §4.3 rules 4–5) — "Set directly" flips the activity to `mode: 'direct'` and exposes numeric inputs for workday and weekend hours. It does not erase the underlying answers; reverting restores derivation from them unchanged. The estimator never reclaims a `direct` activity on its own.
   *AC: 26*
 
-- [ ] **5.5 Not-included row → sheet** (§7.7) — tapping a row opens that activity's sheet exactly as a band tap does, prefilled, including the gate at its falsy value if the section was gated out. Answering the gate truthy, or entering non-zero hours, moves the activity into the stack at its pack `order` on close, with the same 200 ms animation a height change gets.
+- [x] **5.5 Not-included row → sheet** (§7.7) — tapping a row opens that activity's sheet exactly as a band tap does, prefilled, including the gate at its falsy value if the section was gated out. Answering the gate truthy, or entering non-zero hours, moves the activity into the stack at its pack `order` on close, with the same 200 ms animation a height change gets.
   *AC: 30*
 
-**Stage 5 done when:** every activity's sheet opens prefilled from both a band and a Not-included row, the header total tracks edits live, sleep will not go below 6, and direct entry round-trips without answer loss.
+**Stage 5 done when:** every activity's sheet opens prefilled from both a band and a Not-included row, the header total tracks edits live, sleep will not go below 6, and direct entry round-trips without answer loss. — **All four hold.** `components/sheet/Sheet.test.tsx` drives the sheet through the editor rather than in isolation, because §8.1's sheet is defined by what it does to the thing behind it; `e2e/s2-sheet.spec.ts` carries the four properties only a layout engine settles — 88% of the viewport, a backdrop that really dims, a scroll that a wheel gesture really cannot move, and a band that really transitions over 200 ms.
+
+**Two open readings, both taken with the user.**
+
+**The header carries both day totals**, not one. §8.1 asks for "the activity's current computed total" and argues from occlusion — the number stands in for the band the participant cannot see. But a section's screens capture both day types at once ("On a workday" beside "On a weekend day"), so a single figure would sit still while half the controls moved. Both are shown, live, in the toggle's own idiom (§7.1: both segments show their own day's hours whether selected or not). Rejected: the weekly figure, which every field moves but which corresponds to no band and appears nowhere else in the editor.
+
+**A gated-out section's sheet shows its gate alone**, and reveals the rest of the section in the same sheet the moment the gate is answered truthy. §7.7 promises the row opens "prefilled — including the gate, set to its falsy value" and that "answering the gate truthy, **or entering non-zero hours**, moves the activity into the stack"; the second clause is direct entry, which every sheet carries at its bottom. Rejected: showing every screen under a falsy gate, which offers fields that derive to zero for as long as the gate says no. Reachability is recomputed from the answer map on every render (§4.2.1), so the reveal needs no second code path.
+
+**Four things decided in the building.**
+
+**The stack is frozen while the sheet is up.** Derivation is live, so without a freeze a band has already moved behind the sheet and AC 24 has nothing left to animate on close. The editor snapshots the activities at open, renders that snapshot for as long as the sheet occludes it, and releases it on close with the 200 ms transition on. That is also what carries §7.7's arrival from Not included: the newcomer is laid out in the frozen frame at zero height, so it grows into place instead of appearing on top of the neighbours still sliding down. `Stack` gains `settling` and `emerging` for exactly this, both defaulting off, and the transition is scoped to the settle — a standing one would make §7.1's day-type switch a slide, where the spec says selecting a day changes which stack renders "and nothing else".
+
+**Direct entry joins the persisted record.** §5's list of what a refresh must not cost predates the sheet and does not name the overrides, but its reason covers them: a value the participant typed is work they did. `PersistedState.authored` holds it, guarded on parse so a corrupt map costs the overrides rather than putting a `NaN` into every total, and cleared on a pack-version change for the same reason answers are pruned there. Hours for a *derived* activity stay out of storage, per §3.2's invariant.
+
+**Taking an activity over clamps the value it starts from.** "Set directly" seeds both day types from what the activity currently derives to, and that seed is clamped like any other direct value (§8.2) — so an activity already under its floor comes *up* to it the moment the participant takes it over. A participant sleeping 23:30 to 05:00 derives 5.5 h; tapping Set directly moves them to 6. The alternative is a `direct` value that violates the constraint the sheet exists to enforce, which is worse; the jump is silent and logged as `clamp.hit`, exactly as §8.2 asks.
+
+**§10's events reach a seam, not a queue.** Step 5.3 requires each clamp to emit `clamp.hit`, and an event not emitted at its moment cannot be recovered afterwards from any amount of state — so `clamp.hit`, `mode.direct`, `hours.change`, `sheet.open` and `sheet.close` are emitted where they happen, through an `onEvent` prop on the provider. Batching, retry and delivery stay Stage 10's (step 10.2), which is where the sink is filled in. `mode.direct` fires only on the transition into `direct`: §10 reads cut order off `hours.change`, and one per press would say the participant took the activity off the estimator ten times.
+
+**No copy key was added.** The sheet's own chrome is `sheet.setDirect`, `sheet.done` and `unit.hours`, all already in §9's table or in Stage 3's additions; the header's day labels and hour figures reuse `toggle.wd`, `toggle.we` and `toggle.hours`, which are the same two words for the same two day types the toggle behind the sheet is showing. §9's rule is that no string is hardcoded, not that every surface owns a private copy of one.
 
 ---
 

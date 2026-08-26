@@ -21,6 +21,7 @@ function state(overrides: Partial<PersistedState> = {}): PersistedState {
     stage: 's2',
     introSeen: true,
     answers: setAnswer({}, 'sleep.wake.wd', '07:00', 100),
+    authored: {},
     ...overrides,
   };
 }
@@ -62,6 +63,31 @@ describe('§5 persistence', () => {
       [stateKey('sess-1')]: JSON.stringify({ ...state(), token: '' }),
     });
     expect(load(storage)).toBeNull();
+  });
+
+  /*
+   * §5 does not name the direct-entry overrides — it predates the sheet — but
+   * its reason covers them: a refresh must not cost the participant work they
+   * did, and a value they typed is exactly that. Hours for a *derived*
+   * activity stay out of storage, per §3.2's invariant.
+   */
+  it('carries the participant’s direct entries through a refresh (§4.3 rule 4)', () => {
+    const storage = memoryStorage();
+    const authored = { sleep: { wd: { mode: 'direct' as const, hours: 7 }, we: { mode: 'derived' as const, hours: 0 } } };
+    save(storage, state({ authored }));
+    expect(load(storage)?.authored).toEqual(authored);
+  });
+
+  it('drops an authored map that does not parse, rather than the whole record', () => {
+    const storage = memoryStorage({
+      [CURRENT_KEY]: 'sess-1',
+      [stateKey('sess-1')]: JSON.stringify({ ...state(), authored: { sleep: { wd: 7 } } }),
+    });
+    // The session survives and the activity derives again — a defined state,
+    // where a `NaN` hours would have reached every total in the system.
+    const loaded = load(storage);
+    expect(loaded?.sessionId).toBe('sess-1');
+    expect(loaded?.authored).toEqual({});
   });
 
   it('clears both keys', () => {
@@ -125,6 +151,19 @@ describe('restore across a pack version change (§5)', () => {
     const result = restore(storage, { version: 'v2', fieldIds: [] })!;
     expect(result.state.sessionId).toBe('sess-1');
     expect(result.state.token).toBe('tok-1');
+  });
+
+  /* The same reasoning that prunes the answers: an override is keyed by an
+     activity id this pack may no longer define, and a value set against
+     different questions is not an answer to these ones. */
+  it('drops the direct entries with the answers that produced them', () => {
+    const storage = memoryStorage();
+    save(storage, state({
+      authored: { sleep: { wd: { mode: 'direct', hours: 7 }, we: { mode: 'derived', hours: 0 } } },
+    }));
+
+    const result = restore(storage, { version: 'v2', fieldIds: [] })!;
+    expect(result.state.authored).toEqual({});
   });
 
   it('writes the migrated record back, so a second boot is not a second migration', () => {

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  BAND_TRANSITION_MS,
   LABEL_MAX_PX,
   LABEL_MIN_PX,
   RULER_HOURS,
@@ -122,5 +124,33 @@ describe('layoutBands (§7.2, §7.4)', () => {
 describe('the ruler (§7.3, AC 18)', () => {
   it('ticks every three hours from 0 to 24', () => {
     expect([...RULER_HOURS]).toEqual([0, 3, 6, 9, 12, 15, 18, 21, 24]);
+  });
+});
+
+/**
+ * §8.1's 200 ms, stated in `--band-transition` and needed again in JavaScript:
+ * the editor has to know when the settle is over so it can take the transition
+ * back off the bands. Two statements of one number drift unless something
+ * refuses to let them, so the token is read back out of the stylesheet — the
+ * pattern `ruler-contrast.test.ts` set for the tick colour.
+ */
+describe('the band transition (§8.1)', () => {
+  const tokensCss = readFileSync(new URL('../../styles/tokens.css', import.meta.url), 'utf8');
+
+  function token(name: string): string {
+    const match = new RegExp(`${name}\s*:\s*([^;]+);`).exec(tokensCss);
+    if (match === null) throw new Error(`no ${name} in tokens.css`);
+    return match[1]!.trim();
+  }
+
+  it('agrees with the token the stylesheet animates on', () => {
+    expect(token('--band-transition')).toBe(`${BAND_TRANSITION_MS}ms`);
+  });
+
+  it('is switched off under prefers-reduced-motion (§8.1)', () => {
+    // The skip §8.1 asks for is one media query on the token, so every rule
+    // that reads it is covered at once — including the settle.
+    const reduced = /@media \(prefers-reduced-motion: reduce\) \{[^}]*--band-transition:\s*0ms;/s;
+    expect(tokensCss).toMatch(reduced);
   });
 });

@@ -11,6 +11,7 @@ import type { ContentPack } from '@/lib/pack/types';
 import { minimalPack } from '@/lib/pack/__fixtures__/minimal';
 import { memoryStorage, save, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { ParticipantProvider } from '@/lib/client/participant';
+import type { Event } from '@/lib/domain/types';
 
 export function sessionState(overrides: Partial<PersistedState> = {}): PersistedState {
   return {
@@ -21,6 +22,7 @@ export function sessionState(overrides: Partial<PersistedState> = {}): Persisted
     stage: 's1',
     introSeen: true,
     answers: {},
+    authored: {},
     ...overrides,
   };
 }
@@ -37,6 +39,8 @@ export function renderParticipant(
     storage?: StorageLike;
     /** §5's reset. Defaults to a no-op: most components never call it. */
     reset?: () => Promise<void>;
+    /** §10's sink. Stage 10 gives it a queue; a test gives it a spy. */
+    onEvent?: (event: Event) => void;
   } = {},
 ): Harness {
   const pack = options.pack ?? minimalPack();
@@ -51,6 +55,7 @@ export function renderParticipant(
       initial={state}
       storage={storage}
       reset={reset}
+      onEvent={options.onEvent}
     >
       {children}
     </ParticipantProvider>,
