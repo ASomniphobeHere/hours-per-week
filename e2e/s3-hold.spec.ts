@@ -51,6 +51,19 @@ async function answerEverything(page: Page): Promise<void> {
   for (let screen = 1; screen <= V1_SCREENS; screen += 1) await next(page).click();
 }
 
+/**
+ * Past the two reveal screens and onto the stack (§8.3).
+ *
+ * S4 opens on the commitment and the pace, and the stack is on neither. Every
+ * test below that used to assert the stack the moment the flag flipped now
+ * asserts the reveal there and walks through it — the entry path is the same
+ * one, with two screens in front of it.
+ */
+async function passReveal(page: Page): Promise<void> {
+  await page.getByTestId('reveal-continue').click();
+  await page.getByTestId('pace-continue').click();
+}
+
 test.describe('S3', () => {
   test('Finish holds until the facilitator opens the stage (AC 32, AC 33)', async ({ page }) => {
     const room = await newRoom(page);
@@ -60,6 +73,11 @@ test.describe('S3', () => {
     await page.getByTestId('finish').click();
     await expect(page.getByTestId('hold')).toBeVisible();
 
+    // The ellipsis fills a dot at a time (§6.3), so the line reaches three
+    // dots six seconds in and the swap follows the pause.
+    await expect(page.getByTestId('hold-line')).toHaveText(/\.\.\.$/, { timeout: 10_000 });
+    await expect(page.getByTestId('hold-line')).not.toHaveText(/\.$/, { timeout: 10_000 });
+
     // The flag is still closed, so the hold is open-ended. Finish marked the
     // participant ready; it did not advance anyone (AC 32).
     await page.waitForTimeout(HOLD_MS + 1_000);
@@ -67,8 +85,10 @@ test.describe('S3', () => {
 
     await openStage(page, room);
 
-    // One poll away, and the floor is long spent.
-    await expect(page.getByTestId('stack')).toBeVisible({ timeout: 10_000 });
+    // One poll away, and the floor is long spent — onto the commitment.
+    await expect(page.getByTestId('reveal')).toBeVisible({ timeout: 10_000 });
+    await passReveal(page);
+    await expect(page.getByTestId('stack')).toBeVisible();
     await expect(page.locator('[data-activity]').first()).toBeVisible();
   });
 
@@ -92,7 +112,7 @@ test.describe('S3', () => {
     await page.getByTestId('finish').click();
     await expect(page.getByTestId('hold')).toBeVisible();
 
-    await expect(page.getByTestId('stack')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('reveal')).toBeVisible({ timeout: 10_000 });
     expect(Date.now() - pressedAt).toBeGreaterThanOrEqual(HOLD_MS);
   });
 
@@ -107,16 +127,19 @@ test.describe('S3', () => {
     await openStage(page, room);
     await expect(page.getByTestId('hold')).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByTestId('stack')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('reveal')).toBeVisible({ timeout: 10_000 });
+    await passReveal(page);
+
+    await expect(page.getByTestId('stack')).toBeVisible();
     // §4.2.1 rule 6 and §4.6's defaults: every gate truthy, every section at
     // its field defaults, so a participant who answered one screen out of
-    // seventeen arrives with all nine of them (§11).
-    await expect(page.getByTestId('stack').locator('[data-activity]')).toHaveCount(9);
-    const notIncluded = page.getByTestId('not-included');
-    await expect(notIncluded.locator('[data-activity]')).toHaveCount(1);
-    // School, revealed at S4 (§3.3) and still at zero: step 7.2's pace screen
-    // is what commits it and moves it into the stack.
-    await expect(notIncluded.locator('[data-activity="school"]')).toHaveCount(1);
+    // seventeen arrives with all nine of them (§11) — plus school, which the
+    // pace screen has just committed at the top of the stack (§3.3, §8.3).
+    await expect(page.getByTestId('stack').locator('[data-activity]')).toHaveCount(10);
+    await expect(
+      page.getByTestId('stack').locator('[data-activity]').first(),
+    ).toHaveAttribute('data-activity', 'school');
+    await expect(page.getByTestId('not-included')).toBeHidden();
   });
 
   test('resumes in S3 after a refresh and restarts the floor (§11)', async ({ page }) => {
@@ -133,7 +156,7 @@ test.describe('S3', () => {
     // Opened immediately: without the restart the floor would already be spent
     // from the Finish above, and the flag alone would release them.
     await openStage(page, room);
-    await expect(page.getByTestId('stack')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('reveal')).toBeVisible({ timeout: 15_000 });
     expect(Date.now() - reloadedAt).toBeGreaterThanOrEqual(HOLD_MS);
   });
 });

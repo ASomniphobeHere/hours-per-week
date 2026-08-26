@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Activity } from './types';
 import {
+  atWeeklyMaximum,
   atWeeklyMinimum,
   clampDaily,
   clampEvent,
   clampWeekly,
   spreadDays,
+  weeklyLevels,
   weeklyToDaily,
 } from './constraints';
 
@@ -16,7 +18,7 @@ const sleep: Pick<Activity, 'id' | 'constraint'> = {
 
 const school: Pick<Activity, 'id' | 'constraint'> = {
   id: 'school',
-  constraint: { minWeekly: 20, stepWeekly: 5, weekendAllowed: false },
+  constraint: { minWeekly: 20, maxWeekly: 40, stepWeekly: 5, weekendAllowed: false },
 };
 
 const leisure: Pick<Activity, 'id' | 'constraint'> = { id: 'leisure' };
@@ -75,6 +77,31 @@ describe('§8.3 — school', () => {
     expect(weeklyToDaily(school.constraint, 20, 'wd')).toBe(4);
     expect(weeklyToDaily(school.constraint, 20, 'we')).toBe(0);
     expect(weeklyToDaily(school.constraint, 25, 'wd')).toBe(5);
+  });
+
+  /* The ceiling, new with the outcome ladder: once every rung states an
+     outcome, an unbounded stepper walks past the last claim the pack can
+     make. 40 h is also 8 h of every workday. */
+  it('caps the weekly total at 40 h', () => {
+    expect(clampWeekly(school, 45)).toEqual({ hours: 40, clamped: true });
+    expect(clampWeekly(school, 40)).toEqual({ hours: 40, clamped: false });
+  });
+
+  it('disables the increment control at the maximum', () => {
+    expect(atWeeklyMaximum(school, 40)).toBe(true);
+    expect(atWeeklyMaximum(school, 35)).toBe(false);
+  });
+
+  it('walks the ladder from its own constraint', () => {
+    expect(weeklyLevels(school.constraint)).toEqual([20, 25, 30, 35, 40]);
+    expect(weeklyToDaily(school.constraint, 40, 'wd')).toBe(8);
+  });
+
+  /* An activity with no ceiling has no rungs to speak for, and the stepper
+     that walks them has nothing to disable. */
+  it('has no ladder without a constraint that bounds one', () => {
+    expect(weeklyLevels(leisure.constraint)).toEqual([]);
+    expect(atWeeklyMaximum(leisure, 1_000)).toBe(false);
   });
 });
 

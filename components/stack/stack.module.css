@@ -204,6 +204,45 @@
   white-space: nowrap;
 }
 
+/* ── Overflow (§7.6) ──────────────────────────────────────────────────── */
+
+/*
+ * The 24-hour rim. One appearance and never any other: no state, no modifier
+ * class, nothing conditional in this rule (AC 41). It sits under the ruler and
+ * over the bands, and it is the day's edge rather than a warning about it.
+ */
+.rim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--rim-weight);
+  background: var(--rim-color);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/*
+ * Everything below the rim, in one clipped overlay from the line to the bottom
+ * of the container. Per-band stripes would restart the 6 px period at each
+ * boundary and would stripe a straddling band in full; this is a single field
+ * over whatever runs past 24 h, which is what §7.6 asks for.
+ */
+.stripes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    var(--stripe-angle),
+    var(--stripe-color) 0,
+    var(--stripe-color) 1px,
+    transparent 1px,
+    transparent var(--stripe-period)
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* ── Ruler (§7.3 as amended by RD-1) ──────────────────────────────────── */
 
 /*
@@ -348,9 +387,14 @@
 }
 
 /*
- * S2's Finish, in the footer beside §7.7's count. Sized to the tap target and
- * no wider than its own label: the footer is `space-between`, and a
- * full-width primary here would push the count off the row it shares.
+ * S2's Finish and S4's Confirm, in the footer beside §7.7's count. Sized to
+ * the tap target and no wider than their own label: the footer is
+ * `space-between`, and a full-width primary here would push the count off the
+ * row it shares.
+ *
+ * One rule for both, because they are the same control in the same place at
+ * two moments — what differs is the word on it and, for Confirm, whether it is
+ * pressable at all.
  */
 .finish {
   min-height: var(--tap-target-min);
@@ -362,6 +406,17 @@
   font-family: var(--font-utility);
   font-size: 17px;
   cursor: pointer;
+}
+
+/*
+ * Disabled until `fits()` holds on both day types (§8.4, AC 43). Dimmed and
+ * inert, and it says nothing about why: the stripes and the toggle's red hour
+ * count are the cause, and a control that explained itself here would be the
+ * over-by message §7.6 forbids.
+ */
+.finish:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .notIncludedCount {

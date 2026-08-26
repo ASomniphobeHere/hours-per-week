@@ -182,20 +182,20 @@ describe('S3: the hold (AC 33, AC 34)', () => {
     expect(stack()).toBeInTheDocument();
   });
 
-  it('cycles the pack lines under one heading, and shows no connection state (AC 34)', async () => {
+  it('shows the pack line under one heading, and no connection state (AC 34)', async () => {
     const server = room({ fail: true });
     mount(server, { stage: 's3' });
 
     await tick(0);
     expect(screen.getByRole('heading')).toHaveTextContent('Working through your answers');
+    // The line and its ellipsis are `Hold.test.tsx`'s; what matters here is
+    // that the hold is what a failing poll leaves on screen.
     expect(screen.getByTestId('hold-line')).toHaveTextContent('One');
-
-    await tick(1_000);
-    expect(screen.getByTestId('hold-line')).toHaveTextContent('Two');
 
     // The poll has been failing the whole time and the screen says nothing
     // about it: §6.3 forbids a warning here.
-    await tick(POLL_MAX_MS * 3);
+    await tick(POLL_MAX_MS);
+    await tick(POLL_MAX_MS);
     expect(server.polls().length).toBeGreaterThan(1);
     expect(held()?.textContent).not.toMatch(/connect|error|offline|retry/i);
   });

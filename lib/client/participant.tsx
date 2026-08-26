@@ -15,7 +15,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type { Activity, AnswerMap, DayType, Event, StageId } from '@/lib/domain/types';
 import { DAY_TYPES } from '@/lib/domain/types';
 import { clearDirect, derive, isFullyDerived, setDirect } from '@/lib/domain/derive';
-import { clampDaily, clampEvent } from '@/lib/domain/constraints';
+import { clampDaily, clampEvent, clampWeekly, weeklyToDaily } from '@/lib/domain/constraints';
 import { isAnswered, setAnswer } from '@/lib/store/answers';
 import { furthestStage, save, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { buildEstimators } from '@/lib/estimators/registry';
@@ -75,6 +75,25 @@ export interface Participant {
    * answers are untouched, which is what makes `revertToDerived` lossless.
    */
   setHours: (activityId: string, dayType: DayType, hours: number) => void;
+  /**
+   * §8.3's weekly stepper — school's one control, in weekly hours.
+   *
+   * The level is clamped to the ladder, spread over the day types the
+   * constraint allows (5 workdays, nothing at the weekend), and written as the
+   * participant's own values. There is no `mode.direct` here: that event says
+   * the participant took an activity *off its estimator* (§10), and school has
+   * never been on one — it has no questions, no estimator and no derived value
+   * to displace.
+   *
+   * `fromWeekly` is the level the change is measured against, and the pace
+   * screen is why it is a parameter. School enters the stack from nothing, so
+   * measured against what is on screen every commit is a rise — including the
+   * default one nobody chose. §10 reads the pace the participant picked off
+   * this event, so the commit passes the floor as its baseline and logs
+   * nothing at 20 h; the sheet passes the level it is leaving, and every step
+   * there is a real change appearing in cut order like any other (§8.3).
+   */
+  setWeekly: (activityId: string, weeklyHours: number, fromWeekly: number) => void;
   /**
    * §8.1's "Set directly" — takes the whole activity off its estimator, both
    * day types at once, seeded from what it derives to now.
@@ -262,6 +281,42 @@ export function ParticipantProvider({
     [index, activities, authored, record, storage],
   );
 
+  const setWeekly = useCallback(
+    (activityId: string, weeklyHours: number, fromWeekly: number) => {
+      const definition = index.activityById.get(activityId);
+      if (definition === undefined) return;
+      const constraint = definition.constraint;
+
+      const clamped = clampWeekly(definition, weeklyHours);
+      const now = Date.now();
+      if (clamped.clamped) record(clampEvent(activityId, weeklyHours, clamped.hours, now));
+
+      // Both day types, from the one number: the constraint decides which of
+      // them the week is spread over, so nothing here knows that school is the
+      // activity the weekend is closed to.
+      const spread = DAY_TYPES.map((dayType) => ({
+        dayType,
+        from: weeklyToDaily(constraint, fromWeekly, dayType),
+        to: weeklyToDaily(constraint, clamped.hours, dayType),
+      }));
+
+      setSession((state) => {
+        let authoredNext = state.authored;
+        for (const { dayType, to } of spread) {
+          authoredNext = setDirect(authoredNext, activityId, dayType, to);
+        }
+        const next = { ...state, authored: authoredNext };
+        save(storage, next);
+        return next;
+      });
+
+      for (const { from, to } of spread) {
+        if (to !== from) record({ t: now, type: 'hours.change', activityId, from, to });
+      }
+    },
+    [index, record, storage],
+  );
+
   const takeDirect = useCallback(
     (activityId: string) => {
       const definition = index.activityById.get(activityId);
@@ -321,6 +376,7 @@ export function ParticipantProvider({
       patch,
       advance,
       setHours,
+      setWeekly,
       takeDirect,
       revertToDerived,
       record,
@@ -335,6 +391,7 @@ export function ParticipantProvider({
       patch,
       advance,
       setHours,
+      setWeekly,
       takeDirect,
       revertToDerived,
       record,

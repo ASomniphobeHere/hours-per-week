@@ -1,0 +1,86 @@
+/*
+ * §8.3's three-part control, styled once for both the surfaces that render it.
+ *
+ * It has its own stylesheet rather than borrowing the questionnaire's or the
+ * sheet's, because it is the one control that appears in both and a class
+ * defined in either would be a shared component reaching into a surface it
+ * does not belong to. Every value is a token from `styles/tokens.css`.
+ */
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Same three-column shape as the questionnaire's stepper (§4.2): the control
+   the participant already used twenty times should not change hands here. */
+.stepper {
+  display: grid;
+  grid-template-columns: var(--tap-target-min) 1fr var(--tap-target-min);
+  align-items: stretch;
+  gap: 8px;
+}
+
+.step {
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  height: 56px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Disabled at 20 and at 40 (§8.3). The control simply stops — no message. */
+.step:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 10px;
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+}
+
+.unit {
+  margin-left: 6px;
+  font-size: 15px;
+  color: var(--fg-muted);
+}
+
+/* The implied cost, in the utility face beside the number it comes from. */
+.perDay {
+  margin: 0;
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+/*
+ * The rung's own claim. Set in the display face at reading size: it is the
+ * half of this control the participant is deciding against, and the number
+ * above it is only the price. The box does not resize as the level changes —
+ * a line that reflows the screen on every step is motion where a decision
+ * should be.
+ */
+.outcome {
+  margin: 0;
+  min-height: calc(3 * 17px * 1.4);
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.4;
+}

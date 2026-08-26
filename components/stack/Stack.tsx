@@ -9,8 +9,8 @@
  * container is `max(24, total) × pxPerHour` — over 24 the stack runs past the
  * viewport and is scrolled, which §7.2 asks for on purpose.
  *
- * Three layers, bottom to top: the bands, the ruler over their spines (AC 18),
- * and the transparent hit overlays (§7.4). The bands themselves take no
+ * Four layers, bottom to top: the bands, §7.6's rim and stripes, the ruler over
+ * their spines (AC 18), and the transparent hit overlays (§7.4). The bands themselves take no
  * pointer events; the overlays are the tap targets, and they are sized and
  * ordered so a 0.25 h band is as easy to hit as an 8 h one (AC 21).
  *
@@ -31,6 +31,7 @@ import { hoursOf } from '@/lib/domain/totals';
 import { copyOf } from '@/lib/pack/copy';
 import { formatAmount } from '@/components/participant/fields/format';
 import { layoutBands, stackHours } from './geometry';
+import { Overflow } from './Overflow';
 import { Ruler } from './Ruler';
 import { Unallocated } from './Unallocated';
 import styles from './stack.module.css';
@@ -125,6 +126,11 @@ export function Stack({
       {remaining > 0 ? (
         <Unallocated pack={pack} top={total * perHour} height={remaining * perHour} />
       ) : null}
+
+      {/* Under the ruler in the paint order, so the ticks stay legible over a
+          striped region — §7.3's contrast is measured against the hues, and a
+          red field laid over the numbers would put it back in question. */}
+      <Overflow perHour={perHour} total={total} />
 
       <Ruler perHour={perHour} />
 

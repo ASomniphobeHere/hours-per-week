@@ -101,8 +101,15 @@
   --sheet-height: 88vh;                  /* §8.1 */
   --sheet-radius: 20px;
 
-  /* ── Motion (§7.7, §8.1) ────────────────────────────────────────────────── */
+  /* ── Motion (§7.7, §8.1, §6.3) ──────────────────────────────────────────── */
   --band-transition: 200ms;
+
+  /* The S3 line swap. Mirrored by `HOLD_SWAP_MS` in `Hold.tsx`, which holds
+     the outgoing line on screen for exactly this long — so unlike
+     `--band-transition` it is *not* zeroed under reduced motion. The duration
+     is a step in a state machine; only the motion is a preference, and
+     `.holdLine` drops that on its own. */
+  --hold-swap-ms: 240ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
