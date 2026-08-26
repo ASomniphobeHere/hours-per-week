@@ -2,7 +2,7 @@
  * §8.2 constraints, and §8.3's school rule.
  *
  * | sleep       | >= 6 h per day        | input clamps at 6, stepper disables below |
- * | school      | >= 20 h/week, 5 h steps, workdays only |
+ * | school      | 20-40 h/week, 5 h steps, workdays only |
  * | all others  | >= 0                  | input clamps at 0 |
  *
  * Clamping is silent — no error copy, the control simply stops — and emits
@@ -53,8 +53,11 @@ export function clampWeekly(
   const minimum = constraint?.minWeekly ?? FLOOR;
   const step = constraint?.stepWeekly;
 
+  const maximum = constraint?.maxWeekly;
+
   if (!Number.isFinite(weeklyHours)) return { hours: minimum, clamped: true };
   if (weeklyHours < minimum) return { hours: minimum, clamped: true };
+  if (maximum !== undefined && weeklyHours > maximum) return { hours: maximum, clamped: true };
   if (step === undefined || step <= 0) return { hours: weeklyHours, clamped: false };
 
   const steps = Math.round((weeklyHours - minimum) / step);
@@ -87,6 +90,41 @@ export function atWeeklyMinimum(
 ): boolean {
   const minimum = activity.constraint?.minWeekly;
   return minimum !== undefined && weeklyHours <= minimum;
+}
+
+/**
+ * True when the increment control is disabled (§8.3's ceiling).
+ *
+ * The mirror of `atWeeklyMinimum`, and new with the ladder. 1.2 said school
+ * was "adjustable upward only" and named no maximum, which was harmless while
+ * the number meant nothing but a band height; once every rung states an
+ * outcome, an unbounded stepper walks past the last claim the pack can make.
+ */
+export function atWeeklyMaximum(
+  activity: Pick<Activity, 'constraint'>,
+  weeklyHours: number,
+): boolean {
+  const maximum = activity.constraint?.maxWeekly;
+  return maximum !== undefined && weeklyHours >= maximum;
+}
+
+/**
+ * The weekly levels a stepper can reach, from the constraint alone (§8.3).
+ *
+ * Every rung states an outcome (§9), so this is what the required-copy check
+ * is derived from as well as what the stepper walks — adding one stays a pack
+ * edit plus a `maxWeekly` bump rather than a client change, and a pack that
+ * raises the ceiling without writing the new rung's copy fails to load.
+ */
+export function weeklyLevels(constraint: Constraint | undefined): number[] {
+  const minimum = constraint?.minWeekly;
+  const maximum = constraint?.maxWeekly;
+  const step = constraint?.stepWeekly;
+  if (minimum === undefined || maximum === undefined || step === undefined) return [];
+  if (step <= 0 || maximum < minimum) return [];
+  const levels: number[] = [];
+  for (let weekly = minimum; weekly <= maximum; weekly += step) levels.push(weekly);
+  return levels;
 }
 
 export function clampEvent(activityId: string, from: number, to: number, now: number): Event {

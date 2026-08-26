@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { minimalPack } from './__fixtures__/minimal';
+import { schoolPack } from './__fixtures__/school';
 import { PACK_RULES, validatePack, type PackRule } from './validate';
 import { loadPack, PackValidationError } from './loader';
 
@@ -10,6 +11,15 @@ function rulesFired(pack: ReturnType<typeof minimalPack>): PackRule[] {
 describe('the fixture', () => {
   it('passes every rule, so a failure below is the mutation and not the fixture', () => {
     expect(validatePack(minimalPack())).toEqual([]);
+  });
+});
+
+describe('the school fixture', () => {
+  /* It shifts every order and re-hues the ring, so it is exactly the kind of
+     fixture that goes quietly wrong. If it fails to validate, the S4 tests are
+     asserting against a pack the client would refuse to load. */
+  it('passes all fourteen rules with the locked activity in it', () => {
+    expect(validatePack(schoolPack())).toEqual([]);
   });
 });
 

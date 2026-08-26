@@ -5,7 +5,8 @@ import { derivedState, total } from '@/lib/domain/totals';
 import { buildEstimators } from '@/lib/estimators/registry';
 import { setAnswer } from '@/lib/store/answers';
 import { fieldIds } from './index';
-import { validatePack } from './validate';
+import { outcomeKey, validatePack } from './validate';
+import { weeklyLevels } from '@/lib/domain/constraints';
 import { v1Index, v1Pack } from './v1';
 
 describe('the v1 pack (§3.3, §4.1, §9)', () => {
@@ -46,6 +47,35 @@ describe('the v1 pack (§3.3, §4.1, §9)', () => {
     // placement would be a second reading of the same rule.
     const notes = v1Pack.screens.map((screen) => screen.note).filter(Boolean);
     expect(notes).not.toContain('intro.multitasking');
+  });
+
+  /* §8.3's ladder, as content. The client walks the constraint and addresses
+     the copy by weekly value, so a pack that raises the ceiling without
+     writing the new rung's copy fails to load — which is what makes extending
+     the ladder a pack edit rather than a client change. */
+  it('carries a five-rung ladder from 20 h to 40 h, each rung with its copy', () => {
+    const school = v1Pack.activities.find((activity) => activity.locked === true);
+    expect(school?.constraint).toMatchObject({
+      minWeekly: 20,
+      maxWeekly: 40,
+      stepWeekly: 5,
+      weekendAllowed: false,
+    });
+    expect(weeklyLevels(school?.constraint)).toEqual([20, 25, 30, 35, 40]);
+    for (const weekly of weeklyLevels(school?.constraint)) {
+      expect(v1Pack.copy[outcomeKey(weekly)]).toBeTruthy();
+    }
+  });
+
+  /* §9 — the ladder is content and the register applies to it in full. It is
+     not question copy, but the prohibition on comparison survives the move. */
+  it('states no norm, benchmark or comparison at any rung', () => {
+    const rungs = weeklyLevels(
+      v1Pack.activities.find((activity) => activity.locked === true)?.constraint,
+    ).map((weekly) => v1Pack.copy[outcomeKey(weekly)] ?? '');
+    for (const rung of rungs) {
+      expect(rung).not.toMatch(/most people|others|average|typical|everyone|than you/i);
+    }
   });
 
   it('gates care and nothing else', () => {

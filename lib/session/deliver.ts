@@ -1,5 +1,5 @@
 /**
- * §6.1's `POST /ready`, delivered rather than fired.
+ * §6.1's `POST /ready` and `POST /complete`, delivered rather than fired.
  *
  * Neither §6.1 nor §11 says what happens when this call fails, and the two
  * halves of the answer pull apart. The participant must not be blocked: the
@@ -20,8 +20,14 @@
  * throw are both a server that may yet come back, and are retried.
  */
 
-import { ApiError, postReady, type FetchLike, type SessionCredentials } from './client';
-import type { ScheduleSnapshot } from '@/lib/domain/types';
+import {
+  ApiError,
+  postComplete,
+  postReady,
+  type FetchLike,
+  type SessionCredentials,
+} from './client';
+import type { Event, ScheduleSnapshot } from '@/lib/domain/types';
 
 export const RETRY_BASE_MS = 500;
 export const RETRY_CEILING_MS = 30_000;
@@ -35,7 +41,7 @@ export function backoffDelay(
   return Math.min(ceiling, base * 2 ** attempt);
 }
 
-export interface DeliverReadyOptions {
+export interface DeliverOptions {
   credentials: SessionCredentials;
   schedule: ScheduleSnapshot;
   fetchImpl: FetchLike;
@@ -45,32 +51,38 @@ export interface DeliverReadyOptions {
   ceiling?: number;
 }
 
+/** Retained under its old name: `deliverReady` took exactly these. */
+export type DeliverReadyOptions = DeliverOptions;
+
 export interface Delivery {
   /** Stops further attempts. In-flight requests are simply ignored. */
   cancel: () => void;
 }
 
 /**
+ * The retry itself, over any one request that carries a snapshot.
+ *
  * Starts the first attempt immediately and returns without waiting for it.
- * Nothing here is surfaced: success and permanent failure are both silent, on
- * the same §6.3 reasoning that keeps the poll quiet.
+ * Nothing is surfaced: success and permanent failure are both silent, on the
+ * same §6.3 reasoning that keeps the poll quiet.
  */
-export function deliverReady({
-  credentials,
-  schedule,
-  fetchImpl,
-  setTimeoutImpl = setTimeout,
-  clearTimeoutImpl = (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-  base = RETRY_BASE_MS,
-  ceiling = RETRY_CEILING_MS,
-}: DeliverReadyOptions): Delivery {
+function deliver(
+  attemptOnce: () => Promise<void>,
+  {
+    setTimeoutImpl = setTimeout,
+    clearTimeoutImpl = (handle: unknown) =>
+      clearTimeout(handle as ReturnType<typeof setTimeout>),
+    base = RETRY_BASE_MS,
+    ceiling = RETRY_CEILING_MS,
+  }: Omit<DeliverOptions, 'credentials' | 'schedule' | 'fetchImpl'>,
+): Delivery {
   let cancelled = false;
   let handle: unknown = null;
   let attempt = 0;
 
   const send = async (): Promise<void> => {
     try {
-      await postReady(credentials, schedule, fetchImpl);
+      await attemptOnce();
       return;
     } catch (error) {
       // Refused, not dropped: sending it again changes nothing.
@@ -89,4 +101,36 @@ export function deliverReady({
       if (handle !== null) clearTimeoutImpl(handle);
     },
   };
+}
+
+export function deliverReady({
+  credentials,
+  schedule,
+  fetchImpl,
+  ...retry
+}: DeliverOptions): Delivery {
+  return deliver(() => postReady(credentials, schedule, fetchImpl), retry);
+}
+
+/**
+ * §8.4's `POST /complete`, on the same terms and for a stronger reason.
+ *
+ * Confirm is the end of the participant's work and S5 is not a screen they can
+ * retry from, so a dropped POST costs the debrief the one snapshot the whole
+ * measurement is a delta against (§10). The transition is still immediate:
+ * making a participant watch a spinner after the last press would be the
+ * network wait §6.3 keeps out of the room, one stage later.
+ *
+ * The trailing event batch is Stage 10's — §6.1 accepts it here so cut order is
+ * complete for a participant who confirms before the queue's next flush, and
+ * until that queue exists the batch is empty.
+ */
+export function deliverComplete({
+  credentials,
+  schedule,
+  events = [],
+  fetchImpl,
+  ...retry
+}: DeliverOptions & { events?: readonly Event[] }): Delivery {
+  return deliver(() => postComplete(credentials, schedule, events, fetchImpl), retry);
 }

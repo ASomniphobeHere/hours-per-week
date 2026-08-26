@@ -14,7 +14,9 @@
 import { useEffect } from 'react';
 import type { DayType } from '@/lib/domain/types';
 import { isFullyDerived } from '@/lib/domain/derive';
+import { weekly } from '@/lib/domain/totals';
 import { useParticipant } from '@/lib/client/participant';
+import { SchoolControl } from '@/components/school/SchoolControl';
 import { Sheet } from './Sheet';
 import { ScreenList } from './ScreenList';
 import { DirectEntry } from './DirectEntry';
@@ -25,8 +27,18 @@ export interface ActivitySheetProps {
 }
 
 export function ActivitySheet({ activityId, onClose }: ActivitySheetProps) {
-  const { index, activities, answers, answer, setHours, takeDirect, revertToDerived, session, record } =
-    useParticipant();
+  const {
+    index,
+    activities,
+    answers,
+    answer,
+    setHours,
+    setWeekly,
+    takeDirect,
+    revertToDerived,
+    session,
+    record,
+  } = useParticipant();
 
   const activity = activities.find(candidate => candidate.id === activityId);
 
@@ -44,6 +56,33 @@ export function ActivitySheet({ activityId, onClose }: ActivitySheetProps) {
   // both entry points read from this same list — but a null here is a closed
   // sheet rather than a crashed one.
   if (activity === undefined) return null;
+
+  /*
+   * §8.3 and AC 40 — a `locked` activity's sheet is the three-part control and
+   * nothing else. No questionnaire content, because it has none: `locked` is
+   * the pack's own marker for an activity that carries no screens, which is
+   * why nothing here names school. `ScreenList` would already render nothing
+   * for it; direct entry would not, and a per-day hours box beside a weekly
+   * stepper is two controls disagreeing about what the participant is setting.
+   *
+   * This writes through on every step, unlike the pace screen's Continue: the
+   * band is already in the stack, and lowering the pace to fit is a legitimate
+   * route to completion that belongs in cut order like any other reduction
+   * (§8.3, step 7.7).
+   */
+  if (activity.locked) {
+    const current = weekly(activity);
+    return (
+      <Sheet pack={index.pack} activity={activity} onClose={onClose}>
+        <SchoolControl
+          pack={index.pack}
+          activity={activity}
+          weekly={current}
+          onChange={(next: number) => setWeekly(activityId, next, current)}
+        />
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet pack={index.pack} activity={activity} onClose={onClose}>
