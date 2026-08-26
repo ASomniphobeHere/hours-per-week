@@ -636,6 +636,26 @@ Instead, zero-hour activities appear in a **Not included** list positioned **bel
 
 Rendered as the bottom band, dashed 1 px outline, no fill, no spine, label "Unallocated". No tap target. Disappears entirely when `remaining ≤ 0`.
 
+### 7.9 Options tab
+
+A sliver on the **right edge at mid-height**: a tab 15% of the viewport tall and three dots wide, rounded on its left side only, carrying a vertical ellipsis. It is `position: fixed` and therefore outside §7.2's chrome measurement — a tab in flow would shorten the day by its own width. Its height *and its offset from the top* are both in `svh`: a percentage resolves against the layout viewport, which is what a mobile address bar resizes, so `top: 50%` would walk the tab up and down the edge as the participant scrolls.
+
+The panel it opens is inset from the right by the tab's own width plus a gap, so the control that opened it is never underneath it, and is anchored to the same `svh` offset so the two cannot drift apart mid-scroll. In the menu view it is sized to its one item; the confirmation takes the width its sentence needs.
+
+The right edge is chosen because the rest of the editor's chrome is spoken for: the header fills with the S4 reveal, the footer with the Not included count and Finish. It is a sliver because §7.6's silence rule holds here too — nothing beside the stack may read as an alert or an instruction.
+
+**Editor only.** The tab appears at S2 and after. The questionnaire, the intro and the join screen do not carry it.
+
+**Contents.** One item in v1: **Start over**.
+
+**Reset.** Two taps and a sentence, never one. The first opens the menu; the second opens a confirmation naming what is lost, and only its confirm button resets. A reset:
+
+- deletes the participant's session row, snapshots and events **server-side**, outright — a flag would leave `total` counting one participant twice and break `inStage` summing to it (§6.2.2), and an abandoned run in the §10 debrief is a participant who never existed;
+- mints a replacement session **in the same room**, so no join code is needed again and RD-2's rule that `roomId` never reaches a participant is untouched;
+- clears the local record and returns the participant to the intro, at S1, with an empty answer map.
+
+**Order and failure.** The server is asked first; local state is cleared only on its confirmation. A network failure has destroyed nothing and the confirmation stays up to be tapped again. A 401 means the row is already gone — a second tap racing the first — so the stored record is worthless and the client clears it and falls back to the join screen rather than stranding the phone on a session the server has forgotten.
+
 ---
 
 ## 8. Interaction
@@ -824,6 +844,9 @@ Everything else in this document exists to produce **per-activity delta** and **
 20. Activity hues form an even ring at `360 / n`; no two are closer than that interval.
 21. Every band is tappable over exactly its own height, and no overlay reaches into a neighbour.
 22. Label type scales with band height and clamps at 13 px / 34 px.
+22a. The options tab is present in the editor and absent everywhere else, and takes no part in the `pxPerHour` measurement.
+22b. Reset is unreachable in one tap; on confirmation the session's row, snapshots and events are gone and one row remains in the room.
+22c. A reset that fails on the network destroys nothing, locally or server-side.
 23. Tapping a band opens its section's screens prefilled; changing a field updates the sheet header total live.
 24. Sheet close animates the band; body scroll is locked while open; Escape closes.
 25. Sleep cannot be set below 6 h; the control stops silently.

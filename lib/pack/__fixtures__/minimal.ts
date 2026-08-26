@@ -172,5 +172,12 @@ const MINIMAL: ContentPack = {
     'unit.times': 'times',
     'a11y.decrease': 'Decrease',
     'a11y.increase': 'Increase',
+    'options.open': 'Options',
+    'options.reset': 'Start over',
+    'options.reset.title': 'Start over?',
+    'options.reset.body': 'This erases your answers.',
+    'options.reset.confirm': 'Start over',
+    'options.reset.cancel': 'Cancel',
+    'options.reset.failed': 'Could not reach the server. Try again.',
   },
 };

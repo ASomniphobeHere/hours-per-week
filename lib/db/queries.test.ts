@@ -1,13 +1,23 @@
 /**
- * The two pieces of query-layer logic no route test reaches: join-code
- * collision handling (§6.2.1) and monotonic stage advance (§6.2.2).
+ * The pieces of query-layer logic no route test reaches: join-code collision
+ * handling (§6.2.1), monotonic stage advance (§6.2.2), and the cascade a reset
+ * has to perform in one transaction (§5).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openDatabase } from './index';
-import { advanceStage, createRoom, createSession, findRoomByJoinCode, insertEvents } from './queries';
+import {
+  advanceStage,
+  createRoom,
+  createSession,
+  findRoomByJoinCode,
+  findSession,
+  insertEvents,
+  insertSnapshot,
+  resetSession,
+} from './queries';
 import * as ids from './ids';
-import type { Event } from '@/lib/domain/types';
+import type { Event, ScheduleSnapshot } from '@/lib/domain/types';
 
 function fresh() {
   return openDatabase(':memory:');
@@ -107,6 +117,92 @@ describe('insertEvents', () => {
     const db = fresh();
     expect(insertEvents('anyone', [], db)).toBe(0);
     expect(db.prepare('SELECT count(*) AS n FROM events').get()).toEqual({ n: 0 });
+    db.close();
+  });
+});
+
+describe('resetSession (§5)', () => {
+  function snapshot(): ScheduleSnapshot {
+    return {
+      kind: 's1',
+      t: 1,
+      packVersion: 'v1',
+      activities: [{ id: 'sleep', wd: { mode: 'derived', hours: 8 }, we: { mode: 'derived', hours: 9 } }],
+      total: { wd: 8, we: 9 },
+      remaining: { wd: 16, we: 15 },
+      fits: true,
+    };
+  }
+
+  const events: Event[] = [
+    { t: 1, type: 'screen.view' },
+    { t: 2, type: 'field.answer', fieldId: 'sleep.wake.wd' },
+  ];
+
+  function count(db: ReturnType<typeof fresh>, table: string, sessionId: string): number {
+    const row = db
+      .prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE session_id = ?`)
+      .get(sessionId) as { n: number };
+    return row.n;
+  }
+
+  it('deletes the row, its events and its snapshots, and mints a replacement in the same room', () => {
+    const db = fresh();
+    const room = createRoom(db);
+    const old = createSession(room.id, db);
+    insertEvents(old.id, events, db);
+    insertSnapshot(old.id, 's1', snapshot(), db);
+
+    const next = resetSession(old.id, db);
+
+    expect(next).not.toBeNull();
+    expect(next!.id).not.toBe(old.id);
+    expect(next!.token).not.toBe(old.token);
+    // Room membership is not what a reset is about, and RD-2 leaves the client
+    // no roomId to rejoin one with.
+    expect(next!.room_id).toBe(room.id);
+    expect(next!.stage).toBe('s1');
+
+    expect(findSession(old.id, db)).toBeNull();
+    expect(count(db, 'events', old.id)).toBe(0);
+    expect(count(db, 'snapshots', old.id)).toBe(0);
+    db.close();
+  });
+
+  it('leaves `total` counting one row per participant (§6.2.2)', () => {
+    const db = fresh();
+    const room = createRoom(db);
+    const session = createSession(room.id, db);
+    const total = () =>
+      (db.prepare('SELECT COUNT(*) AS n FROM sessions WHERE room_id = ?').get(room.id) as {
+        n: number;
+      }).n;
+
+    expect(total()).toBe(1);
+    const next = resetSession(session.id, db);
+    expect(total()).toBe(1);
+    // And the survivor is the new one, so `inStage` still sums to it.
+    expect(findSession(next!.id, db)?.stage).toBe('s1');
+    db.close();
+  });
+
+  it('does not touch another participant in the same room', () => {
+    const db = fresh();
+    const room = createRoom(db);
+    const mine = createSession(room.id, db);
+    const theirs = createSession(room.id, db);
+    insertEvents(theirs.id, events, db);
+
+    resetSession(mine.id, db);
+
+    expect(findSession(theirs.id, db)?.token).toBe(theirs.token);
+    expect(count(db, 'events', theirs.id)).toBe(events.length);
+    db.close();
+  });
+
+  it('returns null for a session that is already gone', () => {
+    const db = fresh();
+    expect(resetSession('sess-missing', db)).toBeNull();
     db.close();
   });
 });

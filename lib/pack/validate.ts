@@ -99,6 +99,13 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   'toggle.wd',
   'toggle.we',
   'toggle.hours',
+  'options.open',
+  'options.reset',
+  'options.reset.title',
+  'options.reset.body',
+  'options.reset.confirm',
+  'options.reset.cancel',
+  'options.reset.failed',
 ] as const;
 
 export const S3_LINES_PREFIX = 's3.lines.';

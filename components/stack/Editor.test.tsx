@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setAnswer } from '@/lib/store/answers';
@@ -15,10 +15,15 @@ import { Editor } from './Editor';
 /** 25 h on the workday from alpha alone, before beta's half hour (§7.6). */
 const BREACHING = setAnswer({}, 'alpha.minutes.wd', 1500);
 
-function renderEditor(answers: AnswerMap = {}, storage?: StorageLike) {
+function renderEditor(
+  answers: AnswerMap = {},
+  storage?: StorageLike,
+  reset?: () => Promise<void>,
+) {
   return renderParticipant(<Editor />, {
     state: sessionState({ stage: 's2', answers }),
     storage,
+    reset,
   });
 }
 
@@ -131,5 +136,35 @@ describe('Not included (§7.7)', () => {
     screen.getByTestId('not-included').remove();
     renderEditor(zeroed);
     expect(screen.getByTestId('not-included').textContent).toBe(gatedOut);
+  });
+});
+
+describe('the options tab (§7.9)', () => {
+  it('is present in the editor, and shows nothing until it is opened', () => {
+    renderEditor();
+    expect(screen.getByTestId('options-tab')).toBeInTheDocument();
+    expect(screen.queryByTestId('options-overlay')).toBeNull();
+  });
+
+  it('takes no space in the chrome §7.2 measures the day against', () => {
+    renderEditor();
+    // Fixed, so it is out of flow: the header, toggle and footer are the only
+    // things between the viewport and `24 × pxPerHour`.
+    const tab = screen.getByTestId('options-tab');
+    expect(tab.closest('[data-testid="editor-footer"]')).toBeNull();
+    expect(tab.parentElement).toBe(screen.getByRole('main'));
+  });
+
+  it('reaches the session reset behind its confirmation (§5)', async () => {
+    const user = userEvent.setup();
+    const reset = vi.fn(() => Promise.resolve());
+    renderEditor({}, undefined, reset);
+
+    await user.click(screen.getByTestId('options-tab'));
+    await user.click(screen.getByTestId('options-reset'));
+    expect(reset).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId('options-confirm'));
+    expect(reset).toHaveBeenCalledTimes(1);
   });
 });

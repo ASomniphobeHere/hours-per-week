@@ -159,16 +159,30 @@ test.describe('editor geometry (§7.2, §7.3)', () => {
     expect(new Set(hues).size).toBe(hues.length);
   });
 
-  test('keeps every band tappable, however thin (AC 21)', async ({ page }) => {
+  test('covers every band with its own hit area, and no neighbour (AC 21)', async ({ page }) => {
     await openEditor(page, { width: 375, height: 667 });
 
-    const hits = page.getByTestId('stack').locator('[data-hit]');
+    const stack = page.getByTestId('stack');
+    const hits = stack.locator('[data-hit]');
     const count = await hits.count();
     expect(count).toBeGreaterThan(0);
+
+    let previousBottom = -Infinity;
     for (let index = 0; index < count; index += 1) {
-      const box = await hits.nth(index).boundingBox();
-      const id = await hits.nth(index).getAttribute('data-hit');
-      expect(box?.height, `hit area for ${id}`).toBeGreaterThanOrEqual(44);
+      const hit = hits.nth(index);
+      const id = await hit.getAttribute('data-hit');
+      const overlay = await hit.boundingBox();
+      const band = await stack.locator(`[data-activity="${id}"]`).boundingBox();
+
+      // The overlay is the band, to the pixel the layout engine rounds to.
+      expect(overlay?.y, `overlay top for ${id}`).toBeCloseTo(band!.y, 0);
+      expect(overlay?.height, `overlay height for ${id}`).toBeCloseTo(band!.height, 0);
+
+      // And it reaches into nothing above it — a tap opens what it landed on.
+      expect(overlay!.y, `overlay for ${id} clear of its neighbour`).toBeGreaterThanOrEqual(
+        previousBottom - 0.5,
+      );
+      previousBottom = overlay!.y + overlay!.height;
     }
   });
 

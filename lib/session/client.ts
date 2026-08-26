@@ -57,6 +57,22 @@ export async function createSession(
   return (await expectOk(response)) as CreateSessionResponse;
 }
 
+/**
+ * §5's reset. Destroys the session server-side and returns its replacement in
+ * the same room — same response shape as `createSession`, because the client
+ * stores the two identically.
+ */
+export async function resetSession(
+  credentials: SessionCredentials,
+  fetchImpl: FetchLike,
+): Promise<CreateSessionResponse> {
+  const response = await fetchImpl(`/api/session/${credentials.sessionId}/reset`, {
+    method: 'POST',
+    headers: auth(credentials),
+  });
+  return (await expectOk(response)) as CreateSessionResponse;
+}
+
 export async function fetchStage(
   credentials: SessionCredentials,
   fetchImpl: FetchLike,

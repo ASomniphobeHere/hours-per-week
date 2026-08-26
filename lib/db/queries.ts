@@ -161,6 +161,42 @@ export function advanceStage(
   db.prepare('UPDATE sessions SET stage = ? WHERE id = ?').run(stage, sessionId);
 }
 
+/**
+ * §5 reset — the participant's server-side record is deleted outright and a
+ * fresh session minted in the same room.
+ *
+ * Deleted rather than flagged, because `total` on the console counts session
+ * rows (§6.2.2): a reset that left the old row behind would count one
+ * participant twice and break `inStage` summing to `total`. The snapshots and
+ * events go with it, which is the point of a reset rather than a side effect —
+ * an abandoned run in the §10 debrief is a participant who never existed.
+ *
+ * Room membership survives. The reset is about the answers, not about which
+ * room the phone is in, and **RD-2** leaves the client no `roomId` to rejoin
+ * one with — so the new row is minted here, where session → room is already
+ * resolved, rather than sending the participant back to the join code.
+ *
+ * Returns null when the session is already gone, so a repeated reset reads as
+ * a failed lookup rather than minting a room-less row.
+ */
+export function resetSession(
+  sessionId: string,
+  db: Database.Database = getDatabase(),
+  now = Date.now(),
+): SessionRow | null {
+  const existing = findSession(sessionId, db);
+  if (existing === null) return null;
+
+  // One transaction: a half-deleted session is a row the participant can no
+  // longer authenticate against and a debrief counting events with no session.
+  return db.transaction((): SessionRow => {
+    db.prepare('DELETE FROM events WHERE session_id = ?').run(sessionId);
+    db.prepare('DELETE FROM snapshots WHERE session_id = ?').run(sessionId);
+    db.prepare('DELETE FROM sessions WHERE id = ?').run(sessionId);
+    return createSession(existing.room_id, db, now);
+  })();
+}
+
 /* ── Snapshots and events (§10) ─────────────────────────────────────────── */
 
 export function insertSnapshot(
