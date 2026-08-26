@@ -95,6 +95,10 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   'a11y.decrease',
   'a11y.increase',
   'band.notIncluded',
+  'band.notIncludedCount',
+  'toggle.wd',
+  'toggle.we',
+  'toggle.hours',
 ] as const;
 
 export const S3_LINES_PREFIX = 's3.lines.';

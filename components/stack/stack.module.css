@@ -1,0 +1,336 @@
+/*
+ * The editor — §7.1 through §7.8.
+ *
+ * Every value is a token from `styles/tokens.css`. The geometry that has to be
+ * computed rather than declared (`pxPerHour`, band tops and heights, the label
+ * clamp) arrives as inline pixels from `geometry.ts`; nothing here restates a
+ * formula the spec put in that file.
+ */
+
+/* ── Shell (§7.2) ─────────────────────────────────────────────────────── */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/*
+ * Sticky, not fixed. §7.1 wants both day totals readable at all times, and
+ * §7.7's count reachable while the participant is scrolled down inside an
+ * overflowing stack — and sticky keeps them in flow, so §7.2's formula can
+ * measure them as the chrome the stack does not get.
+ */
+.chrome {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg);
+}
+
+.header:empty,
+.footer:empty {
+  display: none;
+}
+
+.header {
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--footer-h);
+  padding: 0 var(--label-inset) env(safe-area-inset-bottom);
+  background: var(--bg);
+}
+
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Day-type toggle (§7.1) ───────────────────────────────────────────── */
+
+.toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: var(--toggle-h);
+}
+
+.segment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: var(--tap-target-min);
+  padding: 10px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-utility);
+  cursor: pointer;
+}
+
+.segmentSelected {
+  border-bottom-color: var(--fg);
+}
+
+.segmentLabel {
+  font-size: 12px;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.segmentSelected .segmentLabel {
+  color: var(--fg);
+}
+
+/* Tabular, so a changing total cannot reflow the tab (§7.1, AC 14). */
+.segmentHours {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+/* §7.6's one numeric overflow signal, on both segments, selected or not. */
+.segmentBreach {
+  font-weight: 700;
+  color: var(--overflow-red);
+}
+
+/* ── Stack (§7.2) ─────────────────────────────────────────────────────── */
+
+/* Full-bleed: no horizontal margin, at every supported width (AC 16). */
+.stack {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  flex: none;
+}
+
+/* ── Band anatomy (§7.3) ──────────────────────────────────────────────── */
+
+.band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* The hit overlay is the tap target, not the band (§7.4). */
+  pointer-events: none;
+}
+
+.spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--spine-width);
+  background: oklch(var(--band-lightness) var(--band-chroma) var(--band-hue) / var(--spine-opacity));
+}
+
+.fill {
+  position: absolute;
+  left: var(--spine-width);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: oklch(var(--band-lightness) var(--band-chroma) var(--band-hue) / var(--body-opacity));
+}
+
+/* Label block: label and hour count, right-aligned, inset 16 px (§7.3). */
+.labels {
+  position: absolute;
+  top: 50%;
+  right: var(--label-inset);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  overflow: hidden;
+  max-width: calc(100% - var(--spine-width) - var(--label-inset));
+}
+
+.bandLabel {
+  font-family: var(--font-display);
+  font-size: var(--label-size);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.bandHours {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--hours-size);
+  line-height: 1.1;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+/* ── Ruler (§7.3 as amended by RD-1) ──────────────────────────────────── */
+
+/*
+ * One ruler for the whole container, over the spines. Zero-height rows, so the
+ * hairline sits on its hour however the number beside it is anchored.
+ */
+.ruler {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tick {
+  position: absolute;
+  left: 0;
+  height: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tick[data-anchor='start'] {
+  align-items: flex-start;
+}
+
+.tick[data-anchor='end'] {
+  align-items: flex-end;
+}
+
+.tickRule {
+  display: block;
+  flex: none;
+  width: var(--tick-length);
+  height: var(--tick-weight);
+  background: var(--tick-color);
+}
+
+/* Stands alone: nothing sits between the spine and the tick (RD-1). */
+.tickNumber {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--tick-color);
+}
+
+/* ── Unallocated (§7.8) ───────────────────────────────────────────────── */
+
+.unallocated {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--label-inset);
+  border: 1px dashed var(--unallocated-outline);
+  background: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.unallocatedLabel {
+  font-family: var(--font-utility);
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+/* ── Tap overlays (§7.4) ──────────────────────────────────────────────── */
+
+/*
+ * Transparent, at least 44 px, centred on the band and free to overlap its
+ * neighbours. `geometry.ts` gives the smaller band the higher z-index, so the
+ * thin band wins every collision.
+ */
+.hits {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.hit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Names the band for a screen reader without drawing anything. */
+.hitName {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ── Not included (§7.7) ──────────────────────────────────────────────── */
+
+.notIncluded {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0 32px;
+}
+
+/* Set at the same inset as the stack's right-hand label block. */
+.notIncludedHeading {
+  margin: 0 0 8px;
+  padding-right: var(--label-inset);
+  font-family: var(--font-utility);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  text-align: right;
+  color: var(--fg-muted);
+}
+
+/* Full width, ≥44 px, label only — no hue, no spine, no hour count. */
+.notIncludedRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: var(--tap-target-min);
+  padding: 0 var(--label-inset);
+  border: none;
+  border-top: 1px solid rgba(244, 244, 246, 0.08);
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--font-display);
+  font-size: 17px;
+  text-align: right;
+  cursor: pointer;
+}
+
+.notIncludedCount {
+  min-height: var(--tap-target-min);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--font-utility);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  cursor: pointer;
+}
