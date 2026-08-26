@@ -12,6 +12,7 @@ setupMemoryDatabase();
 
 import { POST as createRoom } from './room/route';
 import { POST as openRoomStage } from './room/[id]/stage/route';
+import { GET as getRoomStatus } from './room/[id]/status/route';
 import { POST as createSession } from './session/route';
 import { GET as getStage } from './session/[id]/stage/route';
 import { POST as postReady } from './session/[id]/ready/route';
@@ -267,6 +268,176 @@ describe('POST /room/:roomId/stage', () => {
       params({ id: 'nope' }),
     );
     expect(response.status).toBe(404);
+  });
+});
+
+/* ── 8.2 / 8.6 — the console's read and the room's own record ───────────── */
+
+interface Status {
+  total: number;
+  ready: number;
+  stageOpen: boolean;
+  joinCode: string;
+  inStage: Record<string, number>;
+}
+
+async function status(roomId: string): Promise<Status> {
+  const response = await getRoomStatus(
+    get(`/api/room/${roomId}/status`),
+    params({ id: roomId }),
+  );
+  expect(response.status).toBe(200);
+  return (await response.json()) as Status;
+}
+
+function roomEventRows(roomId: string) {
+  return getDatabase()
+    .prepare('SELECT type, ready, total FROM room_events WHERE room_id = ? ORDER BY id')
+    .all(roomId);
+}
+
+describe('GET /room/:roomId/status', () => {
+  it('reports an empty room with all five stage counts at zero (AC 50)', async () => {
+    const room = await newRoom();
+    const body = await status(room.roomId);
+
+    expect(body).toEqual({
+      total: 0,
+      ready: 0,
+      stageOpen: false,
+      joinCode: room.joinCode,
+      inStage: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0 },
+    });
+  });
+
+  it('counts sessions by furthest stage, and inStage sums to total (AC 50)', async () => {
+    const room = await newRoom();
+    const sessions = [
+      await join(room.joinCode),
+      await join(room.joinCode),
+      await join(room.joinCode),
+      await join(room.joinCode),
+    ];
+
+    const enter = ({ sessionId, token }: Session, stage: string) =>
+      postTelemetry(
+        postJson(
+          `/api/session/${sessionId}/telemetry`,
+          { events: [{ t: 1, type: 'stage.enter', stage }] },
+          token,
+        ),
+        params({ id: sessionId }),
+      );
+
+    const [, second, third, fourth] = sessions as [Session, Session, Session, Session];
+    await enter(second, 's2');
+    await enter(third, 's3');
+    await enter(fourth, 's5');
+
+    const body = await status(room.roomId);
+    expect(body.total).toBe(4);
+    expect(body.inStage).toEqual({ s1: 1, s2: 1, s3: 1, s4: 0, s5: 1 });
+    const summed = Object.values(body.inStage).reduce((a, b) => a + b, 0);
+    expect(summed).toBe(body.total);
+  });
+
+  it('counts ready only once a session has POSTed /ready (AC 50)', async () => {
+    const room = await newRoom();
+    const first = await join(room.joinCode);
+    await join(room.joinCode);
+
+    expect((await status(room.roomId)).ready).toBe(0);
+
+    await postReady(
+      postJson(
+        `/api/session/${first.sessionId}/ready`,
+        { schedule: snapshot('finish') },
+        first.token,
+      ),
+      params({ id: first.sessionId }),
+    );
+
+    const body = await status(room.roomId);
+    expect(body).toMatchObject({ total: 2, ready: 1 });
+  });
+
+  it('counts sessions in its own room only', async () => {
+    const a = await newRoom();
+    const b = await newRoom();
+    await join(a.joinCode);
+    await join(b.joinCode);
+    await join(b.joinCode);
+
+    expect((await status(a.roomId)).total).toBe(1);
+    expect((await status(b.roomId)).total).toBe(2);
+  });
+
+  it('follows the flag', async () => {
+    const room = await newRoom();
+    expect((await status(room.roomId)).stageOpen).toBe(false);
+
+    await openRoomStage(
+      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
+      params({ id: room.roomId }),
+    );
+    expect((await status(room.roomId)).stageOpen).toBe(true);
+  });
+
+  it('404s on an unknown room rather than reporting an empty one', async () => {
+    const response = await getRoomStatus(get('/api/room/nope/status'), params({ id: 'nope' }));
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('stage.open (AC 57)', () => {
+  it('writes one record carrying ready and total at the moment of the flip', async () => {
+    const room = await newRoom();
+    const first = await join(room.joinCode);
+    await join(room.joinCode);
+    await join(room.joinCode);
+    await postReady(
+      postJson(
+        `/api/session/${first.sessionId}/ready`,
+        { schedule: snapshot('finish') },
+        first.token,
+      ),
+      params({ id: first.sessionId }),
+    );
+
+    await openRoomStage(
+      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
+      params({ id: room.roomId }),
+    );
+
+    expect(roomEventRows(room.roomId)).toEqual([{ type: 'stage.open', ready: 1, total: 3 }]);
+  });
+
+  it('is written once per room, whatever the facilitator presses after (AC 57)', async () => {
+    const room = await newRoom();
+    await join(room.joinCode);
+    const flip = () =>
+      openRoomStage(
+        postJson(`/api/room/${room.roomId}/stage`, { open: true }),
+        params({ id: room.roomId }),
+      );
+
+    await flip();
+    // Latecomers after the flip must not be counted into a second record: the
+    // room has one t = 0 (§6.2.5) and it was taken at the press.
+    await join(room.joinCode);
+    await flip();
+    await flip();
+
+    expect(roomEventRows(room.roomId)).toEqual([{ type: 'stage.open', ready: 0, total: 1 }]);
+  });
+
+  it('writes nothing when the flip is refused', async () => {
+    const room = await newRoom();
+    await openRoomStage(
+      postJson(`/api/room/${room.roomId}/stage`, { open: false }),
+      params({ id: room.roomId }),
+    );
+    expect(roomEventRows(room.roomId)).toEqual([]);
   });
 });
 
