@@ -34,6 +34,7 @@ export interface DayValue {
 
 export interface Constraint {
   minWeekly?: number; // school: 20
+  maxWeekly?: number; // school: 40
   minDaily?: number; // sleep: 6
   stepWeekly?: number; // school: 5
   weekendAllowed: boolean; // school: false
