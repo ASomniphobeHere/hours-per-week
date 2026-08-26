@@ -12,8 +12,10 @@
  */
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { Activity, AnswerMap } from '@/lib/domain/types';
-import { derive, type ScheduleState } from '@/lib/domain/derive';
+import type { Activity, AnswerMap, DayType, Event } from '@/lib/domain/types';
+import { DAY_TYPES } from '@/lib/domain/types';
+import { clearDirect, derive, isFullyDerived, setDirect } from '@/lib/domain/derive';
+import { clampDaily, clampEvent } from '@/lib/domain/constraints';
 import { isAnswered, setAnswer } from '@/lib/store/answers';
 import { save, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { buildEstimators } from '@/lib/estimators/registry';
@@ -44,6 +46,40 @@ export interface Participant {
   commitDefaults: (fields: readonly Field[]) => void;
   patch: (partial: SessionPatch) => void;
   /**
+   * §4.3 rule 4 — the participant set this activity's hours themselves, so the
+   * estimator stops running for it.
+   *
+   * Clamped on the way in (§8.2), and silently: the value is refused, no error
+   * copy appears, and a `clamp.hit` goes to telemetry instead. The underlying
+   * answers are untouched, which is what makes `revertToDerived` lossless.
+   */
+  setHours: (activityId: string, dayType: DayType, hours: number) => void;
+  /**
+   * §8.1's "Set directly" — takes the whole activity off its estimator, both
+   * day types at once, seeded from what it derives to now.
+   *
+   * One call rather than two `setHours`, because §8.1 flips *the activity* and
+   * §10's `mode.direct` names an activity and no day type: two calls would
+   * report the same takeover twice. The seed is clamped like any other direct
+   * value, so an activity already below its floor comes up to it here (§8.2).
+   */
+  takeDirect: (activityId: string) => void;
+  /**
+   * Undoes `takeDirect` for both day types, so the next pass derives the activity
+   * from its answers again (§8.1, AC 26). Not the same as `fallback`: this is
+   * the participant handing the estimator back, and it is theirs to hand back.
+   */
+  revertToDerived: (activityId: string) => void;
+  /**
+   * §10's event sink.
+   *
+   * A seam, not a queue. Batching, retry and delivery are Stage 10's; what the
+   * client owes before then is that each event is emitted *at its moment* — a
+   * clamp that logs nothing as it clamps cannot be recovered afterwards from
+   * any amount of state.
+   */
+  record: (event: Event) => void;
+  /**
    * §5's reset — destroys the session on the server and on the phone, then
    * starts a fresh one in the same room.
    *
@@ -69,6 +105,8 @@ export interface ParticipantProviderProps {
   initial: PersistedState;
   storage: StorageLike;
   reset: () => Promise<void>;
+  /** Where §10's events go. Absent until Stage 10 gives them a queue. */
+  onEvent?: (event: Event) => void;
   children: React.ReactNode;
 }
 
@@ -77,6 +115,7 @@ export function ParticipantProvider({
   initial,
   storage,
   reset,
+  onEvent,
   children,
 }: ParticipantProviderProps) {
   const [session, setSession] = useState<PersistedState>(initial);
@@ -88,7 +127,8 @@ export function ParticipantProvider({
 
   /**
    * What the participant authored, and nothing else — the `direct` values of
-   * §4.3 rule 4, set from the sheet (Stage 5) and the school stepper.
+   * §4.3 rule 4, set from the sheet and from the school stepper. It lives in
+   * the persisted record, so a refresh mid-rebalance costs nothing (§11).
    *
    * Derivation's own output is deliberately *not* fed back in. Hours for a
    * `derived` activity are not state (§3.2's invariant) and `fallback` is
@@ -99,12 +139,14 @@ export function ParticipantProvider({
    * regardless; keeping it out here is what lets derivation run as a pure
    * function of state during render.
    */
-  const [authored] = useState<ScheduleState>({});
+  const authored = session.authored;
 
   const activities = useMemo(
     () => derive({ index, answers: session.answers, estimators, state: authored }).activities,
     [index, session.answers, estimators, authored],
   );
+
+  const record = useCallback((event: Event) => onEvent?.(event), [onEvent]);
 
   const answer = useCallback(
     (fieldId: string, value: unknown) => {
@@ -146,6 +188,93 @@ export function ParticipantProvider({
     [storage],
   );
 
+  /**
+   * The write path for a direct edit: clamp, log what the clamp refused, then
+   * store the value and log the change.
+   *
+   * `mode.direct` fires only on the *transition* into `direct`. Every later
+   * edit of the same day value is an `hours.change` and nothing more — §10
+   * reads cut order off `hours.change`, and a `mode.direct` per press would
+   * say the participant took the activity off the estimator ten times.
+   */
+  const setHours = useCallback(
+    (activityId: string, dayType: DayType, hours: number) => {
+      const definition = index.activityById.get(activityId);
+      if (definition === undefined) return;
+
+      const current = activities.find((activity) => activity.id === activityId);
+      const from = current?.[dayType].hours ?? 0;
+      const wasDerived = isFullyDerived(authored, activityId);
+
+      const clamped = clampDaily(definition, dayType, hours);
+      const now = Date.now();
+      if (clamped.clamped) record(clampEvent(activityId, hours, clamped.hours, now));
+
+      setSession((state) => {
+        const next = {
+          ...state,
+          authored: setDirect(state.authored, activityId, dayType, clamped.hours),
+        };
+        save(storage, next);
+        return next;
+      });
+
+      if (wasDerived) record({ t: now, type: 'mode.direct', activityId });
+      if (clamped.hours !== from) {
+        record({ t: now, type: 'hours.change', activityId, from, to: clamped.hours });
+      }
+    },
+    [index, activities, authored, record, storage],
+  );
+
+  const takeDirect = useCallback(
+    (activityId: string) => {
+      const definition = index.activityById.get(activityId);
+      const current = activities.find((activity) => activity.id === activityId);
+      if (definition === undefined || current === undefined) return;
+
+      const now = Date.now();
+      const seeded = DAY_TYPES.map((dayType) => {
+        const from = current[dayType].hours;
+        const clamped = clampDaily(definition, dayType, from);
+        if (clamped.clamped) record(clampEvent(activityId, from, clamped.hours, now));
+        return { dayType, from, to: clamped.hours };
+      });
+
+      setSession((state) => {
+        let authoredNext = state.authored;
+        for (const { dayType, to } of seeded) {
+          authoredNext = setDirect(authoredNext, activityId, dayType, to);
+        }
+        const next = { ...state, authored: authoredNext };
+        save(storage, next);
+        return next;
+      });
+
+      record({ t: now, type: 'mode.direct', activityId });
+      for (const { from, to } of seeded) {
+        // Only where the clamp moved it: taking an activity over at the number
+        // it already showed is not a change to anyone's day.
+        if (to !== from) record({ t: now, type: 'hours.change', activityId, from, to });
+      }
+    },
+    [index, activities, record, storage],
+  );
+
+  const revertToDerived = useCallback(
+    (activityId: string) => {
+      setSession((state) => {
+        let next = state.authored;
+        for (const dayType of DAY_TYPES) next = clearDirect(next, activityId, dayType);
+        if (next === state.authored) return state;
+        const updated = { ...state, authored: next };
+        save(storage, updated);
+        return updated;
+      });
+    },
+    [storage],
+  );
+
   const value = useMemo<Participant>(
     () => ({
       index,
@@ -155,9 +284,25 @@ export function ParticipantProvider({
       answer,
       commitDefaults,
       patch,
+      setHours,
+      takeDirect,
+      revertToDerived,
+      record,
       reset,
     }),
-    [index, session, activities, answer, commitDefaults, patch, reset],
+    [
+      index,
+      session,
+      activities,
+      answer,
+      commitDefaults,
+      patch,
+      setHours,
+      takeDirect,
+      revertToDerived,
+      record,
+      reset,
+    ],
   );
 
   return <ParticipantContext.Provider value={value}>{children}</ParticipantContext.Provider>;

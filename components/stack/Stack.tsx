@@ -13,6 +13,14 @@
  * and the transparent hit overlays (§7.4). The bands themselves take no
  * pointer events; the overlays are the tap targets, and they are sized and
  * ordered so a 0.25 h band is as easy to hit as an 8 h one (AC 21).
+ *
+ * `settling` and `emerging` are §8.1's 200 ms close animation, and they arrive
+ * together. The editor freezes this stack while a sheet is up and releases it
+ * on close with `settling` on, which is what turns a re-layout into a movement
+ * the participant can follow. `emerging` names the activities that are about
+ * to arrive from Not included (§7.7): they are laid out at zero height in the
+ * frozen frame purely so they have somewhere to grow from, and a zero-height
+ * band still gets no tap target.
  */
 
 import { useMemo } from 'react';
@@ -34,11 +42,25 @@ export interface StackProps {
   dayType: DayType;
   /** §7.2's `pxPerHour`. */
   perHour: number;
-  /** Opens the band's sheet (Stage 5). */
+  /** Opens the band's sheet. */
   onSelect?: (activityId: string) => void;
+  /** Run the §8.1 close animation on this render's geometry. */
+  settling?: boolean;
+  /** Ids to lay out even at zero hours, so they can grow from nothing (§7.7). */
+  emerging?: ReadonlySet<string>;
 }
 
-export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
+const NONE: ReadonlySet<string> = new Set();
+
+export function Stack({
+  pack,
+  bands,
+  dayType,
+  perHour,
+  onSelect,
+  settling = false,
+  emerging = NONE,
+}: StackProps) {
   /*
    * A band with zero hours on *this* day type still belongs to the stack — §7.7
    * only moves an activity out when both day types are zero — and it renders
@@ -49,8 +71,8 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
     () =>
       bands
         .map((activity) => ({ id: activity.id, activity, hours: hoursOf(activity, dayType) }))
-        .filter((entry) => entry.hours > 0),
-    [bands, dayType],
+        .filter((entry) => entry.hours > 0 || emerging.has(entry.id)),
+    [bands, dayType, emerging],
   );
 
   const total = present.reduce((sum, entry) => sum + entry.hours, 0);
@@ -62,9 +84,10 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
 
   return (
     <div
-      className={styles.stack}
+      className={`${styles.stack}${settling ? ` ${styles.settling}` : ''}`}
       data-testid="stack"
       data-daytype={dayType}
+      data-settling={settling ? 'true' : undefined}
       style={{ height: `${containerHeight}px` }}
     >
       {boxes.map(({ band: { id, activity, hours }, ...box }) => (
@@ -82,14 +105,20 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
         >
           <span className={styles.spine} />
           <span className={styles.fill} />
-          {box.labelled ? (
-            <span className={styles.labels}>
-              <span className={styles.bandLabel}>{copyOf(pack, activity.label)}</span>
+          {/*
+            * The label always renders — §7.5 makes it the band's only
+            * identification, and a band with no name is unusable in greyscale.
+            * The hour count is what a thin band drops: the toggle and the sheet
+            * header both restate it, and the label is restated nowhere.
+            */}
+          <span className={styles.labels}>
+            <span className={styles.bandLabel}>{copyOf(pack, activity.label)}</span>
+            {box.showsHours ? (
               <span className={styles.bandHours}>
                 {formatAmount(hours)} {hoursUnit}
               </span>
-            </span>
-          ) : null}
+            ) : null}
+          </span>
         </div>
       ))}
 
@@ -100,7 +129,12 @@ export function Stack({ pack, bands, dayType, perHour, onSelect }: StackProps) {
       <Ruler perHour={perHour} />
 
       <div className={styles.hits}>
-        {boxes.map(({ band: { id, activity }, ...box }) => (
+        {/* A band with no height has no tap target: §7.7 moved zero-hour
+            activities out of the stack precisely so there is nothing to aim
+            at, and an emerging band is not there yet. */}
+        {boxes
+          .filter(({ band }) => band.hours > 0)
+          .map(({ band: { id, activity }, ...box }) => (
           <button
             key={id}
             type="button"

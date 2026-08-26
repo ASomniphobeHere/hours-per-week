@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.1 (58 acceptance criteria)
 **Written:** 2026-08-24
-**Status:** Stage 4 complete
+**Status:** Stage 5 complete
 
 ## How to use this document
 
@@ -249,7 +249,7 @@ The instrument. §7 is unusually specific and the criteria are correspondingly l
   **Legibility check, run here and not deferred to Stage 11:** render the ruler over all ten hues at full saturation and read every tick. The light end of the ring (roughly 45°–90°) is where bare white fails first. A failure returns to the user as the colour decision `specs/notes.txt` defers; it does not silently reinstate the plate.
   *AC: 18, 19 (19's test is "legible against every hue at full saturation" — see RD-1)*
 
-- [x] **4.5 Type scaling and tap targets** (§7.4) — `labelSize = clamp(13px, bandHeight × 0.16, 34px)`, `hoursSize = labelSize × 0.72`; the label is omitted below a 20 px band. Tap target is independent of visual height: every band gets a ≥44 px transparent hit overlay that may overlap neighbours, and when overlays collide the **smaller** band wins — thin bands are the hard ones to hit.
+- [x] **4.5 Type scaling and tap targets** (§7.4, as amended below) — `labelSize = clamp(13px, bandHeight × 0.16, 34px)`, `hoursSize = labelSize × 0.72`; **the label is never omitted, and the hour count is what a band under 20 px drops.** Tap target is independent of visual height: every band gets a ≥44 px transparent hit overlay that may overlap neighbours, and when overlays collide the **smaller** band wins — thin bands are the hard ones to hit.
   *AC: 21, 22*
 
 - [x] **4.6 Unallocated** (§7.8) — bottom band, dashed 1 px outline, no fill, no spine, label from `band.unallocated`. No tap target. Absent entirely when `remaining ≤ 0`.
@@ -265,28 +265,54 @@ The instrument. §7 is unusually specific and the criteria are correspondingly l
 
 **Two things decided in the building, both small.** §9's copy table gains four more keys — `toggle.wd`, `toggle.we`, `toggle.hours` and `band.notIncludedCount` — on the same reasoning as the fourteen Stage 3 added: they are participant-facing strings the spec's table does not name, and a replacement pack that omits them leaves a room reading raw key names. The toggle's hours are one templated key rather than a number plus a unit, so a pack owns the whole figure. Separately, §7.4's 20 px label rule is applied to Unallocated as well as to bands: §7.8 calls it the bottom band, and a participant with six minutes of slack was getting a three-pixel dashed rule with a 13 px word spilling out of it across the 24-hour tick.
 
-**A third, added afterwards (2026-08-26).** The spec had no way to start over: `ensureSession` short-circuits on any stored record, so a phone mid-run could only be reset by clearing its localStorage by hand — no use in a room, and no use rehearsing one (Stage 12). §7.9 and step 4.8 are the answer, and the shape of it was decided with the user: the server-side record is **deleted**, not flagged, because `total` counts session rows; the replacement is minted **in the same room**, because RD-2 leaves the client no `roomId` to rejoin with and re-reading the join code to forty people is worse than a server-side lookup; and the affordance is a **sliver**, because the alternative — a visible Start over in the footer — is a destructive control sitting under the thumb of someone rebalancing a stack. Seven copy keys join §9's table on the Stage 3 reasoning.
+**A second amendment, 2026-08-26: §7.4's omission rule moves from the label to the hour count.** §7.4 says a band under 20 px "omits it" — the label — and step 4.5 shipped that. Decided with the user: **the label is never hidden.** §7.5 is the reason, and it is the stronger of the two sections: *"Colour is orientation, not identification. The label identifies the band. A participant must be able to use the app in greyscale."* An unlabelled band is one a participant can only name by its hue, which is exactly what §7.5 forbids, and at the v1 defaults it is not a rare case — Care at 0.5 h and Admin at 0.5 h are both under the threshold on a 375 px phone.
+
+The hour count is the line that goes instead, because it is the one restated elsewhere: the toggle carries the day's total (§7.1) and the sheet header carries the activity's (§8.1), while the label is stated nowhere else on the band. The number, 20 px, is unchanged — it is where two stacked lines stop fitting, 13 px of label over 9.4 px of hours.
+
+**What it costs.** A band thinner than 13 px now has a label taller than itself. It is centred on the band and overflows it, and `.labels` takes a `z-index` so the overflow sits over the neighbouring body rather than being dimmed by it. **Two adjacent sub-13 px bands will still overlap each other's labels**, and nothing here prevents that — it needs a collision rule §7.4 does not have, and it is left for the acceptance sweep (step 11.2, greyscale usability) to judge against real answer sets rather than solved speculatively.
+
+**§7.8's Unallocated keeps the original rule** and still drops its label on a sliver. It is not an activity and identifies nothing — §7.5's argument does not reach it — and six minutes of slack with the word spilling across the 24-hour tick is the case step 4.7 already ruled on. `showsHours` and `showsSlackLabel` are two functions sharing one constant for that reason: same number, different rules, free to diverge.
+
+**A third thing, added afterwards (2026-08-26).** The spec had no way to start over: `ensureSession` short-circuits on any stored record, so a phone mid-run could only be reset by clearing its localStorage by hand — no use in a room, and no use rehearsing one (Stage 12). §7.9 and step 4.8 are the answer, and the shape of it was decided with the user: the server-side record is **deleted**, not flagged, because `total` counts session rows; the replacement is minted **in the same room**, because RD-2 leaves the client no `roomId` to rejoin with and re-reading the join code to forty people is worse than a server-side lookup; and the affordance is a **sliver**, because the alternative — a visible Start over in the footer — is a destructive control sitting under the thumb of someone rebalancing a stack. Seven copy keys join §9's table on the Stage 3 reasoning.
 
 ---
 
-## Stage 5 — The sheet
+## Stage 5 — The sheet ✅
 
-- [ ] **5.1 Sheet shell** (§8.1) — rises from the bottom to 88% viewport height, rounded top corners, backdrop at 45% dim. Locks body scroll, traps focus, focuses the first focusable element on open. Closes on backdrop tap, Escape, downward drag past 25% of sheet height, or explicit Done. On close, the changed band animates to its new height over 200 ms, skipped under `prefers-reduced-motion`.
+- [x] **5.1 Sheet shell** (§8.1) — rises from the bottom to 88% viewport height, rounded top corners, backdrop at 45% dim. Locks body scroll, traps focus, focuses the first focusable element on open. Closes on backdrop tap, Escape, downward drag past 25% of sheet height, or explicit Done. On close, the changed band animates to its new height over 200 ms, skipped under `prefers-reduced-motion`.
   *AC: 24*
 
-- [ ] **5.2 Prefilled replay and live header total** (§8.1) — the section's screens stacked vertically and scrollable, not paged: replay is review, and paging through four screens to fix one number is worse. Because the sheet occludes the stack, its header shows the activity's current computed total, updating live as fields change — the number substitutes for the visual the participant cannot see.
+- [x] **5.2 Prefilled replay and live header total** (§8.1) — the section's screens stacked vertically and scrollable, not paged: replay is review, and paging through four screens to fix one number is worse. Because the sheet occludes the stack, its header shows the activity's current computed total, updating live as fields change — the number substitutes for the visual the participant cannot see.
   *AC: 23*
 
-- [ ] **5.3 Constraints in the sheet** (§8.2) — sleep clamps at 6 h with the stepper disabled below; everything else clamps at 0. Clamping is silent, with no error copy — the control simply stops. Each clamp emits `clamp.hit`.
+- [x] **5.3 Constraints in the sheet** (§8.2) — sleep clamps at 6 h with the stepper disabled below; everything else clamps at 0. Clamping is silent, with no error copy — the control simply stops. Each clamp emits `clamp.hit`.
   *AC: 25*
 
-- [ ] **5.4 Direct entry** (§8.1, §4.3 rules 4–5) — "Set directly" flips the activity to `mode: 'direct'` and exposes numeric inputs for workday and weekend hours. It does not erase the underlying answers; reverting restores derivation from them unchanged. The estimator never reclaims a `direct` activity on its own.
+- [x] **5.4 Direct entry** (§8.1, §4.3 rules 4–5) — "Set directly" flips the activity to `mode: 'direct'` and exposes numeric inputs for workday and weekend hours. It does not erase the underlying answers; reverting restores derivation from them unchanged. The estimator never reclaims a `direct` activity on its own.
   *AC: 26*
 
-- [ ] **5.5 Not-included row → sheet** (§7.7) — tapping a row opens that activity's sheet exactly as a band tap does, prefilled, including the gate at its falsy value if the section was gated out. Answering the gate truthy, or entering non-zero hours, moves the activity into the stack at its pack `order` on close, with the same 200 ms animation a height change gets.
+- [x] **5.5 Not-included row → sheet** (§7.7) — tapping a row opens that activity's sheet exactly as a band tap does, prefilled, including the gate at its falsy value if the section was gated out. Answering the gate truthy, or entering non-zero hours, moves the activity into the stack at its pack `order` on close, with the same 200 ms animation a height change gets.
   *AC: 30*
 
-**Stage 5 done when:** every activity's sheet opens prefilled from both a band and a Not-included row, the header total tracks edits live, sleep will not go below 6, and direct entry round-trips without answer loss.
+**Stage 5 done when:** every activity's sheet opens prefilled from both a band and a Not-included row, the header total tracks edits live, sleep will not go below 6, and direct entry round-trips without answer loss. — **All four hold.** `components/sheet/Sheet.test.tsx` drives the sheet through the editor rather than in isolation, because §8.1's sheet is defined by what it does to the thing behind it; `e2e/s2-sheet.spec.ts` carries the four properties only a layout engine settles — 88% of the viewport, a backdrop that really dims, a scroll that a wheel gesture really cannot move, and a band that really transitions over 200 ms.
+
+**Two open readings, both taken with the user.**
+
+**The header carries both day totals**, not one. §8.1 asks for "the activity's current computed total" and argues from occlusion — the number stands in for the band the participant cannot see. But a section's screens capture both day types at once ("On a workday" beside "On a weekend day"), so a single figure would sit still while half the controls moved. Both are shown, live, in the toggle's own idiom (§7.1: both segments show their own day's hours whether selected or not). Rejected: the weekly figure, which every field moves but which corresponds to no band and appears nowhere else in the editor.
+
+**A gated-out section's sheet shows its gate alone**, and reveals the rest of the section in the same sheet the moment the gate is answered truthy. §7.7 promises the row opens "prefilled — including the gate, set to its falsy value" and that "answering the gate truthy, **or entering non-zero hours**, moves the activity into the stack"; the second clause is direct entry, which every sheet carries at its bottom. Rejected: showing every screen under a falsy gate, which offers fields that derive to zero for as long as the gate says no. Reachability is recomputed from the answer map on every render (§4.2.1), so the reveal needs no second code path.
+
+**Four things decided in the building.**
+
+**The stack is frozen while the sheet is up.** Derivation is live, so without a freeze a band has already moved behind the sheet and AC 24 has nothing left to animate on close. The editor snapshots the activities at open, renders that snapshot for as long as the sheet occludes it, and releases it on close with the 200 ms transition on. That is also what carries §7.7's arrival from Not included: the newcomer is laid out in the frozen frame at zero height, so it grows into place instead of appearing on top of the neighbours still sliding down. `Stack` gains `settling` and `emerging` for exactly this, both defaulting off, and the transition is scoped to the settle — a standing one would make §7.1's day-type switch a slide, where the spec says selecting a day changes which stack renders "and nothing else".
+
+**Direct entry joins the persisted record.** §5's list of what a refresh must not cost predates the sheet and does not name the overrides, but its reason covers them: a value the participant typed is work they did. `PersistedState.authored` holds it, guarded on parse so a corrupt map costs the overrides rather than putting a `NaN` into every total, and cleared on a pack-version change for the same reason answers are pruned there. Hours for a *derived* activity stay out of storage, per §3.2's invariant.
+
+**Taking an activity over clamps the value it starts from.** "Set directly" seeds both day types from what the activity currently derives to, and that seed is clamped like any other direct value (§8.2) — so an activity already under its floor comes *up* to it the moment the participant takes it over. A participant sleeping 23:30 to 05:00 derives 5.5 h; tapping Set directly moves them to 6. The alternative is a `direct` value that violates the constraint the sheet exists to enforce, which is worse; the jump is silent and logged as `clamp.hit`, exactly as §8.2 asks.
+
+**§10's events reach a seam, not a queue.** Step 5.3 requires each clamp to emit `clamp.hit`, and an event not emitted at its moment cannot be recovered afterwards from any amount of state — so `clamp.hit`, `mode.direct`, `hours.change`, `sheet.open` and `sheet.close` are emitted where they happen, through an `onEvent` prop on the provider. Batching, retry and delivery stay Stage 10's (step 10.2), which is where the sink is filled in. `mode.direct` fires only on the transition into `direct`: §10 reads cut order off `hours.change`, and one per press would say the participant took the activity off the estimator ten times.
+
+**No copy key was added.** The sheet's own chrome is `sheet.setDirect`, `sheet.done` and `unit.hours`, all already in §9's table or in Stage 3's additions; the header's day labels and hour figures reuse `toggle.wd`, `toggle.we` and `toggle.hours`, which are the same two words for the same two day types the toggle behind the sheet is showing. §9's rule is that no string is hardcoded, not that every surface owns a private copy of one.
 
 ---
 

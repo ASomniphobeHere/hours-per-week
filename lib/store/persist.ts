@@ -9,8 +9,9 @@
  * (§6.2.2), so a duplicate breaks `inStage` summing to it.
  */
 
-import type { AnswerMap, DayType, StageId } from '@/lib/domain/types';
-import { STAGE_ORDER } from '@/lib/domain/types';
+import type { AnswerMap, DayType, DayValue, StageId } from '@/lib/domain/types';
+import { DAY_TYPES, STAGE_ORDER } from '@/lib/domain/types';
+import type { ScheduleState } from '@/lib/domain/derive';
 import { isAnswerMap, pruneToFields } from './answers';
 
 export const CURRENT_KEY = 'hpw:current';
@@ -38,6 +39,17 @@ export interface PersistedState {
    */
   introSeen: boolean;
   answers: AnswerMap;
+  /**
+   * What the participant set directly, per §4.3 rule 4 — the one part of the
+   * schedule that is state rather than derivation.
+   *
+   * §5's own list does not name it because §5 predates the sheet, but its
+   * reason covers it: a refresh must not cost the participant work they did.
+   * Hours for a `derived` activity stay absent from storage exactly as §3.2
+   * requires — they are recomputed from `answers` on every pass, and only a
+   * value the participant typed is written here.
+   */
+  authored: ScheduleState;
 }
 
 /** The subset of the Storage API used here, so tests need no DOM. */
@@ -64,6 +76,29 @@ export function browserStorage(): StorageLike | null {
     // Storage can throw on access under private-mode and blocked-cookie settings.
     return null;
   }
+}
+
+function isDayValue(value: unknown): value is DayValue {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Partial<DayValue>;
+  if (typeof candidate.hours !== 'number' || !Number.isFinite(candidate.hours)) return false;
+  return (
+    candidate.mode === 'derived' || candidate.mode === 'direct' || candidate.mode === 'fallback'
+  );
+}
+
+/**
+ * Rejects a stored `authored` map that is not shaped like one, so a corrupt or
+ * hand-edited record costs the participant their direct entries rather than
+ * putting a `NaN` into every total in the system.
+ */
+function isScheduleState(value: unknown): value is ScheduleState {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every((entry) => {
+    if (typeof entry !== 'object' || entry === null) return false;
+    const activity = entry as Record<string, unknown>;
+    return DAY_TYPES.every((dayType) => isDayValue(activity[dayType]));
+  });
 }
 
 function isStageId(value: unknown): value is StageId {
@@ -97,6 +132,10 @@ function parse(raw: string | null): PersistedState | null {
     // record as seen would skip the statement silently.
     introSeen: candidate.introSeen === true,
     answers: candidate.answers,
+    // Absent in a record written before direct entry existed, and dropped
+    // wholesale when it does not parse: an activity that loses its override
+    // derives again, which is a defined state rather than a broken one.
+    authored: isScheduleState(candidate.authored) ? candidate.authored : {},
   };
 }
 
@@ -154,6 +193,10 @@ export function restore(
     packVersion: pack.version,
     stage: 's1',
     answers,
+    // Cleared for the same reason answers are pruned: an override is keyed by
+    // an activity id this pack may no longer define, and a direct value set
+    // against different questions is not an answer to these ones.
+    authored: {},
   };
   save(storage, state);
   return { state, packChanged: true, dropped };

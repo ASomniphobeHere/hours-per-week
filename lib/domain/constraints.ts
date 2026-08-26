@@ -92,3 +92,20 @@ export function atWeeklyMinimum(
 export function clampEvent(activityId: string, from: number, to: number, now: number): Event {
   return { t: now, type: 'clamp.hit', activityId, from, to };
 }
+
+/**
+ * True when the decrement control is disabled on a per-day input (§8.2).
+ *
+ * The mirror of `atWeeklyMinimum` for the daily floors: sleep's 6 h, and 0 for
+ * everything else. A day type the activity is not allowed on at all (§8.3's
+ * weekend) is at its minimum by definition — the control has nowhere to go.
+ */
+export function atDailyMinimum(
+  activity: Pick<Activity, 'id' | 'constraint'>,
+  dayType: DayType,
+  hours: number,
+): boolean {
+  const constraint = activity.constraint;
+  if (constraint !== undefined && dayType === 'we' && !constraint.weekendAllowed) return true;
+  return hours <= Math.max(FLOOR, constraint?.minDaily ?? FLOOR);
+}

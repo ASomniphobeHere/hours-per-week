@@ -139,7 +139,8 @@ function Stages() {
     return <Questionnaire onComplete={() => patch({ stage: 's2' })} />;
   }
 
-  // The sheet a band tap opens is Stage 5, so `onSelect` is deliberately absent
-  // here rather than stubbed: nothing yet has anywhere to send the participant.
+  // The editor owns the sheet a band tap opens (§8.1): both entry points into
+  // it — a band and a Not-included row — are its own, so nothing about the
+  // replay surfaces here.
   return <Editor />;
 }

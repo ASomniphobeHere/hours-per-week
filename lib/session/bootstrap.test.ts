@@ -85,6 +85,7 @@ describe('ensureSession', () => {
       stage: 's4',
       introSeen: true,
       answers: setAnswer({}, 'sleep.wake.wd', '07:00', 1000),
+      authored: {},
     });
     const fetchImpl = stubFetch(CREATED);
 
@@ -110,6 +111,7 @@ describe('ensureSession', () => {
         ...setAnswer({}, 'sleep.wake.wd', '07:00', 1000),
         ...setAnswer({}, 'gone.field', 3, 1000),
       },
+      authored: {},
     });
     const fetchImpl = stubFetch(CREATED);
 
@@ -185,6 +187,7 @@ describe('resetToNewSession (§5)', () => {
       stage: 's2',
       introSeen: true,
       answers: setAnswer({}, 'sleep.wake.wd', '07:00'),
+      authored: {},
     };
   }
 
@@ -210,6 +213,7 @@ describe('resetToNewSession (§5)', () => {
       // A reset is a fresh participant, so §13's statement is unread again.
       introSeen: false,
       answers: {},
+      authored: {},
     });
     expect(storage.getItem('hpw:state:sess-1')).toBeNull();
     expect(storage.getItem('hpw:current')).toBe('sess-2');

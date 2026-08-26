@@ -102,11 +102,19 @@ describe('type scaling (§7.4, AC 22)', () => {
     expect(size).toBeLessThanOrEqual(LABEL_MAX_PX);
   });
 
-  it('omits the label block below a 20 px band', () => {
+  it('names every band, however thin (§7.5)', () => {
     renderStack();
-    // beta is half an hour: 16 px at this scale, visually a rule.
-    expect(band('beta').textContent).toBe('');
-    expect(band('alpha').textContent).not.toBe('');
+    // beta is half an hour: 16 px at this scale, visually a rule — and still
+    // the only thing telling a participant in greyscale which band it is.
+    expect(band('beta')).toHaveTextContent('Beta');
+    expect(band('alpha')).toHaveTextContent('Alpha');
+  });
+
+  it('drops the hour count on a band with no room for a second line', () => {
+    renderStack();
+    // Alpha is an hour and carries both lines; beta carries the name alone.
+    expect(band('alpha')).toHaveTextContent('1 h');
+    expect(band('beta').textContent).toBe('Beta');
   });
 });
 
