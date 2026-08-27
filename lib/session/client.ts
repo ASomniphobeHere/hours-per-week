@@ -6,8 +6,12 @@
  */
 
 import type { Event, ScheduleSnapshot } from '@/lib/domain/types';
+import { ApiError, expectOk, type FetchLike } from '@/lib/api/client';
 
-export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+/** Re-exported: every existing caller imports these from here, and the split
+ *  in Stage 8 was about who may import what, not about moving the names. */
+export { ApiError };
+export type { FetchLike };
 
 export interface SessionCredentials {
   sessionId: string;
@@ -26,23 +30,8 @@ export interface StageResponse {
   serverTime: number;
 }
 
-export class ApiError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-}
-
 function auth({ token }: SessionCredentials): HeadersInit {
   return { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
-}
-
-async function expectOk(response: Response): Promise<unknown> {
-  if (!response.ok) throw new ApiError(response.status, `request failed: ${response.status}`);
-  return response.json();
 }
 
 export async function createSession(

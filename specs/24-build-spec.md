@@ -1,8 +1,18 @@
 # 24 — Build Specification
 
 **Product:** a phone-first time-budget exercise for facilitated workshops.
-**Version:** 1.3 — build spec
+**Version:** 1.4 — build spec
 **Status of content:** the question list and the estimator models are *not* in this document. They are content, loaded as data, and are specified in §4 as interfaces. This document specifies the system that consumes them. A build is complete and testable with placeholder content.
+
+### Changes in 1.4
+
+The facilitator console gains a way in. Specified in place; this list exists so a reader of 1.3 knows what moved.
+
+| # | Was | Now | Where |
+|---|---|---|---|
+| 16 | `POST /room` was specified with no affordance: a room was opened by issuing the request by hand and assembling `consoleUrl` from the response | `/facilitate` is the console's landing screen — a create control that lands on the new room's console, above the rooms this browser has already created | §6.2, §6.2.1, §12 AC 49a |
+
+**Known consequence, accepted (16).** The remembered list is browser-local and nothing else knows it exists. Clearing site data, a private window, or a second laptop all lose it, and the room itself is unaffected either way. That is the cost of the alternative being rejected: an endpoint that enumerated rooms would hand every `roomId` to anyone who reached the unauthenticated console, which is a materially wider exposure than the one §6.2.6 accepts. The list is a convenience; `consoleUrl` remains the durable handle on a room.
 
 ### Changes in 1.3
 
@@ -405,7 +415,7 @@ POST /session/:id/telemetry
 
 ### 6.2 Facilitator console
 
-One screen, one button. The console exists to answer a single question — *has enough of the room finished?* — and to act on the answer. It holds no local state; everything on screen comes from the last poll.
+One screen, one button, reached from a landing screen that creates the room in the first place (§6.2.1). The room screen exists to answer a single question — *has enough of the room finished?* — and to act on the answer. It holds no local state; everything on screen comes from the last poll.
 
 **Device.** Laptop-first, designed at desk width where a facilitator running a workshop usually is. The layout holds down to 375 px so the stage can be opened from a phone while walking the room. One responsive screen, not a second build.
 
@@ -418,6 +428,10 @@ POST /room
 ```
 
 The console lives at `/facilitate/:roomId`, returned as `consoleUrl`. Reloading it is safe at any moment.
+
+`/facilitate`, with no room, is the way in: a control that creates a room and lands on its console, beneath which sit the rooms this browser has already created — join code and creation time, no live state. It is how a facilitator opens a workshop without a terminal, and how they get back to a room whose tab they closed.
+
+**That list is browser-local, and no endpoint enumerates rooms.** There is no `GET /rooms`, and there must not be one: §6.2.6 accepts the exposure of one boolean in one supervised room, and that argument holds only while a `roomId` is neither guessable nor listable. An endpoint that returned every room would hand the flag for all of them to anyone who reached the console. The consequence is accepted — a browser that forgets has lost its shortcut, not its rooms, and `consoleUrl` is the durable handle.
 
 `joinCode` is short, unambiguous, and readable aloud across a room — four digits, no leading zero. Participants never see a roomId: they enter the code, or scan a QR encoding it, and `POST /session` resolves it. The code is valid for the life of the room.
 
@@ -942,6 +956,7 @@ Everything else in this document exists to produce **per-activity delta** and **
 
 **Facilitator**
 49. `POST /room` returns a joinCode that `POST /session` resolves to that room; an unknown code is rejected.
+49a. `/facilitate` creates a room and lands on its console; the room is listed there afterwards in the same browser, and reachable from that list; no endpoint enumerates rooms.
 50. Console renders join code, `ready / total`, and all five stage counts; `inStage` sums to `total`.
 51. Counts update on the 3 s poll with no transition animation.
 52. Poll failure leaves the last values on screen, dimmed, with a reconnecting note.

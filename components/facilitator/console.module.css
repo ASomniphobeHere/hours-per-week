@@ -1,0 +1,286 @@
+/*
+ * The facilitator console (§6.2). One responsive screen, not a second build:
+ * laptop-first at desk width, holding down to 375 px so the stage can be
+ * opened from a phone while walking the room (AC 58).
+ *
+ * Every colour and face is a token from `styles/tokens.css`. The console has
+ * no pack — §9 gives it no `fac.*` keys and its strings are hardcoded — but it
+ * is the same instrument, and a second palette would say otherwise.
+ */
+
+.console {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4vh, 40px);
+  min-height: 100svh;
+  /* No horizontal padding below 20px, and nothing inside is wider than the
+     content box, so 375 px never scrolls sideways (AC 58). */
+  padding: clamp(24px, 6vh, 64px) 20px calc(24px + env(safe-area-inset-bottom));
+  margin: 0 auto;
+  max-width: 720px;
+  width: 100%;
+  text-align: center;
+}
+
+/*
+ * The three read-outs. Dimmed as a block when the poll is failing (§6.2.3):
+ * the numbers are still the last true ones, and hiding them would take the
+ * facilitator's information away over a dropped request.
+ */
+.values {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4vh, 40px);
+  width: 100%;
+  /* §6.2.3: values swap on the poll with no transition animation — a count
+     that tweens is a count that can be misread mid-flight (AC 51). The only
+     thing that fades is the whole block going stale. */
+  transition: opacity 120ms linear;
+}
+
+.stale {
+  opacity: 0.4;
+}
+
+/* ── Join code (§6.2.3) ───────────────────────────────────────────────── */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.roomLabel,
+.readyLabel,
+.stageLabel {
+  font-family: var(--font-utility);
+  font-size: 13px;
+  letter-spacing: var(--toggle-letter-spacing);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+.joinCode {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(40px, 9vw, 64px);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  /* The letter-spacing is trailing on the last glyph; this re-centres it. */
+  text-indent: 0.12em;
+  line-height: 1;
+  margin: 0;
+}
+
+/* ── Ready count — largest type on the page (§6.2.3) ──────────────────── */
+
+.ready {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.readyCount {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(56px, 16vw, 112px);
+  font-weight: 600;
+  line-height: 1;
+  margin: 0;
+}
+
+/* ── Stage breakdown (§6.2.3) ─────────────────────────────────────────── */
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  /* Grid children default to min-content width; this is what keeps five
+     columns inside 375 px rather than pushing the row wide (AC 58). */
+  min-width: 0;
+}
+
+.stageCount {
+  font-family: var(--font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(20px, 5vw, 28px);
+  line-height: 1;
+}
+
+/* ── Button (§6.2.4) ──────────────────────────────────────────────────── */
+
+.action {
+  width: 100%;
+  max-width: 420px;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.button {
+  width: 100%;
+  min-height: var(--tap-target-min);
+  height: 64px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--fg);
+  color: var(--bg);
+  font-family: var(--font-utility);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Armed is the same shape in the overflow red: the press that follows this one
+   force-advances everyone in the room (§6.3), and the label restates `total`
+   rather than `ready` so a press at 3/40 looks wrong at the moment of
+   confirming it. */
+.armed {
+  background: var(--overflow-red);
+  color: var(--fg);
+}
+
+/*
+ * Not a button. §2.2 makes S3 → S4 one-way, so once the flag is up there is
+ * nothing to press twice and the control stops being one (AC 54).
+ */
+.open {
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(244, 244, 246, 0.24);
+  border-radius: 12px;
+  font-family: var(--font-utility);
+  font-size: 17px;
+  color: var(--fg-muted);
+}
+
+.error {
+  font-family: var(--font-utility);
+  font-size: 15px;
+  color: var(--overflow-red);
+  margin: 0;
+}
+
+.note {
+  font-family: var(--font-utility);
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+/* ── Landing screen (step 8.7) ────────────────────────────────────────────
+   `/facilitate` — the way into a room. Shares `.console`, `.button`, `.error`
+   and `.roomLabel` with the room screen: it is the same instrument and a
+   second palette for the way in would say otherwise. Its own action block
+   drops the room screen's `margin-top: auto`, because there is nothing here
+   to push the button to the bottom of. */
+
+.create {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.rooms {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roomList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.roomRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.roomLink {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--tap-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+  border: 1px solid rgba(244, 244, 246, 0.16);
+  border-radius: 10px;
+  font-family: var(--font-utility);
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.roomCode {
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+}
+
+.roomWhen {
+  font-size: 13px;
+  color: var(--fg-muted);
+  /* The code is the identity; the date gives way first at narrow widths. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quiet on purpose. A list that can only grow is wrong within a fortnight,
+   but forgetting a room is housekeeping and never the reason this screen is
+   open. */
+.forget {
+  flex: 0 0 auto;
+  width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.forget:hover,
+.forget:focus-visible {
+  border-color: rgba(244, 244, 246, 0.16);
+  color: var(--fg);
+}

@@ -92,8 +92,102 @@ export function openStage(
   const room = findRoomById(roomId, db);
   if (room === null) return null;
   if (room.stage_open === 1) return room;
-  db.prepare('UPDATE rooms SET stage_open = 1, opened_at = ? WHERE id = ?').run(now, roomId);
+
+  // The flip and its record are one transaction. §6.2.5 makes `stage.open` the
+  // room's t = 0 for *time to fit, room* (§10); a flag that opened without the
+  // row would leave every participant in the room measured against a moment
+  // with no timestamp.
+  const flip = db.transaction((): void => {
+    db.prepare('UPDATE rooms SET stage_open = 1, opened_at = ? WHERE id = ?').run(now, roomId);
+    const { total, ready } = countSessions(roomId, db);
+    db.prepare(
+      "INSERT INTO room_events (room_id, type, t, ready, total) VALUES (?, 'stage.open', ?, ?, ?)",
+    ).run(roomId, now, ready, total);
+  });
+  flip();
+
   return { ...room, stage_open: 1, opened_at: now };
+}
+
+export interface RoomEventRow {
+  id: number;
+  room_id: string;
+  type: string;
+  t: number;
+  ready: number | null;
+  total: number | null;
+}
+
+/** §6.2.5's log. Read by the debrief (§10) and by the tests that check the row
+ *  is written exactly once per room. */
+export function roomEvents(roomId: string, db: Database.Database = getDatabase()): RoomEventRow[] {
+  return db
+    .prepare('SELECT * FROM room_events WHERE room_id = ? ORDER BY t, id')
+    .all(roomId) as RoomEventRow[];
+}
+
+/* ── Console status (§6.2.2) ────────────────────────────────────────────── */
+
+export interface RoomStatus {
+  total: number;
+  ready: number;
+  stageOpen: boolean;
+  joinCode: string;
+  inStage: Record<StageId, number>;
+}
+
+function countSessions(
+  roomId: string,
+  db: Database.Database,
+): { total: number; ready: number } {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS total, COUNT(ready_at) AS ready FROM sessions WHERE room_id = ?`,
+    )
+    .get(roomId) as { total: number; ready: number };
+  return row;
+}
+
+/**
+ * Everything the console shows, in one read.
+ *
+ * `inStage` is seeded at zero for all five stages and then filled, so a room
+ * whose participants are all in S1 still reports `s4: 0` rather than omitting
+ * the key — §6.2.3 renders five counts whatever the room is doing, and a
+ * missing count would render as blank rather than as none.
+ *
+ * The counts sum to `total` because `sessions.stage` is NOT NULL with a 's1'
+ * default (§6.2.2): a session is in exactly one stage from the moment it is
+ * created, and the column only ever moves forward (`advanceStage`).
+ *
+ * Returns null for an unknown room, which the route turns into a 404 — the
+ * console is the only caller and a facilitator with a bad URL should be told
+ * so rather than shown an empty room.
+ */
+export function roomStatus(roomId: string, db: Database.Database = getDatabase()): RoomStatus | null {
+  const room = findRoomById(roomId, db);
+  if (room === null) return null;
+
+  const { total, ready } = countSessions(roomId, db);
+
+  const inStage = Object.fromEntries(STAGE_ORDER.map((stage) => [stage, 0])) as Record<
+    StageId,
+    number
+  >;
+  const rows = db
+    .prepare('SELECT stage, COUNT(*) AS n FROM sessions WHERE room_id = ? GROUP BY stage')
+    .all(roomId) as { stage: StageId; n: number }[];
+  for (const row of rows) {
+    if (row.stage in inStage) inStage[row.stage] = row.n;
+  }
+
+  return {
+    total,
+    ready,
+    stageOpen: room.stage_open === 1,
+    joinCode: room.join_code,
+    inStage,
+  };
 }
 
 export function findRoomById(roomId: string, db: Database.Database = getDatabase()): RoomRow | null {

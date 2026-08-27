@@ -1,8 +1,8 @@
 # 24 — Implementation Plan
 
-**Implements:** `specs/24-build-spec.md` v1.3 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a)
+**Implements:** `specs/24-build-spec.md` v1.4 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a, 49a)
 **Written:** 2026-08-24
-**Status:** Stage 7 complete
+**Status:** Stage 8 complete
 
 ## How to use this document
 
@@ -416,29 +416,52 @@ The hour count is the line that goes instead, because it is the one restated els
 
 ---
 
-## Stage 8 — Facilitator console
+## Stage 8 — Facilitator console ✅
 
 Strings are hardcoded (§9): this is operator tooling for one known person, and no `fac.*` keys exist in the pack.
 
-- [ ] **8.1 Route and layout** (§6.2, §6.2.1) — `/facilitate/:roomId`, laptop-first at desk width, holding down to 375 px with no horizontal scroll so the stage can be opened from a phone while walking the room. One responsive screen, not a second build. Reloading is safe at any moment and restores the same screen from the next poll.
+- [x] **8.1 Route and layout** (§6.2, §6.2.1) — `/facilitate/:roomId`, laptop-first at desk width, holding down to 375 px with no horizontal scroll so the stage can be opened from a phone while walking the room. One responsive screen, not a second build. Reloading is safe at any moment and restores the same screen from the next poll.
   *AC: 56, 58*
 
-- [ ] **8.2 Status poll and screen** (§6.2.2, §6.2.3) — `GET /room/:roomId/status` every 3 s → `{ total, ready, stageOpen, joinCode, inStage }`. Four elements, top to bottom: the join code, large and always visible, so a latecomer can be read the code without leaving the screen; `ready / total` in the largest type on the page; the five `inStage` counts, which sum to `total` and distinguish a straggler on question 2 from one on question 19; the button. Values swap on the poll with **no transition animation** — a count that tweens is a count that can be misread mid-flight. The console holds no local state.
+- [x] **8.2 Status poll and screen** (§6.2.2, §6.2.3) — `GET /room/:roomId/status` every 3 s → `{ total, ready, stageOpen, joinCode, inStage }`. Four elements, top to bottom: the join code, large and always visible, so a latecomer can be read the code without leaving the screen; `ready / total` in the largest type on the page; the five `inStage` counts, which sum to `total` and distinguish a straggler on question 2 from one on question 19; the button. Values swap on the poll with **no transition animation** — a count that tweens is a count that can be misread mid-flight. The console holds no local state.
   *AC: 50, 51*
 
-- [ ] **8.3 Poll failure** (§6.2.3) — last known values stay on screen, dimmed, with a small reconnecting note. Deliberately the opposite of step 6.4: a stale hold screen worries a participant for nothing, but a stale console misleads someone about to make a decision from the numbers on it.
+- [x] **8.3 Poll failure** (§6.2.3) — last known values stay on screen, dimmed, with a small reconnecting note. Deliberately the opposite of step 6.4: a stale hold screen worries a participant for nothing, but a stale console misleads someone about to make a decision from the numbers on it.
   *AC: 52*
 
-- [ ] **8.4 Arming button** (§6.2.4) — Idle → Armed → POST. The armed label restates **`total`**, not `ready`, because the flag force-advances the whole room and a press at 3/40 should look wrong at the moment of confirming it. Armed reverts to Idle after 5 s without a second press. Enabled as soon as the room has one participant, and never gated on a ready threshold: waiting is a facilitation judgement, and a console that refuses to open the stage at 3/40 is wrong about who is running the room.
+- [x] **8.4 Arming button** (§6.2.4) — Idle → Armed → POST. The armed label restates **`total`**, not `ready`, because the flag force-advances the whole room and a press at 3/40 should look wrong at the moment of confirming it. Armed reverts to Idle after 5 s without a second press. Enabled as soon as the room has one participant, and never gated on a ready threshold: waiting is a facilitation judgement, and a console that refuses to open the stage at 3/40 is wrong about who is running the room.
   *AC: 53*
 
-- [ ] **8.5 Flip outcomes** (§6.2.4, §6.2.2) — `POST /room/:roomId/stage { open: true }` is idempotent; a second call on an open room is a no-op returning ok. **The endpoint itself landed in Stage 6**, which had no other way to drive the flag it exists to react to; what is left here is the console half — the two button states below, and nothing about the route. Success replaces the button with a static **Stage open** state that cannot be pressed again — S3 → S4 is one-way and there is nothing to press twice. Failure returns to Idle with an inline error, never to a state implying the stage opened.
+- [x] **8.5 Flip outcomes** (§6.2.4, §6.2.2) — `POST /room/:roomId/stage { open: true }` is idempotent; a second call on an open room is a no-op returning ok. **The endpoint itself landed in Stage 6**, which had no other way to drive the flag it exists to react to; what is left here is the console half — the two button states below, and nothing about the route. Success replaces the button with a static **Stage open** state that cannot be pressed again — S3 → S4 is one-way and there is nothing to press twice. Failure returns to Idle with an inline error, never to a state implying the stage opened.
   *AC: 54, 55*
 
-- [ ] **8.6 `stage.open` record** (§6.2.5) — written server-side once, when the flag flips, carrying `{ roomId, t, ready, total }`. No client involvement, and the §10 participant event union is unchanged. This is the room's `t = 0` for *time to fit, room*; without it that moment can only be inferred from the earliest `forced.advance` in the room, which does not exist if everyone had already finished.
+- [x] **8.6 `stage.open` record** (§6.2.5) — written server-side once, when the flag flips, carrying `{ roomId, t, ready, total }`. No client involvement, and the §10 participant event union is unchanged. This is the room's `t = 0` for *time to fit, room*; without it that moment can only be inferred from the earliest `forced.advance` in the room, which does not exist if everyone had already finished.
   *AC: 57*
 
-**Stage 8 done when:** the console drives a real room end to end from a laptop and from a 375 px phone, survives a reload and a dropped poll, and writes exactly one `stage.open` row.
+- [x] **8.7 The landing screen** (§6.2, §6.2.1 as amended) — `/facilitate`, with no room: a **New room** control that `POST`s `/room`, remembers the result in this browser, and lands on the new room's console. Beneath it, the rooms this browser has already created — join code and creation time, each a link back to its console, each with a quiet forget control. Absent entirely when there is nothing to list. One press, not two: `StageButton` arms because the flip force-advances a room and cannot be undone, whereas a room nobody joins is inert. Disabled while the request is in flight, because two rooms means a facilitator reading one code aloud while the console shows the other.
+  *AC: 49a*
+
+**Stage 8 done when:** the console drives a real room end to end from a laptop and from a 375 px phone, survives a reload and a dropped poll, writes exactly one `stage.open` row, and can be opened without a terminal. — **All five hold.** `e2e/console.spec.ts` runs the console against a real room with a real phone joining in a second tab, on both the desktop and the mobile project, because the one thing a stub cannot prove is that the three numbers on screen are the room; `components/facilitator/Console.test.tsx` drives the screen and both presses through an injected `fetch`, where a dropped poll and a failed POST are one line each; and the `stage.open` row is asserted in `app/api/routes.test.ts`, which is the only place a facilitator's double-press and a latecomer arriving after the flip can be put in the same test. Step 8.7's landing screen closes the last of it: the e2e creates a room from the button, joins a phone on the code the console shows, and comes back to that room from the list — the one sequence neither a stub nor a route test can prove end to end.
+
+**Five things decided in the building.**
+
+**The `stage.open` record is written by the query, not by the route.** §6.2.5 says the server records the press, and the counts it carries are *at the moment of the flip* — so the row cannot be a second statement after the flag is up, with a latecomer's session able to land between the two. `openStage` therefore does both in one transaction and takes `ready` and `total` inside it. The route handler is unchanged from Stage 6, which is the shape this step wanted: the console half was all that was left.
+
+**`ApiError` moved out of the session client.** **RD-2** says a `roomId` must never appear in participant-facing code, and the cheapest way to keep that true as the app grows is that the console imports no module named for the session. But the error class was never about sessions, and a second copy of it would make `instanceof` depend on which half of the app threw — so `FetchLike`, `ApiError` and `expectOk` are now `lib/api/client.ts`, re-exported from `lib/session/client.ts` so that every existing caller is untouched.
+
+**The console's poll is the participant's with both differences inverted, and both are §6.2.3's.** No jitter, because there is one console per room and nothing to spread — a wobbling interval would only make the swap cadence uneven. And failures are reported rather than swallowed: a stale hold screen worries a participant for nothing, but a stale console misleads someone about to force-advance forty people from the numbers in front of them.
+
+**Open is read off the poll, so AC 56 is structural.** The button's idle/armed phases are local — they are a press, not a room fact — but *open* is `stageOpen` from the last response, which means a reload lands on the static Stage open state because the room says so and not because anything was remembered. The one thing that would betray that is a facilitator waiting out three seconds of "Opening…" after the press that worked, so the poll grew a `refresh()`: the flip polls immediately and re-arms from then.
+
+**A 404 is not a dropped poll.** AC 52 keeps the last values on screen, dimmed — but a console that was never given a good response has no last values, and dimming an empty screen tells a facilitator with a mistyped URL nothing. A 404 before the first success is the one failure that gets its own line; everything after it, and every other status, is the reconnecting note.
+
+**Two things the stage did not need.** No pack keys: §9's table is the participant's and no `fac.*` keys exist, so the console's dozen strings are hardcoded, which is what step 8's own header asked for. And no schema change — `room_events` has been in `schema.sql` since Stage 0 waiting for exactly this row.
+
+**Two more, from the addendum** (decided with the user, 2026-08-27, after the console was found to be reachable only by hand).
+
+**The remembered list is the browser's, not the server's.** The obvious build is `GET /rooms` and a table; the obvious build is wrong. §6.2.6 accepts one boolean, in one room, for one supervised workshop, and that argument rests entirely on `roomId` being neither guessable nor listable (**RD-2**) — an endpoint returning every room hands the flag for all of them to anyone who reaches the unauthenticated console. `localStorage` gets the facilitator back to their own rooms and costs the threat model nothing, at the price of a shortcut that a cleared browser loses. `consoleUrl` is still the durable handle, and §6.2.1 now says so in writing so the endpoint is not re-proposed.
+
+**The landing screen navigates with the document, not the router.** `useRouter` and `next/link` would have been the reflex, and both throw outside an app-router context — which would have cost every test on this screen a router harness to prove a soft transition on a page reached once a workshop. The console is `force-dynamic` and starts its poll on mount, so a full navigation loses nothing; `navigate` is injected with `location.assign` as its default, the way `fetchImpl` is injected everywhere else in `lib/console`. The list is read through `useSyncExternalStore` rather than an effect for the neighbouring reason: the server has no browser to ask, so an empty list on the server and the real one after hydration is the shape the hook exists for, and the component ends up holding no state at all.
 
 ---
 
@@ -579,6 +602,7 @@ Every §12 criterion, and the step that closes it.
 | 7 | 3.3 | 27 | 1.3 | 47 | 10.1, 10.3 |
 | 8 | 3.4 | 28 | 4.7 | 48 | 10.4 |
 | 9 | 3.5 | 29 | 4.7 | 49 | 2.1, 2.2 |
+| — | — | — | — | 49a | 8.7 |
 | 10 | 3.5 | 30 | 5.5 | 50 | 8.2 |
 | 11 | 4.1 | 31 | 4.7 | 51 | 8.2 |
 | 12 | 4.1 | 32 | 6.2 | 52 | 8.3 |
