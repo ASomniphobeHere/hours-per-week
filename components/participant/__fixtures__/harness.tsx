@@ -23,6 +23,7 @@ export function sessionState(overrides: Partial<PersistedState> = {}): Persisted
     introSeen: true,
     answers: {},
     authored: {},
+    snapshots: {},
     ...overrides,
   };
 }

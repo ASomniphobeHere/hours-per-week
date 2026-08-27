@@ -11,7 +11,6 @@
  * path to keep in step.
  */
 
-import { useEffect } from 'react';
 import type { DayType } from '@/lib/domain/types';
 import { isFullyDerived } from '@/lib/domain/derive';
 import { weekly } from '@/lib/domain/totals';
@@ -37,20 +36,19 @@ export function ActivitySheet({ activityId, onClose }: ActivitySheetProps) {
     takeDirect,
     revertToDerived,
     session,
-    record,
   } = useParticipant();
 
   const activity = activities.find(candidate => candidate.id === activityId);
 
   /*
-   * §10's pair, emitted where the moment is. `record` is the queue's seam and
-   * is stable, so this runs once per opening and once per dismissal however
-   * many times the sheet re-renders in between.
+   * §10's `sheet.open` and `sheet.close` are emitted by the editor, on the tap
+   * that opens the sheet and the dismissal that closes it — not by a mount
+   * effect here. Mounting is not the moment: the sheet mounts and unmounts for
+   * reasons that are not a participant looking at an activity, and an effect
+   * pair would report each of them as a visit. §10 counts *sheet opens per
+   * activity during rebalance*, so a doubled count is a debrief that overstates
+   * how hard someone worked at a band.
    */
-  useEffect(() => {
-    record({ t: Date.now(), type: 'sheet.open', activityId });
-    return () => record({ t: Date.now(), type: 'sheet.close', activityId });
-  }, [activityId, record]);
 
   // An activity the pack does not define is not a state the editor can reach —
   // both entry points read from this same list — but a null here is a closed

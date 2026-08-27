@@ -11,8 +11,15 @@
  * selected day type, furthest stage.
  */
 
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { Activity, AnswerMap, DayType, Event, StageId } from '@/lib/domain/types';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  Activity,
+  AnswerMap,
+  DayType,
+  Event,
+  ScheduleSnapshot,
+  StageId,
+} from '@/lib/domain/types';
 import { DAY_TYPES } from '@/lib/domain/types';
 import { clearDirect, derive, isFullyDerived, setDirect } from '@/lib/domain/derive';
 import { clampDaily, clampEvent, clampWeekly, weeklyToDaily } from '@/lib/domain/constraints';
@@ -113,12 +120,30 @@ export interface Participant {
   /**
    * §10's event sink.
    *
-   * A seam, not a queue. Batching, retry and delivery are Stage 10's; what the
-   * client owes before then is that each event is emitted *at its moment* — a
-   * clamp that logs nothing as it clamps cannot be recovered afterwards from
-   * any amount of state.
+   * A seam onto the queue (step 10.2), which owns batching, retry and
+   * delivery. What every call site owes is that each event is emitted *at its
+   * moment* — a clamp that logs nothing as it clamps cannot be recovered
+   * afterwards from any amount of state.
    */
   record: (event: Event) => void;
+  /**
+   * Takes the queue's undelivered events and clears it (step 10.2).
+   *
+   * `POST /complete` carries a trailing batch (§6.1) so cut order is complete
+   * for a participant who confirms between two flushes — the last few
+   * `hours.change` events of a rebalance are the ones the debrief most wants,
+   * and a queue interval is long enough to lose all of them.
+   */
+  drainEvents: () => Event[];
+  /**
+   * Keeps a §10 snapshot on the phone as well as sending it (step 10.6).
+   *
+   * S5 differences the finish snapshot against the complete one and shows the
+   * participant what it cost. Both are already built here and posted; holding
+   * them in the persisted record is what lets that screen survive the refresh
+   * §11 allows at every stage, and it is the only client state S5 needs.
+   */
+  recordSnapshot: (snapshot: ScheduleSnapshot) => void;
   /**
    * §5's reset — destroys the session on the server and on the phone, then
    * starts a fresh one in the same room.
@@ -145,8 +170,10 @@ export interface ParticipantProviderProps {
   initial: PersistedState;
   storage: StorageLike;
   reset: () => Promise<void>;
-  /** Where §10's events go. Absent until Stage 10 gives them a queue. */
+  /** Where §10's events go — the queue in the app, a spy in a test. */
   onEvent?: (event: Event) => void;
+  /** The queue's undelivered batch, for the trailing `/complete` payload. */
+  drainEvents?: () => Event[];
   children: React.ReactNode;
 }
 
@@ -156,6 +183,7 @@ export function ParticipantProvider({
   storage,
   reset,
   onEvent,
+  drainEvents,
   children,
 }: ParticipantProviderProps) {
   const [session, setSession] = useState<PersistedState>(initial);
@@ -187,18 +215,62 @@ export function ParticipantProvider({
   );
 
   const record = useCallback((event: Event) => onEvent?.(event), [onEvent]);
+  const drain = useCallback(() => drainEvents?.() ?? [], [drainEvents]);
 
+  /**
+   * Activities sitting in `fallback` as of the last pass (§4.3 rule 3).
+   *
+   * `derive` emits its own `estimator.fallback` on entry, but it is fed
+   * `authored` — which holds `direct` values only — so every pass looks like a
+   * first failure to it and it would report one throw once per render. The
+   * entry condition is therefore evaluated here, against the modes the last
+   * pass actually produced: a retry that throws again is the same failure, and
+   * an estimator that recovers re-arms the event for the next one.
+   */
+  const inFallback = useRef<ReadonlySet<string>>(new Set());
+
+  useEffect(() => {
+    const current = new Set(
+      activities
+        .filter((activity) => DAY_TYPES.some((dt) => activity[dt].mode === 'fallback'))
+        .map((activity) => activity.id),
+    );
+    const now = Date.now();
+    for (const activityId of current) {
+      if (inFallback.current.has(activityId)) continue;
+      record({ t: now, type: 'estimator.fallback', activityId });
+    }
+    inFallback.current = current;
+  }, [activities, record]);
+
+  /**
+   * A field write, and the one place §10's two field events are told apart.
+   *
+   * `field.answer` is the first value a field receives and `field.revise` is
+   * every one after it, read off whether the map already holds the field
+   * rather than off the answer's own revision — the two agree, and the map is
+   * what this function already has in hand.
+   */
   const answer = useCallback(
     (fieldId: string, value: unknown) => {
+      const revising = isAnswered(session.answers, fieldId);
       setSession((current) => {
         const next = { ...current, answers: setAnswer(current.answers, fieldId, value) };
         save(storage, next);
         return next;
       });
+      record({ t: Date.now(), type: revising ? 'field.revise' : 'field.answer', fieldId });
     },
-    [storage],
+    [session.answers, storage, record],
   );
 
+  /*
+   * Deliberately silent. Writing a pack default is the participant agreeing
+   * with what was on screen (§4.2), and a `field.answer` for it would be
+   * indistinguishable in the log from their having typed that same number.
+   * The debrief reads engagement off these events, so absence is the signal:
+   * a field with no event is one nobody touched.
+   */
   const commitDefaults = useCallback(
     (fields: readonly Field[]) => {
       setSession((current) => {
@@ -221,6 +293,20 @@ export function ParticipantProvider({
     (partial: SessionPatch) => {
       setSession((current) => {
         const next = { ...current, ...partial };
+        save(storage, next);
+        return next;
+      });
+    },
+    [storage],
+  );
+
+  const recordSnapshot = useCallback(
+    (snapshot: ScheduleSnapshot) => {
+      setSession((current) => {
+        const next = {
+          ...current,
+          snapshots: { ...current.snapshots, [snapshot.kind]: snapshot },
+        };
         save(storage, next);
         return next;
       });
@@ -380,6 +466,8 @@ export function ParticipantProvider({
       takeDirect,
       revertToDerived,
       record,
+      drainEvents: drain,
+      recordSnapshot,
       reset,
     }),
     [
@@ -395,6 +483,8 @@ export function ParticipantProvider({
       takeDirect,
       revertToDerived,
       record,
+      drain,
+      recordSnapshot,
       reset,
     ],
   );

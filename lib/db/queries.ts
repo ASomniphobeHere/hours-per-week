@@ -347,8 +347,8 @@ export function insertEvents(
 ): number {
   if (events.length === 0) return 0;
   const insert = db.prepare(
-    `INSERT INTO events (session_id, t, type, activity_id, field_id, stage, from_h, to_h)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO events (session_id, t, type, activity_id, field_id, stage, screen_id, from_h, to_h)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const run = db.transaction((batch: readonly Event[]) => {
     for (const event of batch) {
@@ -359,6 +359,7 @@ export function insertEvents(
         event.activityId ?? null,
         event.fieldId ?? null,
         event.stage ?? null,
+        event.screenId ?? null,
         event.from ?? null,
         event.to ?? null,
       );
@@ -366,4 +367,80 @@ export function insertEvents(
   });
   run(events);
   return events.length;
+}
+
+/* ── Debrief reads (§10, step 10.5) ─────────────────────────────────────── */
+
+/** Every session in a room, oldest first, so a debrief lists joiners in order. */
+export function sessionsInRoom(
+  roomId: string,
+  db: Database.Database = getDatabase(),
+): SessionRow[] {
+  return db
+    .prepare('SELECT * FROM sessions WHERE room_id = ? ORDER BY created_at, id')
+    .all(roomId) as SessionRow[];
+}
+
+/**
+ * One session's events, in the order they were inserted.
+ *
+ * `ORDER BY t, id` and not `t` alone: a rebalance emits several `hours.change`
+ * inside one millisecond, and cut order is the whole value of the field (§10).
+ * `id` is the tiebreak, which is why the events table has one.
+ */
+export function sessionEvents(
+  sessionId: string,
+  db: Database.Database = getDatabase(),
+): Event[] {
+  const rows = db
+    .prepare('SELECT * FROM events WHERE session_id = ? ORDER BY t, id')
+    .all(sessionId) as {
+    t: number;
+    type: string;
+    activity_id: string | null;
+    field_id: string | null;
+    stage: string | null;
+    screen_id: string | null;
+    from_h: number | null;
+    to_h: number | null;
+  }[];
+
+  return rows.map((row) => ({
+    t: row.t,
+    type: row.type as Event['type'],
+    ...(row.activity_id === null ? {} : { activityId: row.activity_id }),
+    ...(row.field_id === null ? {} : { fieldId: row.field_id }),
+    ...(row.stage === null ? {} : { stage: row.stage as StageId }),
+    ...(row.screen_id === null ? {} : { screenId: row.screen_id }),
+    ...(row.from_h === null ? {} : { from: row.from_h }),
+    ...(row.to_h === null ? {} : { to: row.to_h }),
+  }));
+}
+
+/**
+ * A session's snapshots by kind, newest of each kind winning.
+ *
+ * A kind can appear twice: `/ready` and `/complete` are both delivered with
+ * retry (§11), and a POST that lands after its own timeout is a duplicate row
+ * rather than an error. The last write is the one the participant's phone
+ * finished with, so the read takes it.
+ */
+export function sessionSnapshots(
+  sessionId: string,
+  db: Database.Database = getDatabase(),
+): Partial<Record<SnapshotKind, ScheduleSnapshot>> {
+  const rows = db
+    .prepare('SELECT kind, json FROM snapshots WHERE session_id = ? ORDER BY t, id')
+    .all(sessionId) as { kind: SnapshotKind; json: string }[];
+
+  const byKind: Partial<Record<SnapshotKind, ScheduleSnapshot>> = {};
+  for (const row of rows) {
+    try {
+      byKind[row.kind] = JSON.parse(row.json) as ScheduleSnapshot;
+    } catch {
+      // A row that will not parse is one participant's snapshot, not the
+      // room's debrief. Skipped, and the derivation reports the field absent.
+    }
+  }
+  return byKind;
 }

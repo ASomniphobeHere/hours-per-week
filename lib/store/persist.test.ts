@@ -22,6 +22,7 @@ function state(overrides: Partial<PersistedState> = {}): PersistedState {
     introSeen: true,
     answers: setAnswer({}, 'sleep.wake.wd', '07:00', 100),
     authored: {},
+    snapshots: {},
     ...overrides,
   };
 }

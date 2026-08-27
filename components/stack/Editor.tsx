@@ -51,7 +51,7 @@ export interface EditorProps {
 const NONE: ReadonlySet<string> = new Set();
 
 export function Editor({ header, footer }: EditorProps) {
-  const { index, session, activities, patch, reset } = useParticipant();
+  const { index, session, activities, patch, record, reset } = useParticipant();
   const pack = index.pack;
 
   // §3.3 — school exists from S4 onward and nowhere earlier.
@@ -67,6 +67,17 @@ export function Editor({ header, footer }: EditorProps) {
   const [settling, setSettling] = useState(false);
   const returnFocus = useRef<HTMLElement | null>(null);
 
+  /*
+   * §10's `sheet.open` / `sheet.close`, on the tap and the dismissal.
+   *
+   * Here rather than inside the sheet, because these two are the moments: a
+   * band tap or a Not-included row tap is a participant deciding to look at an
+   * activity, and all four of §8.1's ways out are one dismissal. The sheet's
+   * own mount and unmount are not — the same visit can mount it more than once
+   * — and §10 counts *sheet opens per activity during rebalance*, a field that
+   * a doubled count turns into an overstatement of how hard someone worked at
+   * a band.
+   */
   const openSheet = useCallback(
     (activityId: string) => {
       // Restored on close, so a keyboard participant is put back on the band
@@ -74,16 +85,18 @@ export function Editor({ header, footer }: EditorProps) {
       returnFocus.current = document.activeElement as HTMLElement | null;
       setFrozen(visible);
       setOpenId(activityId);
+      record({ t: Date.now(), type: 'sheet.open', activityId });
     },
-    [visible],
+    [visible, record],
   );
 
   const closeSheet = useCallback(() => {
+    if (openId !== null) record({ t: Date.now(), type: 'sheet.close', activityId: openId });
     setOpenId(null);
     setFrozen(null);
     setSettling(true);
     returnFocus.current?.focus();
-  }, []);
+  }, [openId, record]);
 
   useEffect(() => {
     if (!settling) return;

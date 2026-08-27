@@ -124,7 +124,7 @@ describe('insertEvents', () => {
 describe('resetSession (§5)', () => {
   function snapshot(): ScheduleSnapshot {
     return {
-      kind: 's1',
+      kind: 'finish',
       t: 1,
       packVersion: 'v1',
       activities: [{ id: 'sleep', wd: { mode: 'derived', hours: 8 }, we: { mode: 'derived', hours: 9 } }],
@@ -151,7 +151,7 @@ describe('resetSession (§5)', () => {
     const room = createRoom(db);
     const old = createSession(room.id, db);
     insertEvents(old.id, events, db);
-    insertSnapshot(old.id, 's1', snapshot(), db);
+    insertSnapshot(old.id, 'finish', snapshot(), db);
 
     const next = resetSession(old.id, db);
 

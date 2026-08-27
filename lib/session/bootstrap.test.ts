@@ -86,6 +86,7 @@ describe('ensureSession', () => {
       introSeen: true,
       answers: setAnswer({}, 'sleep.wake.wd', '07:00', 1000),
       authored: {},
+      snapshots: {},
     });
     const fetchImpl = stubFetch(CREATED);
 
@@ -112,6 +113,7 @@ describe('ensureSession', () => {
         ...setAnswer({}, 'gone.field', 3, 1000),
       },
       authored: {},
+      snapshots: {},
     });
     const fetchImpl = stubFetch(CREATED);
 
@@ -188,6 +190,7 @@ describe('resetToNewSession (§5)', () => {
       introSeen: true,
       answers: setAnswer({}, 'sleep.wake.wd', '07:00'),
       authored: {},
+      snapshots: {},
     };
   }
 
@@ -214,6 +217,7 @@ describe('resetToNewSession (§5)', () => {
       introSeen: false,
       answers: {},
       authored: {},
+      snapshots: {},
     });
     expect(storage.getItem('hpw:state:sess-1')).toBeNull();
     expect(storage.getItem('hpw:current')).toBe('sess-2');

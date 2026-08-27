@@ -11,7 +11,7 @@
  * AC 7).
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Screen } from '@/lib/pack/types';
 import { reachableScreens } from '@/lib/domain/gates';
 import { progressOf } from '@/lib/domain/progress';
@@ -41,7 +41,7 @@ function resumeScreenId(screens: readonly Screen[], answered: (id: string) => bo
 }
 
 export function Questionnaire({ onComplete }: QuestionnaireProps) {
-  const { index, answers, answer, commitDefaults } = useParticipant();
+  const { index, answers, answer, commitDefaults, record } = useParticipant();
   const pack = index.pack;
 
   const screens = reachableScreens(index, answers);
@@ -63,6 +63,38 @@ export function Questionnaire({ onComplete }: QuestionnaireProps) {
 
   const screen = screens[position];
   const progress = progressOf(index, answers, screen?.id ?? '');
+
+  /*
+   * §10's `screen.view`, once per screen the participant lands on — forward,
+   * back, or resumed into after a refresh. Keyed on the id rather than on
+   * `position`, so a gate answered mid-questionnaire that renumbers the list
+   * does not log a view of a screen nobody moved to.
+   *
+   * The ref is what makes it once per *landing* rather than once per effect
+   * run. An effect can run twice for one arrival — a remount, or React's
+   * development double-invoke — and two views of a screen at the same
+   * millisecond is a log saying something about the participant that is not
+   * true. Going A → B → A still logs A twice, because the id changed in
+   * between; only an immediate repeat of the same screen is suppressed.
+   *
+   * The sheet's replay (§8.1) emits none of these. It puts a whole section on
+   * one scrolling surface rather than paging through it, so there is no moment
+   * at which one screen is the screen being viewed; `sheet.open` is what marks
+   * that visit, and the debrief counts those per activity (§10).
+   */
+  const viewedId = screen?.id;
+  const sectionId = screen?.sectionId;
+  const lastViewed = useRef<string | null>(null);
+  useEffect(() => {
+    if (viewedId === undefined || lastViewed.current === viewedId) return;
+    lastViewed.current = viewedId;
+    record({
+      t: Date.now(),
+      type: 'screen.view',
+      screenId: viewedId,
+      activityId: sectionId,
+    });
+  }, [viewedId, sectionId, record]);
 
   const advance = useCallback(() => {
     if (screen === undefined) return;
