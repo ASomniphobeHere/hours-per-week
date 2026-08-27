@@ -31,7 +31,7 @@ describe('§10 schedule snapshot', () => {
 
   it('reports `fits: false` for a day already over 24 h (§11)', () => {
     const over = [activity('work', 26, 0)];
-    expect(buildSnapshot({ kind: 's1', activities: over, packVersion: 'v1', t: 0 }).fits).toBe(
+    expect(buildSnapshot({ kind: 'finish', activities: over, packVersion: 'v1', t: 0 }).fits).toBe(
       false,
     );
   });

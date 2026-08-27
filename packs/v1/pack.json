@@ -815,11 +815,11 @@
     "s4.pace.title": "How much of your week",
     "s4.pace.perDay": "{hours} h on each workday",
     "s4.pace.continue": "Continue",
-    "s4.school.outcome.20": "You will learn some things about product development.",
-    "s4.school.outcome.25": "Placeholder copy for 25 hours a week.",
-    "s4.school.outcome.30": "Placeholder copy for 30 hours a week.",
-    "s4.school.outcome.35": "Placeholder copy for 35 hours a week.",
-    "s4.school.outcome.40": "You have a real chance to succeed developing your own startup.",
+    "s4.school.outcome.20": "You will pick up the basics of how products get built. You are unlikely to build one yourself. Expect to reach a point where you either add hours or you stop moving.",
+    "s4.school.outcome.25": "You will learn the process and test an idea, but building something people actually use stays out of reach.",
+    "s4.school.outcome.30": "You can get a product built and in front of first users, as long as your team carries the parts you cannot.",
+    "s4.school.outcome.35": "You can lead your own project and take it to launch. Most weeks will be tight.",
+    "s4.school.outcome.40": "You have a real chance at building a startup that works.",
     "s4.confirm": "Confirm",
     "sheet.setDirect": "Set directly",
     "sheet.done": "Done",
@@ -843,6 +843,11 @@
     "options.reset.body": "This erases your answers and returns you to the first question. It cannot be undone.",
     "options.reset.confirm": "Start over",
     "options.reset.cancel": "Cancel",
-    "options.reset.failed": "Could not reach the server. Try again."
+    "options.reset.failed": "Could not reach the server. Try again.",
+    "options.reset.body.complete": "This erases your answers and your finished result, and returns you to the first question. It cannot be undone.",
+    "s5.title": "What StartSchool cost you",
+    "s5.cuts.row": "{from} h → {to} h",
+    "s5.noCuts.title": "Nothing else in your week moved.",
+    "s5.noCuts.body": "StartSchool takes {hours} hours a week. It came out of time you had not allocated."
   }
 }

@@ -68,6 +68,7 @@ export async function ensureSession({
     introSeen: false,
     answers: {},
     authored: {},
+    snapshots: {},
   };
   // Written before the participant answers anything: a refresh in the seconds
   // between joining and the first field is still a refresh (§11).
@@ -128,6 +129,7 @@ export async function resetToNewSession({
     introSeen: false,
     answers: {},
     authored: {},
+    snapshots: {},
   };
   save(storage, next);
   return next;

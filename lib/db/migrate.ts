@@ -39,6 +39,11 @@ export const migrations: Migration[] = [
     name: 'events.stage',
     sql: () => readSql('schema-002-event-stage.sql'),
   },
+  {
+    version: 3,
+    name: 'events.screen_id',
+    sql: () => readSql('schema-003-event-screen.sql'),
+  },
 ];
 
 export const SCHEMA_VERSION = migrations.reduce((max, m) => Math.max(max, m.version), 0);

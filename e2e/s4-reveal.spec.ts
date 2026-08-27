@@ -179,7 +179,7 @@ test.describe('S4 — the reveal', () => {
     await page.getByTestId('confirm').click();
     // S5 carries no copy: §9's table names no key for it and the client
     // invents none. What proves the confirm is the server's record of it.
-    await expect(page.getByTestId('done')).toBeAttached();
+    await expect(page.getByTestId('summary')).toBeAttached();
     await expect(page.getByTestId('stack')).toHaveCount(0);
   });
 

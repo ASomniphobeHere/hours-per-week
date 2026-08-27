@@ -32,9 +32,11 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_room ON sessions(room_id);
 
--- Schedule snapshots at the three points in §10: end of S1, at Finish
--- (pre-reveal), at complete (post-rebalance). Per-activity delta is the
--- complete snapshot minus the finish snapshot.
+-- Schedule snapshots at the two points this build takes them: at Finish
+-- (pre-reveal, end of S2) and at complete (post-rebalance, end of S4).
+-- Per-activity delta is the complete snapshot minus the finish snapshot.
+-- §10 names an end-of-S1 third; it is not taken (see `SnapshotKind`), and the
+-- CHECK still admits it so an older file needs no rebuild to stay valid.
 CREATE TABLE IF NOT EXISTS snapshots (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT NOT NULL REFERENCES sessions(id),

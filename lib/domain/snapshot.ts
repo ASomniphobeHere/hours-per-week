@@ -1,11 +1,12 @@
 /**
  * §10's `ScheduleSnapshot`, built from the live activity set.
  *
- * Three are taken over a run — end of S1, at Finish, at complete — and the
- * debrief reads all three the same way: per-activity delta is `complete −
+ * Two are taken over a run — at Finish and at complete (`SnapshotKind`) — and
+ * the debrief reads both the same way: per-activity delta is `complete −
  * finish` per activity per day type, and *slack at finish* is `remaining.wd`
  * in the finish snapshot. Nothing is recomputed server-side, so what is not in
- * here is not recoverable.
+ * here is not recoverable — which is why every activity is carried on *both*
+ * day types and not only the one that was on screen (step 10.3).
  *
  * Every pack activity is carried, including ones sitting at zero and including
  * `locked` school before S4 reveals it. A snapshot is the whole schedule at a

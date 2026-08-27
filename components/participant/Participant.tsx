@@ -21,12 +21,13 @@
  * is what stops the new one inheriting the old one's state.
  */
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { v1Index } from '@/lib/pack/v1';
 import { fieldIds } from '@/lib/pack';
 import { browserStorage, restore, type PersistedState, type StorageLike } from '@/lib/store/persist';
 import { ensureSession, resetToNewSession } from '@/lib/session/bootstrap';
 import { ParticipantProvider } from '@/lib/client/participant';
+import { createTelemetryQueue } from '@/lib/telemetry/queue';
 import { Join } from './Join';
 import { Stages } from './Stages';
 
@@ -91,6 +92,31 @@ export function Participant() {
   const ready = override === null ? restored : override.value;
 
   /*
+   * §10's queue, owned here because it is scoped to a session identity and
+   * this file is what decides which session is on the phone: a reset mints a
+   * new one, and events queued against the destroyed session would be POSTed
+   * to a row the server has already deleted.
+   *
+   * Keyed on the identity rather than on `ready`, which is a fresh object on
+   * every render — a queue rebuilt each pass would drop its pending batch and
+   * leak an interval per render.
+   */
+  const sessionId = ready?.state.sessionId;
+  const token = ready?.state.token;
+  const telemetry = useMemo(
+    () =>
+      sessionId === undefined || token === undefined
+        ? null
+        : createTelemetryQueue({
+            credentials: { sessionId, token },
+            fetchImpl: (input, init) => fetch(input, init),
+          }),
+    [sessionId, token],
+  );
+
+  useEffect(() => () => telemetry?.stop(), [telemetry]);
+
+  /*
    * §5's reset. `resetToNewSession` clears local state only once the server has
    * confirmed the delete, so a rejection here has destroyed nothing and the
    * participant can tap again; `null` back means even the reset could not be
@@ -121,6 +147,8 @@ export function Participant() {
       initial={ready.state}
       storage={ready.storage}
       reset={reset}
+      onEvent={telemetry?.record}
+      drainEvents={telemetry?.drain}
     >
       <Stages />
     </ParticipantProvider>

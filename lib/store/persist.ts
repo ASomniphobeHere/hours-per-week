@@ -9,7 +9,14 @@
  * (§6.2.2), so a duplicate breaks `inStage` summing to it.
  */
 
-import type { AnswerMap, DayType, DayValue, StageId } from '@/lib/domain/types';
+import type {
+  AnswerMap,
+  DayType,
+  DayValue,
+  ScheduleSnapshot,
+  SnapshotKind,
+  StageId,
+} from '@/lib/domain/types';
 import { DAY_TYPES, STAGE_ORDER } from '@/lib/domain/types';
 import type { ScheduleState } from '@/lib/domain/derive';
 import { isAnswerMap, pruneToFields } from './answers';
@@ -50,6 +57,18 @@ export interface PersistedState {
    * value the participant typed is written here.
    */
   authored: ScheduleState;
+  /**
+   * The §10 snapshots this session has taken, by kind (step 10.6).
+   *
+   * S5 is the difference between the two, so a refresh at S5 that found them
+   * missing would leave a participant on a screen with nothing on it — and
+   * they are not re-derivable: the finish snapshot is a week that no longer
+   * exists by the time the complete one is taken. Held here rather than
+   * re-fetched because the server has no endpoint that reads a snapshot back
+   * (§6.1), and because the screen is a record of the participant's own
+   * decisions and has no business waiting on a network to show them.
+   */
+  snapshots: Partial<Record<SnapshotKind, ScheduleSnapshot>>;
 }
 
 /** The subset of the Storage API used here, so tests need no DOM. */
@@ -101,6 +120,16 @@ function isScheduleState(value: unknown): value is ScheduleState {
   });
 }
 
+function isSnapshotMap(value: unknown): value is Partial<Record<SnapshotKind, ScheduleSnapshot>> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every(
+    (entry) =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      Array.isArray((entry as ScheduleSnapshot).activities),
+  );
+}
+
 function isStageId(value: unknown): value is StageId {
   return typeof value === 'string' && (STAGE_ORDER as readonly string[]).includes(value);
 }
@@ -136,6 +165,11 @@ function parse(raw: string | null): PersistedState | null {
     // wholesale when it does not parse: an activity that loses its override
     // derives again, which is a defined state rather than a broken one.
     authored: isScheduleState(candidate.authored) ? candidate.authored : {},
+    // Absent in a record written before S5 had a screen, and unvalidated
+    // beyond its shape: `Summary` reads hours off it and renders no row for an
+    // activity it cannot find on both sides, so a partial record costs rows
+    // rather than the screen.
+    snapshots: isSnapshotMap(candidate.snapshots) ? candidate.snapshots : {},
   };
 }
 
@@ -197,6 +231,9 @@ export function restore(
     // an activity id this pack may no longer define, and a direct value set
     // against different questions is not an answer to these ones.
     authored: {},
+    // And with them the snapshots, which are keyed by the same activity ids
+    // and were taken against a week the new pack no longer describes.
+    snapshots: {},
   };
   save(storage, state);
   return { state, packChanged: true, dropped };

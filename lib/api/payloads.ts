@@ -56,6 +56,7 @@ export function parseEvent(value: unknown): Event | null {
     activityId: optionalString(candidate.activityId),
     fieldId: optionalString(candidate.fieldId),
     stage: isStageId(candidate.stage) ? candidate.stage : undefined,
+    screenId: optionalString(candidate.screenId),
     from: optionalNumber(candidate.from),
     to: optionalNumber(candidate.to),
   };
@@ -96,9 +97,7 @@ function isDayRecord(value: unknown): value is Record<DayType, number> {
 export function parseSnapshot(value: unknown): ScheduleSnapshot | null {
   if (typeof value !== 'object' || value === null) return null;
   const candidate = value as Record<string, unknown>;
-  if (candidate.kind !== 's1' && candidate.kind !== 'finish' && candidate.kind !== 'complete') {
-    return null;
-  }
+  if (candidate.kind !== 'finish' && candidate.kind !== 'complete') return null;
   if (!isFiniteNumber(candidate.t)) return null;
   if (typeof candidate.packVersion !== 'string') return null;
   if (!Array.isArray(candidate.activities)) return null;

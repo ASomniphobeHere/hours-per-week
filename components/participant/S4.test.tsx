@@ -299,7 +299,7 @@ describe('overflow and completion (AC 41, 42, 43, 45)', () => {
     expect(screen.getByTestId('stack')).toBeInTheDocument();
 
     click('confirm');
-    expect(screen.getByTestId('done')).toBeInTheDocument();
+    expect(screen.getByTestId('summary')).toBeInTheDocument();
     expect(server.completes()).toHaveLength(1);
     const { schedule } = server.completes()[0]!.body as { schedule: { kind: string; fits: boolean } };
     expect(schedule.kind).toBe('complete');
