@@ -18,7 +18,7 @@
  * is the whole value and on a summary screen would be noise.
  *
  * **Cuts only.** School is not a row: it went up, and it is the reason for the
- * list rather than a member of it, so it is named once in `s5.title` and
+ * list rather than a member of it, so it is named once in `s7.title` and
  * appears nowhere else. Nor are increases — a participant who nudged sleep up
  * while cutting elsewhere is not being asked what their week gained.
  *
@@ -91,13 +91,13 @@ export function Summary() {
       <Options pack={pack} onReset={reset} bodyKey="options.reset.body.complete" />
 
       <div className={styles.body}>
-        <h1 className={styles.prompt}>{copyOf(pack, 's5.title')}</h1>
+        <h1 className={styles.prompt}>{copyOf(pack, 's7.title')}</h1>
 
         {rows.length === 0 ? (
           <div data-testid="summary-no-cuts">
-            <p className={styles.note}>{copyOf(pack, 's5.noCuts.title')}</p>
+            <p className={styles.note}>{copyOf(pack, 's7.noCuts.title')}</p>
             <p className={styles.note}>
-              {formatCopy(pack, 's5.noCuts.body', {
+              {formatCopy(pack, 's7.noCuts.body', {
                 hours:
                   complete === undefined || locked === undefined
                     ? 0
@@ -116,7 +116,7 @@ export function Summary() {
                   ) : null}
                 </span>
                 <span className={styles.cutHours} data-testid={`cut-${row.activityId}-${row.dayType}`}>
-                  {formatCopy(pack, 's5.cuts.row', {
+                  {formatCopy(pack, 's7.cuts.row', {
                     from: formatAmount(row.from),
                     to: formatAmount(row.to),
                   })}

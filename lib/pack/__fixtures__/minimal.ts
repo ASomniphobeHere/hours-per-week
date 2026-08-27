@@ -207,9 +207,9 @@ const MINIMAL: ContentPack = {
     'options.reset.cancel': 'Cancel',
     'options.reset.failed': 'Could not reach the server. Try again.',
     'options.reset.body.complete': 'This erases your answers and your finished result.',
-    's5.title': 'What it cost',
-    's5.cuts.row': '{from} h → {to} h',
-    's5.noCuts.title': 'Nothing else in your week moved.',
-    's5.noCuts.body': 'It takes {hours} hours a week, out of time you had not allocated.',
+    's7.title': 'What it cost',
+    's7.cuts.row': '{from} h → {to} h',
+    's7.noCuts.title': 'Nothing else in your week moved.',
+    's7.noCuts.body': 'It takes {hours} hours a week, out of time you had not allocated.',
   },
 };

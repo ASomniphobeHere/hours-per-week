@@ -136,16 +136,22 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   'options.reset.cancel',
   'options.reset.failed',
   /*
-   * S5's four, plus the second reset body it needs (step 10.6, step 10.7).
-   * §2.2 leaves S5 undefined and §9's table names no `s5.*` key, on the same
-   * footing as the keys above it: they are participant-facing strings the spec
-   * does not enumerate, and a replacement pack that omits them leaves a
-   * finished participant reading raw key names off the last screen they see.
+   * The done stage's four, plus the second reset body it needs (step 10.6,
+   * step 10.7). §2.2 leaves that stage undefined and §9's table names no key
+   * for it, on the same footing as the keys above: they are participant-facing
+   * strings the spec does not enumerate, and a replacement pack that omits
+   * them leaves a finished participant reading raw key names off the last
+   * screen they see.
+   *
+   * They are spelled `s7.*` rather than `s5.*` because plan 25 renumbers the
+   * machine: the rating stage and its hold take s4 and s5, and done moves to
+   * s7. Step 10.6 wrote them before that landed, and `s5.title` then named two
+   * different screens (§Edits to plan 24, item 3).
    */
-  's5.title',
-  's5.cuts.row',
-  's5.noCuts.title',
-  's5.noCuts.body',
+  's7.title',
+  's7.cuts.row',
+  's7.noCuts.title',
+  's7.noCuts.body',
   'options.reset.body.complete',
 ] as const;
 

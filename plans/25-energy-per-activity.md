@@ -55,7 +55,9 @@ Resolved with the user before writing, 2026-08-27.
 
 ## The renumber
 
-Taken knowingly against a live collision: `stage-10-cut-summary` is being built in parallel and its steps 10.6–10.7 name S5 throughout. **That branch's `s5` is this plan's `s7`.** Merge order and the exact edits are in §Edits to plan 24.
+Taken knowingly against a live collision: `stage-10-cut-summary` names S5 throughout its steps 10.6–10.7. **That branch's `s5` is this plan's `s7`.** Merge order and the exact edits are in §Edits to plan 24.
+
+**Merged 2026-08-27** (PR #14, `f08a2ee`), and the collision surfaced immediately as a duplicate `s5.title` in one object literal — the second hold's, and the summary's. The copy keys were renamed to `s7.*` on the spot, which is item 3 of §Edits to plan 24 pulled forward: it had to be, because the tree does not compile with both. `Summary.tsx`, `REQUIRED_COPY_KEYS`, the minimal fixture and `packs/v1/pack.json` carry `s7.title`, `s7.cuts.row`, `s7.noCuts.title`, `s7.noCuts.body`. The stage *ids* are untouched and are still E.3's — only the strings moved.
 
 | Was | Is | Screen |
 |---|---|---|
@@ -69,7 +71,7 @@ Taken knowingly against a live collision: `stage-10-cut-summary` is being built 
 
 **Two stores hold stage ids and both need migrating.**
 
-*The database.* `sessions.stage` holds `'s4'` and `'s5'` rows meaning reveal and done. `schema-003-stage-renumber.sql` rewrites them — `'s5' → 's7'` then `'s4' → 's6'`, in that order so nothing collides — and the migration runner's existing test covers that it runs once.
+*The database.* `sessions.stage` holds `'s4'` and `'s5'` rows meaning reveal and done. `schema-004-stage-renumber.sql` rewrites them — `'s5' → 's7'` then `'s4' → 's6'`, in that order so nothing collides — and the migration runner's existing test covers that it runs once.
 
 *localStorage.* A phone that refreshes across the deploy holds `stage: 's4'` meaning *reveal* and would resume into the energy stage. `PersistedState` gains `v: 2`; a record without it keeps its answers, its `authored` hours and its session identity, and resumes at **`s2`** rather than at the stage it names. The stage pointer is the only field whose meaning changed, and the editor is the safe place to land — re-enterable, non-destructive, and the stage every path passes through. Pre-workshop this costs nobody anything; mid-workshop it would cost one participant a Finish press.
 
@@ -146,10 +148,10 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
 
   **Built 2026-08-27.** Three rules — `energy-scale`, `energy-locked-declared`, `energy-participant-owned` — take §4.6 from fourteen to seventeen, each fired by its own test. `holdLines(pack, prefix)` gained a prefix so E.7's second hold reads its lines through the same function, and `HOLD_LINES_PREFIXES` is what the four-line minimum now runs over. `ContentPack.energy` is required rather than optional: a pack without it cannot run the stage, and an optional block would push that failure from load time into the middle of a room.
 
-- [ ] **E.3 The renumber** (§2.2) — mechanical, in its own commit, no behaviour change and no new screens. `StageId`, `STAGE_ORDER`, `Stages.tsx`, `persist.ts`, `queries.ts` (`inStage`), `Console.tsx`, and every e2e spec that names a stage. `schema-003-stage-renumber.sql` rewrites `sessions.stage`; `PersistedState.v = 2` drops a stale stage pointer to `s2` (§The renumber). The commit is reviewable as a rename: after it, the machine is `s1 → s2 → s3 → s6 → s7` with two ids unused, and every existing test passes with its names updated.
+- [ ] **E.3 The renumber** (§2.2) — mechanical, in its own commit, no behaviour change and no new screens. `StageId`, `STAGE_ORDER`, `Stages.tsx`, `persist.ts`, `queries.ts` (`inStage`), `Console.tsx`, and every e2e spec that names a stage. `schema-004-stage-renumber.sql` rewrites `sessions.stage`; `PersistedState.v = 2` drops a stale stage pointer to `s2` (§The renumber). The commit is reviewable as a rename: after it, the machine is `s1 → s2 → s3 → s6 → s7` with two ids unused, and every existing test passes with its names updated.
   *AC: none directly — every criterion it touches is re-asserted by E.5–E.8*
 
-- [ ] **E.4 The gate becomes an ordinal** (§6.1, §6.2.2, §6.2.4, §6.2.5) — `schema-004-open-stage.sql` adds `rooms.open_stage INTEGER NOT NULL DEFAULT 0`, backfills `stage_open × 2` (a room that was open was open to the reveal), and drops `stage_open`. `room_events` gains `to_stage INTEGER`, so §6.2.5's one-record-per-flip becomes two records distinguished by level, each carrying `ready` and `total` at that moment.
+- [ ] **E.4 The gate becomes an ordinal** (§6.1, §6.2.2, §6.2.4, §6.2.5) — `schema-005-open-stage.sql` adds `rooms.open_stage INTEGER NOT NULL DEFAULT 0`, backfills `stage_open × 2` (a room that was open was open to the reveal), and drops `stage_open`. `room_events` gains `to_stage INTEGER`, so §6.2.5's one-record-per-flip becomes two records distinguished by level, each carrying `ready` and `total` at that moment.
 
   `openStage(roomId, to)` is **monotonic**: a call at or below the room's current level is a no-op that returns `ok`, which keeps §6.2.4's idempotence and extends it — a facilitator who double-presses the second button, or presses the first after the second, changes nothing. `POST /room/:id/stage` takes `{ to: 1 | 2 }`; anything else is a 400. `{ open: true }` is not accepted — it names a boolean that no longer exists, and a route that guessed which level it meant would guess wrong half the time.
 
@@ -188,7 +190,7 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
   The breakdown goes from five counts to seven and must still sum to `total`. At 375 px seven counts wrap to two rows rather than shrinking; §12's AC 58 is a no-horizontal-scroll rule, not a one-line rule.
   *AC: 66; 50 amended (seven counts); 53–55 amended (per press)*
 
-- [ ] **E.9 Snapshot and persistence** (§5, §10) — `ScheduleSnapshot` gains `energy: EnergyLevels` and `net: { wd: number; we: number; weekly: number }`. Both are populated on the `complete` snapshot and absent from `s1` and `finish`, which are taken before the stage exists — no fourth `SnapshotKind`, and the `snapshots.kind` CHECK is untouched.
+- [ ] **E.9 Snapshot and persistence** (§5, §10) — `ScheduleSnapshot` gains `energy: EnergyLevels` and `net: { wd: number; we: number; weekly: number }`. Both are populated on the `complete` snapshot and absent from `finish`, which is taken at the end of S2, before the stage exists — no third `SnapshotKind`, and the `snapshots.kind` CHECK is untouched. (Step 10.3 dropped §10's S1 snapshot, so `SnapshotKind` is `'finish' | 'complete'` and there are two, not three.)
 
   `net` is stored as well as derivable, and the test asserts they agree: the debrief and the S7 screen read the stored figure, and `netEnergy` recomputed from `activities` and `energy` in the same snapshot must equal it. A stored figure that can drift from its own inputs is worse than no stored figure, so the equality is a test rather than a comment.
 
@@ -251,7 +253,7 @@ polarity(n)                           // 'positive' | 'neutral' | 'negative'
 
 1. Insert a pointer after Stage 8: *"**Stage E — Energy per activity** (`plans/25-energy-per-activity.md`) runs here. It blocks step 10.6."*
 2. In the header, `**Implements:** … 58 numbered acceptance criteria` becomes 66, plus the lettered ones.
-3. **Steps 10.6 and 10.7 are about `s7`, not `s5`.** Every occurrence of S5 in those two steps means the done stage, which the renumber moved. The screen, the reasoning and the copy keys are unchanged; `s5.title` / `s5.noCuts.*` become `s7.*`, because `s5.*` now names the second hold's status lines.
+3. **Steps 10.6 and 10.7 are about `s7`, not `s5`.** Every occurrence of S5 in those two steps means the done stage, which the renumber moved. The screen and the reasoning are unchanged. ✅ **The copy keys are already renamed** — `s7.title`, `s7.cuts.row`, `s7.noCuts.title`, `s7.noCuts.body`, done at the merge because `s5.title` otherwise named two screens and the tree would not compile. What remains here is the prose in plan 24's steps 10.6–10.7, which still says S5.
 4. Step 10.6 gains the net-energy figures as a second thing the screen may show, per §Handoff.
 5. The Coverage table gains rows 59–66 against E.1–E.10.
 6. Risks gains the two rows below.
