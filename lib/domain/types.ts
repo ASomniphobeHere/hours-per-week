@@ -40,6 +40,24 @@ export interface Constraint {
   weekendAllowed: boolean; // school: false
 }
 
+/**
+ * How an activity sits with the participant, on the five-point scale of
+ * plan 25 §E.1: −2 drains, +2 gains, 0 neutral.
+ *
+ * It is a level, not a rate: the hours are the weighting, applied once in
+ * `netEnergy`. An activity carries one level across both day types — a run is
+ * a run whether it happens on a Tuesday or a Sunday.
+ */
+export type EnergyLevel = -2 | -1 | 0 | 1 | 2;
+
+/**
+ * Keyed by activity id, and sparse: an activity the participant has not rated
+ * is absent rather than zero, so "unset" and "called it neutral" stay
+ * distinguishable everywhere except in the arithmetic, where both weigh
+ * nothing (plan 25 §E.1, §Decisions).
+ */
+export type EnergyLevels = Record<string, EnergyLevel>;
+
 export interface Activity {
   /** Stable, and matches a questionnaire section id. */
   id: string;
@@ -53,6 +71,14 @@ export interface Activity {
   /** school only. */
   locked: boolean;
   constraint?: Constraint;
+  /**
+   * Pack-declared, and only for `locked` activities (plan 25 §E.2). School is
+   * not revealed until the reveal stage, which is after the participant rates
+   * their week, so its level is content rather than an answer. A level on an
+   * unlocked activity is a pack validation failure — that value is the
+   * participant's.
+   */
+  energy?: EnergyLevel;
 }
 
 /* ── §3.4 Derived state ─────────────────────────────────────────────────── */
