@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "db:init": "tsx lib/db/init.ts"
+    "db:init": "tsx lib/db/init.ts",
+    "debrief": "tsx scripts/debrief.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

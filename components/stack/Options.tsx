@@ -16,6 +16,21 @@
  *
  * Reset is two taps and a sentence, because it destroys the session on the
  * server as well as the phone (§5) and there is no undo to offer afterwards.
+ *
+ * **Where the tab appears** (step 10.7). §7.9 contradicts itself — "Editor
+ * only. The tab appears at S2 and after" cannot be both — and the build takes
+ * the second sentence: S2, the S4 stack, and S5. At S5 the run is over and
+ * there is no other way off the screen, so a phone that finished would
+ * otherwise be finished for good, which is wrong in a room where someone wants
+ * to run it again and wrong in rehearsal, where a handful of phones drive the
+ * same room repeatedly. It is absent from the join screen, the intro, S1, S3
+ * and the two reveal screens: S3 is a wait, and a destructive control on a
+ * wait is one somebody presses out of boredom; the reveal screens are a
+ * decision being made.
+ *
+ * §7.9 requires the confirmation to name what is lost, and at S5 that is not
+ * what is lost mid-run — the finished result goes with the answers. Hence
+ * `bodyKey`, which S5 points at `options.reset.body.complete`.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -34,9 +49,15 @@ export interface OptionsProps {
    * participant can simply tap again.
    */
   onReset: () => Promise<void>;
+  /**
+   * Which sentence the confirmation states. Defaults to §7.9's mid-run one;
+   * S5 passes `options.reset.body.complete`, because a reset there also
+   * removes a completed run from the room (step 10.7).
+   */
+  bodyKey?: string;
 }
 
-export function Options({ pack, onReset }: OptionsProps) {
+export function Options({ pack, onReset, bodyKey = 'options.reset.body' }: OptionsProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('menu');
   const [busy, setBusy] = useState(false);
@@ -147,7 +168,7 @@ export function Options({ pack, onReset }: OptionsProps) {
                 <p id={`${panelId}-title`} className={styles.confirmTitle}>
                   {copyOf(pack, 'options.reset.title')}
                 </p>
-                <p className={styles.confirmBody}>{copyOf(pack, 'options.reset.body')}</p>
+                <p className={styles.confirmBody}>{copyOf(pack, bodyKey)}</p>
                 {failed ? (
                   <p className={styles.error} role="alert" data-testid="options-error">
                     {copyOf(pack, 'options.reset.failed')}

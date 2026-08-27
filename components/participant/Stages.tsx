@@ -58,7 +58,7 @@ import { Intro } from './Intro';
 import { Pace } from './Pace';
 import { Questionnaire } from './Questionnaire';
 import { Reveal } from './Reveal';
-import styles from './participant.module.css';
+import { Summary } from './Summary';
 
 const DEFAULT_FETCH: FetchLike = (input, init) => fetch(input, init);
 
@@ -68,7 +68,17 @@ export interface StagesProps {
 }
 
 export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
-  const { index, session, activities, patch, advance, record, setWeekly } = useParticipant();
+  const {
+    index,
+    session,
+    activities,
+    patch,
+    advance,
+    record,
+    drainEvents,
+    recordSnapshot,
+    setWeekly,
+  } = useParticipant();
   const pack = index.pack;
   const { stage, sessionId, token } = session;
 
@@ -139,12 +149,16 @@ export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
       // a forced participant did not finish, and the distinction is what
       // separates the two times to fit (§10).
       record({ t, type: forced ? 'forced.advance' : 'finish' });
+      // Kept as well as sent: S5 differences this against the complete
+      // snapshot (step 10.6), and the server has no endpoint that reads one
+      // back.
+      recordSnapshot(schedule);
       delivery.current = deliverReady({ credentials, schedule, fetchImpl });
 
       setHeldSince(t);
       advance('s3');
     },
-    [activities, pack.version, record, credentials, fetchImpl, advance],
+    [activities, pack.version, record, recordSnapshot, credentials, fetchImpl, advance],
   );
 
   /**
@@ -237,10 +251,25 @@ export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
       t,
     });
     record({ t, type: 'complete' });
+    recordSnapshot(schedule);
     delivery.current?.cancel();
-    delivery.current = deliverComplete({ credentials, schedule, fetchImpl });
+    // The queue is drained into this call rather than left to its next flush
+    // (§6.1, step 10.2): the last reductions of a rebalance are the end of cut
+    // order, and confirm can land within one interval of them. The `complete`
+    // event recorded a line above is inside the drained batch — it went to the
+    // same queue — so it is not appended a second time here.
+    delivery.current = deliverComplete({ credentials, schedule, events: drainEvents(), fetchImpl });
     advance('s5');
-  }, [activities, pack.version, record, credentials, fetchImpl, advance]);
+  }, [
+    activities,
+    pack.version,
+    record,
+    recordSnapshot,
+    drainEvents,
+    credentials,
+    fetchImpl,
+    advance,
+  ]);
 
   if (!session.introSeen) {
     return <Intro pack={pack} onContinue={() => patch({ introSeen: true })} />;
@@ -250,12 +279,12 @@ export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
   if (stage === 's3') return <Hold pack={pack} />;
 
   /*
-   * S5 — done (§2.2). Nothing is drawn: §9's table names no `s5` key and the
-   * spec describes no screen, so anything here would be a string the client
-   * invented rather than content the pack owns. §10.4's debrief is what
-   * eventually lands on this stage.
+   * S5 — what it cost (step 10.6). §2.2 leaves the stage undefined and §12
+   * names no criterion for it, so what is on it is §10's per-activity delta
+   * shown to the participant who produced it, out of the two snapshots this
+   * component took. Its four copy keys are the pack's like every other string.
    */
-  if (stage === 's5') return <main className={styles.page} data-testid="done" />;
+  if (stage === 's5') return <Summary />;
 
   /*
    * The two reveal screens, and the stack on neither of them (AC 37a). A pack

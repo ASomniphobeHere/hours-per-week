@@ -2,7 +2,7 @@
 
 **Implements:** `specs/24-build-spec.md` v1.4 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a, 49a)
 **Written:** 2026-08-24
-**Status:** Stage 8 complete
+**Status:** Stage 10 complete
 
 ## How to use this document
 
@@ -485,26 +485,26 @@ Build tooling per §4.3: nothing in `estimators/` reaches the client. May run in
 
 ---
 
-## Stage 10 — Telemetry, snapshots, debrief
+## Stage 10 — Telemetry, snapshots, debrief ✅
 
 Per §10: *"Everything else in this document exists to produce per-activity delta and cut order. If a build decision trades against those two fields, the fields win."*
 
-- [ ] **10.1 Event emission** (§10) — every member of the `EventType` union emitted at its moment: `screen.view`, `field.answer`, `field.revise`, `stage.enter`, `finish`, `forced.advance`, `sheet.open`, `sheet.close`, `hours.change`, `mode.direct`, `clamp.hit`, `estimator.fallback`, `fits`, `complete`. `hours.change` carries `from` and `to`, which is what makes cut order reconstructible. Moving an activity to Not included at S4 logs `hours.change` with `to: 0`, so it appears in cut order like any other reduction (§7.7).
+- [x] **10.1 Event emission** (§10) — every member of the `EventType` union emitted at its moment: `screen.view`, `field.answer`, `field.revise`, `stage.enter`, `finish`, `forced.advance`, `sheet.open`, `sheet.close`, `hours.change`, `mode.direct`, `clamp.hit`, `estimator.fallback`, `fits`, `complete`. `hours.change` carries `from` and `to`, which is what makes cut order reconstructible. Moving an activity to Not included at S4 logs `hours.change` with `to: 0`, so it appears in cut order like any other reduction (§7.7).
   *AC: 47 (with 10.3)*
 
-- [ ] **10.2 Queue and delivery** (§6.1, §11) — batched, fire-and-forget, retried with the next batch on failure. Never blocks the UI. Flushed on `/complete`.
+- [x] **10.2 Queue and delivery** (§6.1, §11) — batched, fire-and-forget, retried with the next batch on failure. Never blocks the UI. Flushed on `/complete`.
   *AC: none directly*
 
-- [ ] **10.3 Snapshots** (§10) — three: end of S1, at Finish (pre-reveal, the end of S2), and at complete (post-rebalance, the end of S4). `slack at finish` is `remaining('wd')` in the finish snapshot and must be recoverable from it without replaying events. The second and third are what 10.6 shows the participant, so each must carry every activity's hours on **both** day types, not the workday alone — a snapshot that records only the day that was on screen cannot be differenced.
+- [x] **10.3 Snapshots** (§10, amended) — **two, not three: at Finish (pre-reveal, the end of S2) and at complete (post-rebalance, the end of S4). Decided with the user, 2026-08-27.** §10 names an end-of-S1 third and this build does not take it: nothing derives from it — every field in §10's table reads the finish snapshot, the complete snapshot, or the event log, and an S1 snapshot would differ from the finish one only by edits the log already carries as `hours.change` — and §6.1 gives it no endpoint, so carrying it would mean extending the API for a figure nothing reads. `slack at finish` is `remaining('wd')` in the finish snapshot and must be recoverable from it without replaying events. Both are what 10.6 shows the participant, so each must carry every activity's hours on **both** day types, not the workday alone — a snapshot that records only the day that was on screen cannot be differenced. Both are also kept on the phone, in the persisted record, because S5 is a screen a refresh must survive (§11) and no endpoint reads a snapshot back.
   *AC: 46, 47*
 
-- [ ] **10.4 Both times to fit** (§10, §6.2.5) — *time to fit* is `fits` minus that participant's S4 entry; *time to fit, room* is `fits` minus the room's `stage.open`. For anyone force-advanced they differ by the 5 s hold plus their snapshot. Both are stored under distinct names; one name for both is explicitly forbidden. The first compares rebalance effort between participants; the second plots how the room moved after the flag flipped.
+- [x] **10.4 Both times to fit** (§10, §6.2.5) — *time to fit* is `fits` minus that participant's S4 entry; *time to fit, room* is `fits` minus the room's `stage.open`. For anyone force-advanced they differ by the 5 s hold plus their snapshot. Both are stored under distinct names; one name for both is explicitly forbidden. The first compares rebalance effort between participants; the second plots how the room moved after the flag flipped.
   *AC: 48*
 
-- [ ] **10.5 Debrief derivation script** (§10) — reads the event log and snapshots for a room and emits the derived table: per-activity delta, cut order, first cut, sheet opens per activity during rebalance, sleep floor hit, school above minimum, both times to fit, slack at finish, no-squeeze. Output annotates first cut with slack at finish, because Unallocated absorbs school silently and a debrief quoting first cut alone may be quoting a participant who already gave up two hours without making a decision about it.
+- [x] **10.5 Debrief derivation script** (§10) — reads the event log and snapshots for a room and emits the derived table: per-activity delta, cut order, first cut, sheet opens per activity during rebalance, sleep floor hit, school above minimum, both times to fit, slack at finish, no-squeeze. Output annotates first cut with slack at finish, because Unallocated absorbs school silently and a debrief quoting first cut alone may be quoting a participant who already gave up two hours without making a decision about it.
   *AC: none directly (consumes 10.1–10.4)*
 
-- [ ] **10.6 The S5 summary — what it cost** (§10, §2.2, §9 as extended) — S5 is the first screen in this build with nothing behind it: §2.2's stage table gives it `— | —`, §12 names no criterion for it, and §9's copy table has no `s5.*` key. It gets one screen, and that screen is §10's first derived field turned around and shown to the person who produced it. The debrief reads per-activity delta to learn what the room gave up; the participant has at least as much claim on it, and has just spent five minutes deciding it.
+- [x] **10.6 The S5 summary — what it cost** (§10, §2.2, §9 as extended) — S5 is the first screen in this build with nothing behind it: §2.2's stage table gives it `— | —`, §12 names no criterion for it, and §9's copy table has no `s5.*` key. It gets one screen, and that screen is §10's first derived field turned around and shown to the person who produced it. The debrief reads per-activity delta to learn what the room gave up; the participant has at least as much claim on it, and has just spent five minutes deciding it.
 
   **Built from the two snapshots, not from the event log.** The finish snapshot (step 10.3, taken when Finish was pressed at the end of S2, before the reveal) against the complete snapshot (taken at confirm, after the rebalance, at the end of S4). A participant who cut leisure to 4 h, thought better of it and settled at 5 h reads one row — `6 h → 5 h` — and not two. The snapshot difference is the decision they arrived at; the route they took to it is cut order, which stays in telemetry, where the sequence is the whole value and on a summary screen would be noise.
 
@@ -521,7 +521,7 @@ Per §10: *"Everything else in this document exists to produce per-activity delt
   **Copy keys.** Four join §9's table on the Stage 3 reasoning — `s5.title`, `s5.cuts.row` (templated `{from}` / `{to}`), `s5.noCuts.title`, and `s5.noCuts.body` (templated `{hours}`). §9's register applies in full and the outcome-ladder rule with it: no encouragement, no second-person judgement, no comparison to anyone else in the room.
   *AC: none — no §12 criterion reaches S5. Proved by test rather than by criterion: a breaching participant driven through the rebalance whose rows equal the snapshot delta exactly, and a slack-rich participant who lands on the no-cut copy with an empty list behind it.*
 
-- [ ] **10.7 The options tab at S5** (§7.9, §5) — the tab, and Start over inside it, are present on the summary screen. §7.9 contradicts itself here — "**Editor only.** The tab appears at S2 and after" — and step 4.8 shipped the first sentence. Resolved in favour of the second: at S5 the run is over and there is no other way off the screen, so a phone that finished is a phone that is finished for good. That is wrong in a room where someone wants to run it again, and it is wrong in rehearsal (Stage 12), where a handful of phones are meant to drive the same room repeatedly.
+- [x] **10.7 The options tab at S5** (§7.9, §5) — the tab, and Start over inside it, are present on the summary screen. §7.9 contradicts itself here — "**Editor only.** The tab appears at S2 and after" — and step 4.8 shipped the first sentence. Resolved in favour of the second: at S5 the run is over and there is no other way off the screen, so a phone that finished is a phone that is finished for good. That is wrong in a room where someone wants to run it again, and it is wrong in rehearsal (Stage 12), where a handful of phones are meant to drive the same room repeatedly.
 
   Everywhere else is unchanged: the tab is on S2, the S4 stack and S5, and absent from the join screen, the intro, S1, S3 and the two reveal screens. S3 is a wait and a destructive control on it is one somebody presses out of boredom; the reveal screens are a decision being made, and the pace screen's Continue is the only control that belongs on one.
 
@@ -532,7 +532,11 @@ Per §10: *"Everything else in this document exists to produce per-activity delt
 
 **Stage 10 done when:** a full simulated room produces a debrief table in which cut order is reconstructible for every completing participant and both times to fit are present and distinct; every one of those participants reaches an S5 that names their own cuts, or names the slack that spared them; and a run started over from S5 leaves the room with one row per participant.
 
-**Decided with the user, 2026-08-27: the participant sees what it cost, and can start over from S5.**
+**Decided with the user, 2026-08-27: the participant sees what it cost, and can start over from S5. And two snapshots, not three (10.3).**
+
+**A third spec section is amended, and the build follows this plan rather than it.** §10's `Event` union carries no field for the screen a `screen.view` names, exactly as it carried none for the stage a `stage.enter` names (schema v2). `screenId` is added on the same reasoning — an event that records that *a* screen was seen without recording *which* is a column the debrief cannot read — and the event's `activityId` carries that screen's `sectionId` alongside, so grouping by activity stays a single-column read. Schema v3.
+
+**`sheet.open` / `sheet.close` are emitted by the editor, not by the sheet.** The pair went in on the sheet's mount and unmount when Stage 5 built it, and a real run through the browser showed the count wrong: the sheet can mount more than once for one visit, and §10's *sheet opens per activity during rebalance* then overstates how hard someone worked at a band. They now fire on the band tap and on the dismissal, which are the moments §8.1 actually names. `screen.view` is guarded the same way, by the screen id it last logged — A → B → A still logs A twice, and an immediate repeat of one screen does not.
 
 **Why the summary belongs to this stage and not to Stage 7.** Step 7.7 ends at `POST /complete` and the plan stopped there, because §2.2 stops there — S5 is a row in the stage table with two em dashes in it, and `Stages.tsx` renders it as an empty `main` for exactly that reason. But the screen is not new measurement: it is *per-activity delta*, which 10.3 computes and 10.5 already reports. Building it in Stage 7 would derive the same figure twice from two places, and the snapshots it differences do not exist until 10.3. It is one renderer over a field this stage already owns.
 

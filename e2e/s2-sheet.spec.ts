@@ -37,6 +37,7 @@ async function seedEditor(page: Page, answers: Record<string, unknown> = {}): Pr
     introSeen: true,
     answers,
     authored: {},
+    snapshots: {},
   };
 
   await page.addInitScript((record) => {

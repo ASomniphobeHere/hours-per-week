@@ -122,6 +122,14 @@ export interface Event {
    * unrelated kinds of value.
    */
   stage?: StageId;
+  /**
+   * The screen shown, on `screen.view` only. Added for the same reason `stage`
+   * was: §10's union carries no field for it, and the event says nothing
+   * without one. `activityId` carries that screen's `sectionId` alongside, so
+   * "which sections did they linger in" groups on the one column every other
+   * activity-scoped event already uses.
+   */
+  screenId?: string;
   /** hours, for edits */
   from?: number;
   to?: number;
@@ -136,14 +144,21 @@ export interface RoomEvent {
 }
 
 /**
- * Taken at three points (§10): end of S1, at Finish (pre-reveal), and at
- * complete (post-rebalance).
+ * Taken at two points: at Finish (pre-reveal, the end of S2) and at complete
+ * (post-rebalance, the end of S4).
+ *
+ * §10 names a third — end of S1 — and this build does not take it. Decided
+ * with the user, 2026-08-27. Nothing derives from it: every field in §10's
+ * table reads the finish snapshot, the complete snapshot, or the event log,
+ * and an S1 snapshot would differ from the finish one only by edits the event
+ * log already carries as `hours.change`. §6.1 also gives it no endpoint, so
+ * carrying it would mean extending the API for a figure nothing reads.
  *
  * The shape is not spelled out in the spec; it is fixed by what the debrief
  * reads off it — per-activity delta is `complete − finish` per activity per day
  * type, and slack at finish is `remaining.wd` in the finish snapshot.
  */
-export type SnapshotKind = 's1' | 'finish' | 'complete';
+export type SnapshotKind = 'finish' | 'complete';
 
 export interface SnapshotActivity {
   id: string;

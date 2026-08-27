@@ -110,6 +110,18 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   'options.reset.confirm',
   'options.reset.cancel',
   'options.reset.failed',
+  /*
+   * S5's four, plus the second reset body it needs (step 10.6, step 10.7).
+   * §2.2 leaves S5 undefined and §9's table names no `s5.*` key, on the same
+   * footing as the keys above it: they are participant-facing strings the spec
+   * does not enumerate, and a replacement pack that omits them leaves a
+   * finished participant reading raw key names off the last screen they see.
+   */
+  's5.title',
+  's5.cuts.row',
+  's5.noCuts.title',
+  's5.noCuts.body',
+  'options.reset.body.complete',
 ] as const;
 
 export const S3_LINES_PREFIX = 's3.lines.';

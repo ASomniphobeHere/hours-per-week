@@ -29,3 +29,6 @@ __pycache__/
 
 # env
 .env*.local
+
+# debrief output (§10, scripts/debrief.ts)
+debriefs/
