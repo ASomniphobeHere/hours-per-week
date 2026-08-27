@@ -7,7 +7,7 @@
  * `sessions.stage` to the furthest seen.
  *
  * Monotonic, because batches retry and can arrive out of order (§11), and a
- * console that walks a participant backwards from S4 to S2 is reporting a
+ * console that walks a participant backwards from S6 to S2 is reporting a
  * delivery accident as a fact about the room.
  */
 

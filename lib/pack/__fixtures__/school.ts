@@ -55,11 +55,11 @@ export function schoolPack(): ContentPack {
     copy: {
       ...pack.copy,
       'act.school': 'StartSchool',
-      's4.school.outcome.20': 'Outcome at twenty.',
-      's4.school.outcome.25': 'Outcome at twenty-five.',
-      's4.school.outcome.30': 'Outcome at thirty.',
-      's4.school.outcome.35': 'Outcome at thirty-five.',
-      's4.school.outcome.40': 'Outcome at forty.',
+      's6.school.outcome.20': 'Outcome at twenty.',
+      's6.school.outcome.25': 'Outcome at twenty-five.',
+      's6.school.outcome.30': 'Outcome at thirty.',
+      's6.school.outcome.35': 'Outcome at thirty-five.',
+      's6.school.outcome.40': 'Outcome at forty.',
     },
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * S4's footer control (§8.4, §9 `s4.confirm`, AC 43).
+ * S6's footer control (§8.4, §9 `s6.confirm`, AC 43).
  *
  * Enabled when `fits()` holds on **both** day types, and disabled otherwise —
  * which is the whole of its logic. It does not advance on its own: §8.4 is
@@ -16,7 +16,7 @@
  *
  * It takes Finish's place rather than sitting beside it: the two are the same
  * control at two moments, and a footer holding both would offer a participant
- * at S4 a button whose stage is behind them.
+ * at S6 a button whose stage is behind them.
  */
 
 import { copyOf } from '@/lib/pack/copy';
@@ -39,7 +39,7 @@ export function Confirm({ pack, enabled, onConfirm }: ConfirmProps) {
       disabled={!enabled}
       onClick={onConfirm}
     >
-      {copyOf(pack, 's4.confirm')}
+      {copyOf(pack, 's6.confirm')}
     </button>
   );
 }

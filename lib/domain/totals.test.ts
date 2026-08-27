@@ -54,7 +54,7 @@ describe('fits() in its general both-day-types form (§3.4, §8.3)', () => {
     expect(fits([activity('a', 25, 10)])).toBe(false);
   });
 
-  /* §11 — a weekend already over 24 at S4 is a cause school did not create and
+  /* §11 — a weekend already over 24 at the reveal is a cause school did not create and
      the forced workday view does not show. The general form is what blocks
      confirm for it. */
   it('is false when only the *weekend* breaches', () => {

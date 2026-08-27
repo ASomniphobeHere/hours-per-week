@@ -297,7 +297,7 @@ function roomEventRows(roomId: string) {
 }
 
 describe('GET /room/:roomId/status', () => {
-  it('reports an empty room with all five stage counts at zero (AC 50)', async () => {
+  it('reports an empty room with every stage count at zero (AC 50)', async () => {
     const room = await newRoom();
     const body = await status(room.roomId);
 
@@ -306,7 +306,7 @@ describe('GET /room/:roomId/status', () => {
       ready: 0,
       stageOpen: false,
       joinCode: room.joinCode,
-      inStage: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0 },
+      inStage: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0, s7: 0 },
     });
   });
 
@@ -332,11 +332,11 @@ describe('GET /room/:roomId/status', () => {
     const [, second, third, fourth] = sessions as [Session, Session, Session, Session];
     await enter(second, 's2');
     await enter(third, 's3');
-    await enter(fourth, 's5');
+    await enter(fourth, 's7');
 
     const body = await status(room.roomId);
     expect(body.total).toBe(4);
-    expect(body.inStage).toEqual({ s1: 1, s2: 1, s3: 1, s4: 0, s5: 1 });
+    expect(body.inStage).toEqual({ s1: 1, s2: 1, s3: 1, s4: 0, s5: 0, s6: 0, s7: 1 });
     const summed = Object.values(body.inStage).reduce((a, b) => a + b, 0);
     expect(summed).toBe(body.total);
   });
@@ -602,17 +602,17 @@ describe('POST /session/:id/telemetry', () => {
 
     await send([
       { t: 1, type: 'stage.enter', stage: 's2' },
-      { t: 2, type: 'stage.enter', stage: 's4' },
+      { t: 2, type: 'stage.enter', stage: 's6' },
       { t: 3, type: 'stage.enter', stage: 's3' },
     ]);
-    expect(stageOf(id)).toBe('s4');
+    expect(stageOf(id)).toBe('s6');
 
     // A retried, out-of-order batch must not walk the console backwards.
     await send([{ t: 4, type: 'stage.enter', stage: 's2' }]);
-    expect(stageOf(id)).toBe('s4');
+    expect(stageOf(id)).toBe('s6');
 
-    await send([{ t: 5, type: 'stage.enter', stage: 's5' }]);
-    expect(stageOf(id)).toBe('s5');
+    await send([{ t: 5, type: 'stage.enter', stage: 's7' }]);
+    expect(stageOf(id)).toBe('s7');
   });
 
   it('accepts a junk batch rather than 4xxing one the client retries forever', async () => {

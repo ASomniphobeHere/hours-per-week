@@ -42,7 +42,7 @@ test.describe('S1', () => {
       await next(page).click();
     }
 
-    // §3.3's set, less school — inserted at S4 — and less nothing else: every
+    // §3.3's set, less school — inserted at the reveal — and less nothing else: every
     // section derived from its defaults, so none is at zero.
     const stack = page.getByTestId('stack');
     await expect(stack).toBeVisible();

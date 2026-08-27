@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * S5 — what it cost (step 10.6).
+ * S7 — what it cost (step 10.6).
  *
- * §2.2 gives S5 two em dashes and §12 names no criterion for it, so this
+ * §2.2 gives the done stage two em dashes and §12 names no criterion for it, so this
  * screen is not a spec section made concrete: it is §10's first derived field
  * — per-activity delta — turned around and shown to the person who produced
  * it. The debrief reads that field to learn what the room gave up; the
@@ -32,7 +32,7 @@
  * participant gets their decisions.
  *
  * **Rendering.** A list, not the instrument — no bands, no hues, no spines, no
- * stack. Partly because there is nothing left to edit at S5 and re-rendering
+ * stack. Partly because there is nothing left to edit at S7 and re-rendering
  * the stack invites the attempt, and partly because the stack is a picture of a
  * week and this is a record of a change to one. The only control is the
  * options tab (step 10.7).
@@ -79,7 +79,7 @@ export function Summary() {
    * that no string is hardcoded, not that every surface owns a copy of one.
    *
    * Carried on the rows only when there is a weekend row to tell apart. The
-   * common case is entirely workday (S4 forces `wd`, and school is
+   * common case is entirely workday (S6 forces `wd`, and school is
    * workday-only), and a repeated "Work day" down a list that is nothing else
    * is chrome rather than information.
    */

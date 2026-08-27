@@ -74,7 +74,7 @@ describe('§4.6 rules', () => {
 
   it('copy-key-exists — a §9 required key is absent', () => {
     const pack = minimalPack();
-    delete pack.copy['s4.confirm'];
+    delete pack.copy['s6.confirm'];
     expect(rulesFired(pack)).toContain('copy-key-exists');
   });
 
@@ -87,7 +87,7 @@ describe('§4.6 rules', () => {
       weekendAllowed: false,
     };
     for (const weekly of [20, 25, 30, 35]) {
-      pack.copy[`s4.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
+      pack.copy[`s6.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
     }
     expect(rulesFired(pack)).toContain('copy-key-exists');
   });
@@ -101,7 +101,7 @@ describe('§4.6 rules', () => {
       weekendAllowed: false,
     };
     for (const weekly of [20, 25, 30, 35, 40]) {
-      pack.copy[`s4.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
+      pack.copy[`s6.school.outcome.${weekly}`] = 'What the programme returns at that pace.';
     }
     expect(validatePack(pack)).toEqual([]);
   });
@@ -271,14 +271,14 @@ describe('§4.6 rules', () => {
 describe('loader (§4.6 dev vs production)', () => {
   it('throws in dev, listing the issues', () => {
     const pack = minimalPack();
-    delete pack.copy['s4.confirm'];
+    delete pack.copy['s6.confirm'];
     expect(() => loadPack(pack, { dev: true })).toThrow(PackValidationError);
   });
 
   it('falls back to the last-good pack in production', () => {
     const good = minimalPack();
     const bad = minimalPack();
-    delete bad.copy['s4.confirm'];
+    delete bad.copy['s6.confirm'];
 
     const result = loadPack(bad, { dev: false, lastGood: good });
     expect(result.usedFallback).toBe(true);
@@ -288,7 +288,7 @@ describe('loader (§4.6 dev vs production)', () => {
 
   it('throws in production when there is no last-good pack to fall back to', () => {
     const bad = minimalPack();
-    delete bad.copy['s4.confirm'];
+    delete bad.copy['s6.confirm'];
     expect(() => loadPack(bad, { dev: false, lastGood: null })).toThrow(PackValidationError);
   });
 

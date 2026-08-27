@@ -9,7 +9,7 @@
  * day types and not only the one that was on screen (step 10.3).
  *
  * Every pack activity is carried, including ones sitting at zero and including
- * `locked` school before S4 reveals it. A snapshot is the whole schedule at a
+ * `locked` school before the reveal inserts it. A snapshot is the whole schedule at a
  * moment, not the stack that was on screen: an activity absent from the finish
  * snapshot and present in the complete one is indistinguishable from one that
  * went 0 → 4, and the delta the debrief exists to produce would have to guess

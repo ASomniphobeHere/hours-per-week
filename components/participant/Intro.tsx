@@ -6,7 +6,7 @@
  * Every hour belongs to exactly one activity. The instrument rests on
  * `total(dt) = Σ hours`, so a participant who counts an hour of cooking-while-
  * listening under both `household` and `leisure` breaches 24 for a reason that
- * is not a real finding — and the S4 overflow signal then fires on double
+ * is not a real finding — and the S6 overflow signal then fires on double
  * counting rather than on a full week. §13's fix is to say the rule once and
  * build no mechanism for it.
  *

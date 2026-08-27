@@ -92,12 +92,12 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
      is here is what the *client* asks for by name and no pack declares. */
   's4.energy.continue',
   's5.title',
-  's4.reveal.title',
-  's4.reveal.body',
-  's4.pace.title',
-  's4.pace.perDay',
-  's4.pace.continue',
-  's4.confirm',
+  's6.reveal.title',
+  's6.reveal.body',
+  's6.pace.title',
+  's6.pace.perDay',
+  's6.pace.continue',
+  's6.confirm',
   'sheet.setDirect',
   'sheet.done',
   'band.unallocated',
@@ -166,8 +166,8 @@ export const S5_LINES_PREFIX = 's5.lines.';
 export const S3_LINES_MINIMUM = 4;
 export const HOLD_LINES_PREFIXES: readonly string[] = [S3_LINES_PREFIX, S5_LINES_PREFIX] as const;
 
-/** §8.3's ladder key for a weekly level, e.g. `s4.school.outcome.25`. */
-export const outcomeKey = (weekly: number): string => `s4.school.outcome.${weekly}`;
+/** §8.3's ladder key for a weekly level, e.g. `s6.school.outcome.25`. */
+export const outcomeKey = (weekly: number): string => `s6.school.outcome.${weekly}`;
 
 function allScreenFields(pack: ContentPack): { screen: Screen; field: Field; path: string }[] {
   return pack.screens.flatMap((screen, screenIndex) =>

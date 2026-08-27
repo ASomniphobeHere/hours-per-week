@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 /**
- * S5 (steps 10.6 and 10.7).
+ * S7 (steps 10.6 and 10.7).
  *
  * §12 names no criterion for this screen, so the plan states its proof
  * instead: a breaching participant driven through the rebalance whose rows
@@ -52,7 +52,7 @@ function mount(
 const rowText = (activityId: string, dayType: 'wd' | 'we' = 'wd') =>
   screen.getByTestId(`cut-${activityId}-${dayType}`).textContent;
 
-describe('S5 — what it cost (step 10.6)', () => {
+describe('S7 — what it cost (step 10.6)', () => {
   it('names one row per cut, from → to, and nothing else', () => {
     mount(
       snapshot('finish', { school: [0, 0], sleep: [8, 9], leisure: [4, 6], admin: [2, 2] }),
@@ -148,15 +148,15 @@ describe('S5 — what it cost (step 10.6)', () => {
   });
 });
 
-describe('the options tab at S5 (step 10.7)', () => {
+describe('the options tab at S7 (step 10.7)', () => {
   const snapshots = () =>
     [
       snapshot('finish', { school: [0, 0], leisure: [4, 6] }),
       snapshot('complete', { school: [4, 0], leisure: [2, 6] }),
     ] as const;
 
-  /** §7.9's second sentence: S2, the S4 stack, and S5 (AC 22a as amended). */
-  it('is present, because S5 is terminal and has no other way off it', () => {
+  /** §7.9's second sentence: S2, the S6 stack, and S7 (AC 22a as amended). */
+  it('is present, because S7 is terminal and has no other way off it', () => {
     mount(...snapshots());
     expect(screen.getByTestId('options-tab')).toBeInTheDocument();
   });

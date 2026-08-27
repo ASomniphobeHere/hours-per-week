@@ -102,7 +102,7 @@ test.describe('facilitator console', () => {
     // read aloud to a latecomer (§6.2.3).
     await expect(page.getByTestId('console-joincode')).toHaveText(room.joinCode);
     await expect(page.getByTestId('console-ready')).toHaveText('0 / 0');
-    for (const stage of ['s1', 's2', 's3', 's4', 's5']) {
+    for (const stage of ['s1', 's2', 's3', 's4', 's5', 's6', 's7']) {
       await expect(page.getByTestId(`console-stage-${stage}`)).toHaveText('0');
     }
     await expect(stageButton(page)).toBeDisabled();
@@ -200,7 +200,7 @@ test.describe('facilitator console', () => {
     // Every element on the screen is reachable, including the button — the
     // point of the width is that the stage can be opened from a phone while
     // walking the room (§6.2).
-    for (const id of ['console-joincode', 'console-ready', 'console-stage-s5', 'stage-button']) {
+    for (const id of ['console-joincode', 'console-ready', 'console-stage-s7', 'stage-button']) {
       await expect(page.getByTestId(id)).toBeInViewport();
     }
 

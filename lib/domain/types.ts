@@ -84,7 +84,7 @@ export interface Activity {
 /* ── §3.4 Derived state ─────────────────────────────────────────────────── */
 
 /**
- * `remaining` may go negative and nothing clamps it; `fits()` is the S4
+ * `remaining` may go negative and nothing clamps it; `fits()` is the reveal's
  * completion condition and evaluates both day types.
  */
 export interface DerivedState {
@@ -109,11 +109,34 @@ export type AnswerMap = Record<string, Answer>;
 
 /* ── §2.2 Stage machine ─────────────────────────────────────────────────── */
 
-export type StageId = 's1' | 's2' | 's3' | 's4' | 's5';
+/**
+ * Seven members, not §2.2's five (plan 25 §The renumber).
+ *
+ *   s1 questionnaire   s2 editor   s3 hold — gate 1
+ *   s4 energy          s5 hold — gate 2
+ *   s6 reveal          s7 done
+ *
+ * The rating stage and its hold were inserted between the editor and the
+ * reveal, and the reveal and done moved down two rather than taking ids
+ * beside the numbered ones. It is a rename with a migration behind it —
+ * `sessions.stage` in schema 004, and `PersistedState.v` for localStorage —
+ * because both stores hold values whose meaning changed rather than values
+ * that went missing.
+ */
+export type StageId = 's1' | 's2' | 's3' | 's4' | 's5' | 's6' | 's7';
 
-export const STAGE_ORDER: readonly StageId[] = ['s1', 's2', 's3', 's4', 's5'] as const;
+export const STAGE_ORDER: readonly StageId[] = [
+  's1',
+  's2',
+  's3',
+  's4',
+  's5',
+  's6',
+  's7',
+] as const;
 
-/** Minimum time in S3 before the flag may advance a participant (§2.2). */
+/** Minimum time in a hold before the flag may advance a participant (§2.2).
+ *  Applies to both holds, s3 and s5 (plan 25 §E.5). */
 export const S3_HOLD_MS = 5_000;
 
 /* ── §10 Telemetry ──────────────────────────────────────────────────────── */
@@ -143,7 +166,7 @@ export interface Event {
   /**
    * The stage entered, on `stage.enter` only. §10's union carries no such
    * field; it is added because §6.2.2's `inStage` is derived from these events
-   * server-side and *time to fit* is measured from the S4 entry in the log
+   * server-side and *time to fit* is measured from the reveal entry in the log
    * (§10). Carrying it in `activityId` would leave that column holding two
    * unrelated kinds of value.
    */
@@ -171,7 +194,7 @@ export interface RoomEvent {
 
 /**
  * Taken at two points: at Finish (pre-reveal, the end of S2) and at complete
- * (post-rebalance, the end of S4).
+ * (post-rebalance, the end of S6).
  *
  * §10 names a third — end of S1 — and this build does not take it. Decided
  * with the user, 2026-08-27. Nothing derives from it: every field in §10's

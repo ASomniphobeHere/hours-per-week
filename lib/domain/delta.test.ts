@@ -42,7 +42,7 @@ describe('per-activity delta (§10)', () => {
     ]);
   });
 
-  it('carries increases, which the debrief wants and S5 does not', () => {
+  it('carries increases, which the debrief wants and S7 does not', () => {
     const finish = snapshot('finish', { sleep: [7, 7] });
     const complete = snapshot('complete', { sleep: [8, 7] });
 

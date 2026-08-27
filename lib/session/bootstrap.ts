@@ -12,7 +12,7 @@
  */
 
 import type { PersistedState, StorageLike } from '@/lib/store/persist';
-import { clear, restore, save } from '@/lib/store/persist';
+import { clear, restore, save, STATE_VERSION } from '@/lib/store/persist';
 import { ApiError, createSession, resetSession, type FetchLike } from './client';
 
 export interface PackIdentity {
@@ -59,6 +59,7 @@ export async function ensureSession({
 
   const created = await createSession(joinCode, fetchImpl);
   const state: PersistedState = {
+    v: STATE_VERSION,
     sessionId: created.sessionId,
     token: created.token,
     packVersion: created.packVersion,
@@ -120,6 +121,7 @@ export async function resetToNewSession({
 
   clear(storage, state.sessionId);
   const next: PersistedState = {
+    v: STATE_VERSION,
     sessionId: created.sessionId,
     token: created.token,
     packVersion: created.packVersion,

@@ -6,7 +6,7 @@
  * The affordance is a sliver on the right edge, vertically centred: a folder
  * tab three dots wide, sticking out far enough to be found and not far enough
  * to be read as part of the day. The editor's chrome is spoken for — the header
- * fills with the S4 reveal, the footer with the Not included count and Finish —
+ * fills with the S6 reveal, the footer with the Not included count and Finish —
  * and §7.6's silence rule means nothing may sit near the stack that reads as an
  * alert. The right edge at mid-height is the one place that is neither.
  *
@@ -19,7 +19,7 @@
  *
  * **Where the tab appears** (step 10.7). §7.9 contradicts itself — "Editor
  * only. The tab appears at S2 and after" cannot be both — and the build takes
- * the second sentence: S2, the S4 stack, and S5. At S5 the run is over and
+ * the second sentence: S2, the S6 stack, and S7. At S7 the run is over and
  * there is no other way off the screen, so a phone that finished would
  * otherwise be finished for good, which is wrong in a room where someone wants
  * to run it again and wrong in rehearsal, where a handful of phones drive the
@@ -28,9 +28,9 @@
  * wait is one somebody presses out of boredom; the reveal screens are a
  * decision being made.
  *
- * §7.9 requires the confirmation to name what is lost, and at S5 that is not
+ * §7.9 requires the confirmation to name what is lost, and at S7 that is not
  * what is lost mid-run — the finished result goes with the answers. Hence
- * `bodyKey`, which S5 points at `options.reset.body.complete`.
+ * `bodyKey`, which S7 points at `options.reset.body.complete`.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -51,7 +51,7 @@ export interface OptionsProps {
   onReset: () => Promise<void>;
   /**
    * Which sentence the confirmation states. Defaults to §7.9's mid-run one;
-   * S5 passes `options.reset.body.complete`, because a reset there also
+   * S7 passes `options.reset.body.complete`, because a reset there also
    * removes a completed run from the room (step 10.7).
    */
   bodyKey?: string;

@@ -88,7 +88,7 @@ export function SchoolControl({ pack, activity, weekly, onChange }: SchoolContro
           workday before choosing it. What it takes from *their* week is the
           stack's to say (§8.3). */}
       <p className={styles.perDay} data-testid="school-per-day">
-        {formatCopy(pack, 's4.pace.perDay', { hours: formatAmount(perDay) })}
+        {formatCopy(pack, 's6.pace.perDay', { hours: formatAmount(perDay) })}
       </p>
 
       <p className={styles.outcome} data-testid="school-outcome">

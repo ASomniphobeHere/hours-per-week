@@ -72,7 +72,7 @@ function isUniqueViolation(error: unknown): boolean {
 /**
  * §6.2.4's flip, and the only write that opens a room.
  *
- * Idempotent, and `opened_at` records the *first* flip: S3 → S4 is one-way
+ * Idempotent, and `opened_at` records the *first* flip: S3 → S6 is one-way
  * (§2.2), so a second call is a facilitator's double-press rather than a
  * second event, and overwriting the timestamp would move the room's `t = 0`
  * for *time to fit, room* (§10) after participants had already been measured
@@ -151,9 +151,9 @@ function countSessions(
 /**
  * Everything the console shows, in one read.
  *
- * `inStage` is seeded at zero for all five stages and then filled, so a room
+ * `inStage` is seeded at zero for all seven stages (plan 25 §E.3) and then filled, so a room
  * whose participants are all in S1 still reports `s4: 0` rather than omitting
- * the key — §6.2.3 renders five counts whatever the room is doing, and a
+ * the key — §6.2.3 renders every count whatever the room is doing, and a
  * missing count would render as blank rather than as none.
  *
  * The counts sum to `total` because `sessions.stage` is NOT NULL with a 's1'

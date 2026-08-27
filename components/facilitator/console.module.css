@@ -96,11 +96,24 @@
 
 /* ── Stage breakdown (§6.2.3) ─────────────────────────────────────────── */
 
+/*
+ * Seven counts since the renumber (plan 25 §E.3, §E.8), and they wrap rather
+ * than shrink. Seven columns at 375 px leaves each about 45 px, which the
+ * two-digit counts fit but the labels do not; four and three on two rows keeps
+ * both legible and keeps AC 58's rule, which is that nothing scrolls
+ * sideways — not that the breakdown is one line.
+ */
 .stages {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   width: 100%;
+}
+
+@media (min-width: 560px) {
+  .stages {
+    grid-template-columns: repeat(7, 1fr);
+  }
 }
 
 .stage {
@@ -108,8 +121,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  /* Grid children default to min-content width; this is what keeps five
-     columns inside 375 px rather than pushing the row wide (AC 58). */
+  /* Grid children default to min-content width; this is what keeps the
+     row inside 375 px rather than pushing it wide (AC 58). */
   min-width: 0;
 }
 

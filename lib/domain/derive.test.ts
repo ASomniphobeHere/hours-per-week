@@ -60,7 +60,7 @@ describe('gates (§4.2.1)', () => {
   });
 
   /* §4.2.1 rule 6 — an unanswered gate is truthy, so a force-advanced
-     participant reaches S4 with a full stack rather than a hollow one. */
+     participant reaches the reveal with a full stack rather than a hollow one. */
   it('treats an unanswered gate as truthy', () => {
     const { byId } = hours(undefined, {});
     expect(byId.beta!.wd.hours).toBeGreaterThan(0);

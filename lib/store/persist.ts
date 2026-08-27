@@ -23,6 +23,12 @@ import { isAnswerMap, pruneToFields } from './answers';
 
 export const CURRENT_KEY = 'hpw:current';
 
+/**
+ * The shape version of a stored record. Bumped to 2 by plan 25's renumber,
+ * which changed what `stage` means without changing what it looks like.
+ */
+export const STATE_VERSION = 2;
+
 export function stateKey(sessionId: string): string {
   return `hpw:state:${sessionId}`;
 }
@@ -33,6 +39,17 @@ export function stateKey(sessionId: string): string {
  * and the furthest stage reached (§11).
  */
 export interface PersistedState {
+  /**
+   * The record's own version, not the pack's (plan 25 §The renumber).
+   *
+   * `packVersion` answers "do these answers still fit the questions"; this
+   * answers "does `stage` still mean what it said". The renumber moved the
+   * reveal from `s4` to `s6` and done from `s5` to `s7`, so a record written
+   * before it names a real stage that is now a different screen — which
+   * `isStageId` cannot catch, because both values are still in the union.
+   * Absent or older, and the stage pointer is discarded (see `parse`).
+   */
+  v: number;
   sessionId: string;
   token: string;
   packVersion: string;
@@ -150,12 +167,22 @@ function parse(raw: string | null): PersistedState | null {
   if (candidate.dayType !== 'wd' && candidate.dayType !== 'we') return null;
   if (!isStageId(candidate.stage)) return null;
   if (!isAnswerMap(candidate.answers)) return null;
+  /*
+   * A record from before the renumber keeps everything except where it was.
+   * Its `stage` is a valid id whose meaning changed under it — `s4` meant the
+   * reveal and now means the rating stage — so the pointer is dropped and the
+   * participant resumes at the editor: re-enterable, non-destructive, and on
+   * every path through the machine. Answers, direct entries, snapshots and the
+   * session identity all survive, which is the part §5 actually cares about.
+   */
+  const current = candidate.v === STATE_VERSION;
   return {
+    v: STATE_VERSION,
     sessionId: candidate.sessionId,
     token: candidate.token,
     packVersion: candidate.packVersion,
     dayType: candidate.dayType,
-    stage: candidate.stage,
+    stage: current ? candidate.stage : 's2',
     // Absent in a record written before the intro page existed. Treating that
     // as unseen costs a returning participant one tap; treating a corrupt
     // record as seen would skip the statement silently.

@@ -3,7 +3,7 @@
  * minus the finish snapshot.
  *
  * It is computed here rather than twice — the debrief reports it for the room
- * (step 10.5) and S5 shows the participant their own half of it (step 10.6),
+ * (step 10.5) and S7 shows the participant their own half of it (step 10.6),
  * and a screen that derived the same figure by its own arithmetic would be a
  * second definition of the one field §10 says everything else exists to
  * produce.
@@ -35,7 +35,7 @@ export interface ActivityDelta {
 }
 
 export interface DeltaOptions {
-  /** Activity ids to leave out — school, on S5 (step 10.6). */
+  /** Activity ids to leave out — school, on S7 (step 10.6). */
   exclude?: (activityId: string) => boolean;
 }
 
@@ -70,7 +70,7 @@ export function snapshotDelta(
 /**
  * The reductions alone — what the commitment cost.
  *
- * S5 shows these and nothing else (step 10.6). An activity the participant
+ * S7 shows these and nothing else (step 10.6). An activity the participant
  * nudged *up* while cutting elsewhere is a real change and stays in
  * `snapshotDelta` for the debrief, but it is not part of the answer to what
  * their week gave up, and putting it on the summary would turn a record of a

@@ -29,7 +29,7 @@ function statusOf(overrides: Partial<RoomStatus> = {}): RoomStatus {
     ready: 23,
     stageOpen: false,
     joinCode: '4712',
-    inStage: { s1: 9, s2: 8, s3: 23, s4: 0, s5: 0 },
+    inStage: { s1: 9, s2: 8, s3: 23, s4: 0, s5: 0, s6: 0, s7: 0 },
     ...overrides,
   };
 }
@@ -97,7 +97,7 @@ describe('the console screen (§6.2.3)', () => {
 
     expect(screen.getByTestId('console-joincode')).toHaveTextContent('4712');
     expect(screen.getByTestId('console-ready')).toHaveTextContent('23 / 40');
-    for (const [stage, count] of Object.entries({ s1: 9, s2: 8, s3: 23, s4: 0, s5: 0 })) {
+    for (const [stage, count] of Object.entries({ s1: 9, s2: 8, s3: 23, s4: 0, s5: 0, s6: 0, s7: 0 })) {
       expect(screen.getByTestId(`console-stage-${stage}`)).toHaveTextContent(String(count));
     }
   });
@@ -108,7 +108,7 @@ describe('the console screen (§6.2.3)', () => {
     await settle();
     expect(screen.getByTestId('console-ready')).toHaveTextContent('23 / 40');
 
-    room.status = statusOf({ ready: 31, inStage: { s1: 0, s2: 6, s3: 31, s4: 3, s5: 0 } });
+    room.status = statusOf({ ready: 31, inStage: { s1: 0, s2: 6, s3: 31, s4: 3, s5: 0, s6: 0, s7: 0 } });
     await poll();
 
     expect(screen.getByTestId('console-ready')).toHaveTextContent('31 / 40');
@@ -253,7 +253,7 @@ describe('the button (§6.2.4)', () => {
     await settle();
     expect(button()).toBeDisabled();
 
-    room.status = statusOf({ total: 1, ready: 0, inStage: { s1: 1, s2: 0, s3: 0, s4: 0, s5: 0 } });
+    room.status = statusOf({ total: 1, ready: 0, inStage: { s1: 1, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0, s7: 0 } });
     await poll();
     expect(button()).toBeEnabled();
 

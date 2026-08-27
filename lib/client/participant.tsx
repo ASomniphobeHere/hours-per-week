@@ -33,7 +33,7 @@ import type { PackIndex } from '@/lib/pack';
  * The fields of the session record a screen is allowed to move.
  *
  * `stage` is deliberately not among them. §2.2's machine only ever runs
- * forward — S3 → S4 is one-way and nothing re-enters S1 — and §11 resumes a
+ * forward — S3 → S6 is one-way and nothing re-enters S1 — and §11 resumes a
  * refresh at the *furthest* stage reached, so the one mover is `advance`,
  * which cannot go backwards.
  */
@@ -69,7 +69,7 @@ export interface Participant {
    *
    * `stage.enter` is emitted here rather than at each call site, because an
    * entry that logs nothing is one the server cannot count: §6.2.2 derives
-   * `inStage` from these events, and *time to fit* is measured from the S4
+   * `inStage` from these events, and *time to fit* is measured from the S6
    * entry in the log (§10).
    */
   advance: (stage: StageId) => void;
@@ -138,10 +138,10 @@ export interface Participant {
   /**
    * Keeps a §10 snapshot on the phone as well as sending it (step 10.6).
    *
-   * S5 differences the finish snapshot against the complete one and shows the
+   * S7 differences the finish snapshot against the complete one and shows the
    * participant what it cost. Both are already built here and posted; holding
    * them in the persisted record is what lets that screen survive the refresh
-   * §11 allows at every stage, and it is the only client state S5 needs.
+   * §11 allows at every stage, and it is the only client state S7 needs.
    */
   recordSnapshot: (snapshot: ScheduleSnapshot) => void;
   /**

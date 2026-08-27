@@ -8,7 +8,7 @@
  *   rule 5 — flipping a gate falsy then truthy is lossless, so hidden screens
  *            keep their answers rather than being cleared;
  *   rule 6 — an *unanswered* gate is truthy, so a participant force-advanced
- *            mid-questionnaire (§6.3) reaches S4 with a full stack.
+ *            mid-questionnaire (§6.3) reaches the reveal with a full stack.
  *
  * Together they mean "skipping" is a property of a present answer, never of
  * absence.

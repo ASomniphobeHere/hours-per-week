@@ -9,11 +9,13 @@ import {
   restore,
   save,
   stateKey,
+  STATE_VERSION,
   type PersistedState,
 } from './persist';
 
 function state(overrides: Partial<PersistedState> = {}): PersistedState {
   return {
+    v: STATE_VERSION,
     sessionId: 'sess-1',
     token: 'tok-1',
     packVersion: 'v1',
@@ -96,6 +98,51 @@ describe('§5 persistence', () => {
     save(storage, state());
     clear(storage, 'sess-1');
     expect(load(storage)).toBeNull();
+  });
+});
+
+/*
+ * Plan 25 §The renumber. `packVersion` cannot catch this: the pack is
+ * unchanged and `s4` is still a member of `StageId`, so nothing about the
+ * record looks wrong — it just points at a different screen than it did when
+ * it was written. `v` is what makes that detectable.
+ */
+describe('the record version (plan 25 §E.3)', () => {
+  /** A record as it was written before `v` existed — no version field at all. */
+  function legacy(overrides: Record<string, unknown> = {}): string {
+    const record: Record<string, unknown> = { ...state({ stage: 's4', dayType: 'we' }) };
+    delete record.v;
+    return JSON.stringify({ ...record, ...overrides });
+  }
+
+  it('drops a pre-renumber stage pointer back to the editor', () => {
+    const storage = memoryStorage();
+    storage.setItem(stateKey('sess-1'), legacy());
+    storage.setItem('hpw:current', 'sess-1');
+
+    const loaded = load(storage)!;
+    expect(loaded.stage).toBe('s2');
+    expect(loaded.v).toBe(STATE_VERSION);
+  });
+
+  /* The stage pointer is the only field whose meaning changed. Everything the
+     participant actually did survives — §5's whole point. */
+  it('keeps the answers, the day type and the session identity', () => {
+    const storage = memoryStorage();
+    storage.setItem(stateKey('sess-1'), legacy());
+    storage.setItem('hpw:current', 'sess-1');
+
+    const loaded = load(storage)!;
+    expect(loaded.sessionId).toBe('sess-1');
+    expect(loaded.token).toBe('tok-1');
+    expect(loaded.dayType).toBe('we');
+    expect(loaded.answers['sleep.wake.wd']!.value).toBe('07:00');
+  });
+
+  it('leaves a current record alone', () => {
+    const storage = memoryStorage();
+    save(storage, state({ stage: 's6' }));
+    expect(load(storage)!.stage).toBe('s6');
   });
 });
 

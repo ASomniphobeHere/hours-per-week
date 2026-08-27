@@ -11,7 +11,7 @@
  * pack's own `minWeekly`. A debrief that hardcoded `'sleep'` would report
  * nothing for the next pack, silently. And it does not collapse the two times
  * to fit onto one name (§10 forbids it explicitly): `timeToFitMs` runs from the
- * participant's own S4 entry and `timeToFitRoomMs` from the room's
+ * participant's own reveal entry (S6) and `timeToFitRoomMs` from the room's
  * `stage.open`, and for anyone force-advanced they differ by the 5 s hold plus
  * their snapshot.
  */
@@ -70,7 +70,7 @@ export interface ParticipantDebrief {
 
   /** §10's first field: complete − finish, per activity per day type. */
   perActivityDelta: ActivityDelta[];
-  /** Every reduction after S4 entry, in the order they were made. */
+  /** Every reduction after reveal entry, in the order they were made. */
   cutOrder: Cut[];
   /** The most diagnostic single field (§10). Null when nothing was cut. */
   firstCut: string | null;
@@ -87,7 +87,7 @@ export interface ParticipantDebrief {
   /** True when `firstCut` understates the cost — there was slack to eat first. */
   firstCutFollowsSilentLoss: boolean;
 
-  /** `sheet.open` counts after S4 entry, by activity (§10). */
+  /** `sheet.open` counts after reveal entry, by activity (§10). */
   sheetOpensDuringRebalance: Record<string, number>;
   /** Any `clamp.hit` on the floored activity. */
   sleepFloorHit: boolean;
@@ -99,7 +99,7 @@ export interface ParticipantDebrief {
   /** §10's *school above minimum*, read at complete. */
   schoolAboveMinimum: boolean;
 
-  /** `fits` minus this participant's S4 entry. Null if either is missing. */
+  /** `fits` minus this participant's reveal entry. Null if either is missing. */
   timeToFitMs: number | null;
   /** `fits` minus the room's `stage.open`. Null if either is missing. */
   timeToFitRoomMs: number | null;
@@ -134,17 +134,17 @@ export function deriveParticipant(
 ): ParticipantDebrief {
   const { events, finish, complete } = input;
 
-  const s4EntryAt = firstEventAt(
+  const revealEntryAt = firstEventAt(
     events,
-    (event) => event.type === 'stage.enter' && event.stage === 's4',
+    (event) => event.type === 'stage.enter' && event.stage === 's6',
   );
   const fitsAt = firstEventAt(events, (event) => event.type === 'fits');
-  // After S4 entry, or all of them when the log has no S4 entry to cut at —
+  // After reveal entry, or all of them when the log has no reveal entry to cut at —
   // a session that never reached the reveal has no rebalance to report, and an
   // unbounded window there would count the S2 pass as one.
-  const afterS4 = s4EntryAt === null ? [] : events.filter((event) => event.t >= s4EntryAt);
+  const afterReveal = revealEntryAt === null ? [] : events.filter((event) => event.t >= revealEntryAt);
 
-  const cutOrder: Cut[] = afterS4
+  const cutOrder: Cut[] = afterReveal
     .filter(
       (event) =>
         event.type === 'hours.change' &&
@@ -160,7 +160,7 @@ export function deriveParticipant(
     }));
 
   const sheetOpensDuringRebalance: Record<string, number> = {};
-  for (const event of afterS4) {
+  for (const event of afterReveal) {
     if (event.type !== 'sheet.open' || event.activityId === undefined) continue;
     sheetOpensDuringRebalance[event.activityId] =
       (sheetOpensDuringRebalance[event.activityId] ?? 0) + 1;
@@ -181,7 +181,7 @@ export function deriveParticipant(
    * spreads over — school is workday-only, so one — and the weekly figure is
    * that daily value times the days in its own day type.
    */
-  const paceCommit = afterS4.find(
+  const paceCommit = afterReveal.find(
     (event) =>
       event.type === 'hours.change' &&
       event.activityId === pack.lockedActivityId &&
@@ -212,12 +212,12 @@ export function deriveParticipant(
     schoolWeeklyAtComplete,
     schoolAboveMinimum: schoolWeeklyAtComplete > pack.lockedMinimumWeekly,
 
-    timeToFitMs: fitsAt === null || s4EntryAt === null ? null : fitsAt - s4EntryAt,
+    timeToFitMs: fitsAt === null || revealEntryAt === null ? null : fitsAt - revealEntryAt,
     timeToFitRoomMs: fitsAt === null || stageOpenAt === null ? null : fitsAt - stageOpenAt,
 
     // §11's "school fits inside existing slack": the workday slack at finish
     // covered the daily cost of the pace they chose, so `fits()` was already
-    // true on S4 entry and cut order is empty.
+    // true on reveal entry and cut order is empty.
     noSqueeze: slackAtFinishWd >= paceAtReveal / DAYS_PER_WEEK.wd,
   };
 }

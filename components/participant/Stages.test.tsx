@@ -293,7 +293,7 @@ describe('the persisted stage (step 6.1, AC 36)', () => {
     expect(server.polls()).toHaveLength(0);
   });
 
-  it('never runs backwards: S4 shows no Finish to return to S3 with', async () => {
+  it('never runs backwards: S6 shows no Finish to return to S3 with', async () => {
     const server = room();
     const storage = memoryStorage();
     mount(server, { stage: 's4', storage });

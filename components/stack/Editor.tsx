@@ -4,7 +4,7 @@
  * S2 — the editor. §7's chrome around §7's stack.
  *
  * Layout is three fixed pieces and one that grows: a header (empty until the
- * S4 reveal fills it), the day-type toggle, the stack, and a footer. Header,
+ * S6 reveal fills it), the day-type toggle, the stack, and a footer. Header,
  * toggle and footer are sticky, because §7.1 requires both day totals to be
  * readable at all times and §7.7's count has to stay reachable while the
  * participant is scrolled into an overflowing stack. What is left of the
@@ -42,9 +42,9 @@ import { useEditorGeometry } from './useEditorGeometry';
 import styles from './stack.module.css';
 
 export interface EditorProps {
-  /** Filled by the S4 reveal (Stage 7). Empty chrome takes no vertical space. */
+  /** Filled by the S6 reveal (Stage 7). Empty chrome takes no vertical space. */
   header?: React.ReactNode;
-  /** Finish at S2, Confirm at S4 (Stages 6 and 7). */
+  /** Finish at S2, Confirm at S6 (Stages 6 and 7). */
   footer?: React.ReactNode;
 }
 
@@ -54,8 +54,10 @@ export function Editor({ header, footer }: EditorProps) {
   const { index, session, activities, patch, record, reset } = useParticipant();
   const pack = index.pack;
 
-  // §3.3 — school exists from S4 onward and nowhere earlier.
-  const includeLocked = STAGE_ORDER.indexOf(session.stage) >= STAGE_ORDER.indexOf('s4');
+  // §3.3 — school exists from the reveal onward and nowhere earlier. That is
+  // S6 since the renumber (plan 25), and the rating stage sits below it, so a
+  // participant rating their week never sees a band nobody has revealed.
+  const includeLocked = STAGE_ORDER.indexOf(session.stage) >= STAGE_ORDER.indexOf('s6');
   const visible = useMemo(
     () => visibleActivities(activities, { includeLocked }),
     [activities, includeLocked],

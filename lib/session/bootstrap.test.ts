@@ -8,7 +8,7 @@
  */
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { memoryStorage, save, type PersistedState } from '@/lib/store/persist';
+import { memoryStorage, save, STATE_VERSION, type PersistedState } from '@/lib/store/persist';
 import { setAnswer } from '@/lib/store/answers';
 import { resetDatabase, teardownDatabase, setupMemoryDatabase } from '@/lib/db/testing';
 
@@ -78,6 +78,7 @@ describe('ensureSession', () => {
   it('resumes at the furthest stage with answers intact (§5, §11)', async () => {
     const storage = memoryStorage();
     save(storage, {
+      v: STATE_VERSION,
       sessionId: 'sess-9',
       token: 'tok-9',
       packVersion: 'v1',
@@ -102,6 +103,7 @@ describe('ensureSession', () => {
   it('keeps the session across a pack change, pruning answers only (§5)', async () => {
     const storage = memoryStorage();
     save(storage, {
+      v: STATE_VERSION,
       sessionId: 'sess-2',
       token: 'tok-2',
       packVersion: 'v0',
@@ -182,6 +184,7 @@ describe('ensureSession against the real endpoint', () => {
 describe('resetToNewSession (§5)', () => {
   function stored(): PersistedState {
     return {
+      v: STATE_VERSION,
       sessionId: 'sess-1',
       token: 'tok-1',
       packVersion: 'v1',
@@ -208,6 +211,7 @@ describe('resetToNewSession (§5)', () => {
     const next = await resetToNewSession({ storage, state, fetchImpl });
 
     expect(next).toEqual({
+      v: STATE_VERSION,
       sessionId: 'sess-2',
       token: 'tok-2',
       packVersion: 'v1',

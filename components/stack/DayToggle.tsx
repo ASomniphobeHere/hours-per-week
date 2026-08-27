@@ -7,7 +7,7 @@
  * Each segment carries its own day's **occupied hours** — `total(dt)`, not
  * `remaining` — live, selected or not. That is what makes a weekend breach
  * discoverable from the workday view, and it is the only reason `fits()` can
- * fail at S4 for a reason the participant can see (AC 12, AC 44).
+ * fail at S6 for a reason the participant can see (AC 12, AC 44).
  *
  * Selecting a segment changes which stack renders and nothing else: no answer,
  * no derivation, no telemetry beyond a view event (AC 11).

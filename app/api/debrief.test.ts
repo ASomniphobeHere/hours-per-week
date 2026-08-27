@@ -9,7 +9,7 @@
  * unit-tested; what is not proved anywhere else is that the events survive the
  * round trip in the order the participant made them, that a `screen.view`
  * keeps its screen id across a column that only exists as of migration 3, and
- * that the room's `stage.open` and a participant's S4 entry are two clocks the
+ * that the room's `stage.open` and a participant's reveal entry are two clocks the
  * table can still tell apart afterwards.
  */
 
@@ -128,7 +128,7 @@ describe('a simulated room, end to end (§10, step 10.5)', () => {
 
     // The rebalance: a 25 h pace, then leisure and admin, in that order.
     await telemetry(cutter, [
-      { t: stageOpenAt + 6_000, type: 'stage.enter', stage: 's4' },
+      { t: stageOpenAt + 6_000, type: 'stage.enter', stage: 's6' },
       { t: stageOpenAt + 7_000, type: 'hours.change', activityId: 'school', from: 4, to: 5 },
       { t: stageOpenAt + 8_000, type: 'sheet.open', activityId: 'leisure' },
       { t: stageOpenAt + 8_500, type: 'hours.change', activityId: 'leisure', from: 4, to: 2 },
@@ -176,7 +176,7 @@ describe('a simulated room, end to end (§10, step 10.5)', () => {
         {
           schedule: snapshot('complete', { school: [4, 0], leisure: [4, 6] }, 0),
           events: [
-            { t: stageOpenAt + 5_000, type: 'stage.enter', stage: 's4' },
+            { t: stageOpenAt + 5_000, type: 'stage.enter', stage: 's6' },
             { t: stageOpenAt + 5_100, type: 'fits' },
             { t: stageOpenAt + 5_200, type: 'complete' },
           ],

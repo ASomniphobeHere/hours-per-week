@@ -5,6 +5,7 @@ When finishing any step, if you followed an implementation plan, check the curre
 Any time you arrive at an open decision or some cotradictory thing, you resolve the decision using AskUserQuestion.
 The commit messages must be succinct, no over-the-top explanation of what was changed.
 On each new change request, check the current branch, if the current branch is not appropriate, branch from main.
+I forbid you to run e2e tests anymore
 
 <!-- BEGIN:nextjs-agent-rules -->
 

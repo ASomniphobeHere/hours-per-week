@@ -34,7 +34,7 @@ export function overflow(activities: readonly Activity[], dayType: DayType): num
  * §3.4's completion condition, in its general both-day-types form.
  *
  * School is workday-only, so this is *effectively* a workday condition — but
- * §11 lets a participant arrive at S4 with a weekend already over 24 for a
+ * §11 lets a participant arrive at the reveal with a weekend already over 24 for a
  * cause school did not create. Keeping the general form is what makes that
  * case block confirm rather than slip through, and what spares a rewrite if a
  * future commitment ever bears on the weekend.

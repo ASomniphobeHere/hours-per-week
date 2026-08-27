@@ -9,12 +9,19 @@ import { render, type RenderResult } from '@testing-library/react';
 import { indexPack } from '@/lib/pack';
 import type { ContentPack } from '@/lib/pack/types';
 import { minimalPack } from '@/lib/pack/__fixtures__/minimal';
-import { memoryStorage, save, type PersistedState, type StorageLike } from '@/lib/store/persist';
+import {
+  memoryStorage,
+  save,
+  STATE_VERSION,
+  type PersistedState,
+  type StorageLike,
+} from '@/lib/store/persist';
 import { ParticipantProvider } from '@/lib/client/participant';
 import type { Event } from '@/lib/domain/types';
 
 export function sessionState(overrides: Partial<PersistedState> = {}): PersistedState {
   return {
+    v: STATE_VERSION,
     sessionId: 'sess-test',
     token: 'tok-test',
     packVersion: 'test',

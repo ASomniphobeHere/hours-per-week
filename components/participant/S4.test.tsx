@@ -192,7 +192,7 @@ describe('school in the stack (AC 38, 39, 39a)', () => {
 
     // The same record, remounted — which is what a refresh is.
     const stored = load(storage);
-    expect(stored?.stage).toBe('s4');
+    expect(stored?.stage).toBe('s6');
     expect(stored?.authored[SCHOOL_ID]?.wd).toEqual({ mode: 'direct', hours: 4 });
   });
 });

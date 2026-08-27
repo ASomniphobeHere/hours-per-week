@@ -54,7 +54,7 @@ async function answerEverything(page: Page): Promise<void> {
 /**
  * Past the two reveal screens and onto the stack (§8.3).
  *
- * S4 opens on the commitment and the pace, and the stack is on neither. Every
+ * The reveal opens on the commitment and the pace, and the stack is on neither. Every
  * test below that used to assert the stack the moment the flag flipped now
  * asserts the reveal there and walks through it — the entry path is the same
  * one, with two screens in front of it.

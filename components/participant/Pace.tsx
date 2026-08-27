@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * S4, screen two of two — the pace (§8.3, AC 39a).
+ * S6, screen two of two — the pace (§8.3, AC 39a).
  *
- * `s4.pace.title` over the three-part control, under Continue. The control is
+ * `s6.pace.title` over the three-part control, under Continue. The control is
  * the same component the band's sheet renders (§8.3: "the pace screen and the
  * sheet render **one** control"), so the ladder a participant chooses against
  * is the ladder they meet again on the band.
@@ -43,7 +43,7 @@ export function Pace({ pack, activity, onCommit }: PaceProps) {
   return (
     <main className={`${styles.page} ${styles.centred}`} data-testid="pace">
       <div className={styles.body}>
-        <h1 className={styles.prompt}>{copyOf(pack, 's4.pace.title')}</h1>
+        <h1 className={styles.prompt}>{copyOf(pack, 's6.pace.title')}</h1>
         <SchoolControl
           pack={pack}
           activity={activity}
@@ -58,7 +58,7 @@ export function Pace({ pack, activity, onCommit }: PaceProps) {
           data-testid="pace-continue"
           onClick={() => onCommit(weekly)}
         >
-          {copyOf(pack, 's4.pace.continue')}
+          {copyOf(pack, 's6.pace.continue')}
         </button>
       </div>
     </main>

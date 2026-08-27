@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * S4, screen one of two — the commitment (§8.3, AC 37a).
+ * S6, screen one of two — the commitment (§8.3, AC 37a).
  *
- * `s4.reveal.title` over `s4.reveal.body` under a single continue control, and
+ * `s6.reveal.title` over `s6.reveal.body` under a single continue control, and
  * nothing else. It states that a commitment exists; it does not ask for a
  * number and it shows no stack.
  *
@@ -15,7 +15,7 @@
  * measures nothing. Splitting the commitment from the pace, and both from the
  * stack, is what puts the decision before the cost.
  *
- * It reuses `s4.reveal.title` / `s4.reveal.body` unchanged — the two-screen
+ * It reuses `s6.reveal.title` / `s6.reveal.body` unchanged — the two-screen
  * amendment added the pace screen, it did not rewrite the ask.
  */
 
@@ -32,8 +32,8 @@ export function Reveal({ pack, onContinue }: RevealProps) {
   return (
     <main className={`${styles.page} ${styles.centred}`} data-testid="reveal">
       <div className={styles.body}>
-        <h1 className={styles.prompt}>{copyOf(pack, 's4.reveal.title')}</h1>
-        <p className={styles.note}>{copyOf(pack, 's4.reveal.body')}</p>
+        <h1 className={styles.prompt}>{copyOf(pack, 's6.reveal.title')}</h1>
+        <p className={styles.note}>{copyOf(pack, 's6.reveal.body')}</p>
       </div>
       <div className={styles.controls}>
         <button
@@ -42,7 +42,7 @@ export function Reveal({ pack, onContinue }: RevealProps) {
           data-testid="reveal-continue"
           onClick={onContinue}
         >
-          {copyOf(pack, 's4.pace.continue')}
+          {copyOf(pack, 's6.pace.continue')}
         </button>
       </div>
     </main>

@@ -148,8 +148,18 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
 
   **Built 2026-08-27.** Three rules — `energy-scale`, `energy-locked-declared`, `energy-participant-owned` — take §4.6 from fourteen to seventeen, each fired by its own test. `holdLines(pack, prefix)` gained a prefix so E.7's second hold reads its lines through the same function, and `HOLD_LINES_PREFIXES` is what the four-line minimum now runs over. `ContentPack.energy` is required rather than optional: a pack without it cannot run the stage, and an optional block would push that failure from load time into the middle of a room.
 
-- [ ] **E.3 The renumber** (§2.2) — mechanical, in its own commit, no behaviour change and no new screens. `StageId`, `STAGE_ORDER`, `Stages.tsx`, `persist.ts`, `queries.ts` (`inStage`), `Console.tsx`, and every e2e spec that names a stage. `schema-004-stage-renumber.sql` rewrites `sessions.stage`; `PersistedState.v = 2` drops a stale stage pointer to `s2` (§The renumber). The commit is reviewable as a rename: after it, the machine is `s1 → s2 → s3 → s6 → s7` with two ids unused, and every existing test passes with its names updated.
+- [x] **E.3 The renumber** (§2.2) — mechanical, in its own commit, no behaviour change and no new screens. `StageId`, `STAGE_ORDER`, `Stages.tsx`, `persist.ts`, `queries.ts` (`inStage`), `Console.tsx`, and every e2e spec that names a stage. `schema-004-stage-renumber.sql` rewrites `sessions.stage`; `PersistedState.v = 2` drops a stale stage pointer to `s2` (§The renumber). The commit is reviewable as a rename: after it, the machine is `s1 → s2 → s3 → s6 → s7` with two ids unused, and every existing test passes with its names updated.
   *AC: none directly — every criterion it touches is re-asserted by E.5–E.8*
+
+  **Built 2026-08-27.** 605 unit tests green, typecheck and lint clean. Four things the step turned out to include that the line above does not say.
+
+  **The copy keys moved too.** The plan scoped this step to stage *ids*, but leaving the reveal's strings at `s4.*` would have left one prefix naming two stages — `s4.energy.continue` on the rating screen and `s4.reveal.title` on the reveal, three stages apart. So `s4.reveal.*`, `s4.pace.*`, `s4.confirm` and `s4.school.outcome.*` became `s6.*`, alongside the `s7.*` rename the merge already forced. `outcomeKey()` builds the ladder key, so §8.3's five rungs followed it without being listed anywhere.
+
+  **`s4EntryAt` became `revealEntryAt`.** `lib/debrief/derive.ts` finds a participant's rebalance window by looking for `stage.enter` at the reveal, and §10's *time to fit* is measured from it. Renaming the constant as well as the value it matches is what stops the next reader assuming it means the rating stage.
+
+  **The migration does not rewrite `events.stage`.** `sessions.stage` is current state and must be corrected; the event log is history, and an old room's *time to fit* has to keep measuring from the stage that existed when it was recorded. Both halves are tests, driven against a database stopped at version 3 rather than the current one — a migration is only interesting on rows that predate it.
+
+  **The console's breakdown wraps rather than shrinks.** Seven counts at 375 px leaves ~45 px a column, which the numbers fit and the labels do not, so the grid is four-up below 560 px and seven-up above. AC 58 forbids horizontal scroll; it does not require one line.
 
 - [ ] **E.4 The gate becomes an ordinal** (§6.1, §6.2.2, §6.2.4, §6.2.5) — `schema-005-open-stage.sql` adds `rooms.open_stage INTEGER NOT NULL DEFAULT 0`, backfills `stage_open × 2` (a room that was open was open to the reveal), and drops `stage_open`. `room_events` gains `to_stage INTEGER`, so §6.2.5's one-record-per-flip becomes two records distinguished by level, each carrying `ready` and `total` at that moment.
 

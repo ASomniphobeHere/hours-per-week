@@ -10,7 +10,7 @@
  * an activity with hours on one day and none on the other stays in the stack
  * and simply renders no band on the empty day.
  *
- * **`locked` activities are absent before S4** (§3.3). School is inserted at
+ * **`locked` activities are absent before the reveal** (§3.3). School is inserted at
  * the reveal and exists nowhere earlier, so at the end of S1 it is neither a
  * band nor a Not-included row — it is not yet part of the participant's week.
  * `locked` is the pack's own marker for an activity that carries none of the
@@ -29,7 +29,7 @@ export interface Stack {
 }
 
 export interface StackOptions {
-  /** True from S4 onward, when school has been revealed (§3.3). */
+  /** True from the reveal (S6) onward, when school has been revealed (§3.3). */
   includeLocked?: boolean;
 }
 

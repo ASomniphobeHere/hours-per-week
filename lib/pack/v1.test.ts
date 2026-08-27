@@ -136,7 +136,7 @@ describe('deriving the v1 pack', () => {
   }
 
   /* AC 10 / §4.2.1 rule 6 — a force-advanced participant with nothing answered
-     reaches S4 with a full stack of pack-default hours, not an empty one. */
+     reaches the reveal with a full stack of pack-default hours, not an empty one. */
   it('derives a full stack from field defaults alone', () => {
     const { byId } = hoursFrom();
     for (const id of ['sleep', 'work', 'commute', 'eating', 'household', 'care', 'hygiene', 'admin', 'leisure']) {
@@ -144,9 +144,9 @@ describe('deriving the v1 pack', () => {
     }
   });
 
-  it('lands the default workday just inside 24 h, so the S4 squeeze is real', () => {
+  it('lands the default workday just inside 24 h, so the squeeze at the reveal is real', () => {
     const { activities } = hoursFrom();
-    // school is not in the stack until S4 (§3.3) and derives to 0 before then.
+    // school is not in the stack until the reveal (§3.3) and derives to 0 before then.
     const workday = total(activities, 'wd');
     expect(workday).toBeGreaterThan(23);
     expect(workday).toBeLessThanOrEqual(24);
@@ -169,7 +169,7 @@ describe('deriving the v1 pack', () => {
     expect(byId.commute!.we.hours).toBe(0);
   });
 
-  it('holds school out of the stack until S4 (§3.3)', () => {
+  it('holds school out of the stack until the reveal (§3.3)', () => {
     const { byId } = hoursFrom();
     expect(byId.school!.wd.hours).toBe(0);
     expect(byId.school!.we.hours).toBe(0);

@@ -1,0 +1,24 @@
+-- Schema v4 — the stage renumber (plan 25 §The renumber).
+--
+-- The machine grew from five members to seven: a rating stage and a second
+-- hold were inserted between the editor and the reveal, so the reveal moved
+-- from s4 to s6 and done from s5 to s7.
+--
+-- `sessions.stage` is the only column holding a stage id. It is a high-water
+-- mark, so every value in it is one a session actually reached, and every s4
+-- and s5 already written means the old stage rather than the new one. Left
+-- alone, a room mid-session would report its finished participants as sitting
+-- in the rating stage, and `inStage` would say the opposite of what happened.
+--
+-- s5 → s7 runs first. Both statements are unconditional and the targets are
+-- values no row can already hold, so the order only matters if the two ever
+-- overlapped — which they would if this were ever run against a database that
+-- had already been renumbered. It is not: the runner records the version and
+-- never re-runs a migration.
+--
+-- `events.stage` is deliberately not rewritten. It is a log of what happened,
+-- and the debrief reads it against the ids that were current when the row was
+-- written; rewriting history to match a rename would make an old room's
+-- *time to fit* measure from a stage that did not exist in it.
+UPDATE sessions SET stage = 's7' WHERE stage = 's5';
+UPDATE sessions SET stage = 's6' WHERE stage = 's4';

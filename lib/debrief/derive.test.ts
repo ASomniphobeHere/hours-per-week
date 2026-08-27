@@ -29,13 +29,13 @@ function snapshot(
   };
 }
 
-/** A breaching run: forced to S4, took 25 h/week, cut leisure then admin. */
+/** A breaching run: forced to the reveal, took 25 h/week, cut leisure then admin. */
 function breachingEvents(): Event[] {
   return [
     { t: 1_000, type: 'stage.enter', stage: 's2' },
     { t: 2_000, type: 'forced.advance' },
     { t: 2_100, type: 'stage.enter', stage: 's3' },
-    { t: 7_100, type: 'stage.enter', stage: 's4' },
+    { t: 7_100, type: 'stage.enter', stage: 's6' },
     // The pace commit: 5 h a workday is 25 h a week.
     { t: 8_000, type: 'hours.change', activityId: 'school', from: 4, to: 5 },
     { t: 9_000, type: 'sheet.open', activityId: 'leisure' },
@@ -73,7 +73,7 @@ describe('the debrief derivation (§10, steps 10.4–10.5)', () => {
 
   /**
    * §10 forbids one name for both. They differ here by the 5 s hold plus the
-   * gap between the flag and this participant's own S4 entry.
+   * gap between the flag and this participant's own reveal entry.
    */
   it('reports both times to fit, and they are not the same number', () => {
     const derived = participant();
@@ -94,7 +94,7 @@ describe('the debrief derivation (§10, steps 10.4–10.5)', () => {
   });
 
   /**
-   * School is in here, unlike on S5 (step 10.6): the debrief wants what the
+   * School is in here, unlike on S7 (step 10.6): the debrief wants what the
    * commitment *was* alongside what it cost, and the participant's screen
    * answers only the second question.
    */
@@ -149,7 +149,7 @@ describe('the debrief derivation (§10, steps 10.4–10.5)', () => {
       {
         sessionId: 'sess-4',
         events: [
-          { t: 100, type: 'stage.enter', stage: 's4' },
+          { t: 100, type: 'stage.enter', stage: 's6' },
           { t: 900, type: 'fits' },
           { t: 1_000, type: 'complete' },
         ],
