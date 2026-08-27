@@ -131,9 +131,9 @@ test.describe('facilitator console', () => {
     await expect(page.getByTestId('stage-open')).toHaveText('Stage open', SETTLE);
     await expect(page.getByTestId('stage-button')).toHaveCount(0);
 
-    // The flag the participant polls is the one that just flipped.
+    // The gate the participant polls is the one that just moved.
     const status = await page.request.get(`/api/room/${room.roomId}/status`);
-    expect(((await status.json()) as { stageOpen: boolean }).stageOpen).toBe(true);
+    expect(((await status.json()) as { openStage: number }).openStage).toBe(2);
 
     await phone.close();
   });
@@ -154,7 +154,7 @@ test.describe('facilitator console', () => {
 
     // Nothing was opened by the press that timed out.
     const status = await page.request.get(`/api/room/${room.roomId}/status`);
-    expect(((await status.json()) as { stageOpen: boolean }).stageOpen).toBe(false);
+    expect(((await status.json()) as { openStage: number }).openStage).toBe(0);
 
     await phone.close();
   });

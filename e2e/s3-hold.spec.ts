@@ -30,7 +30,7 @@ async function newRoom(page: Page): Promise<Room> {
 
 async function openStage(page: Page, room: Room): Promise<void> {
   const response = await page.request.post(`/api/room/${room.roomId}/stage`, {
-    data: { open: true },
+    data: { to: 2 },
   });
   expect(response.ok()).toBe(true);
 }

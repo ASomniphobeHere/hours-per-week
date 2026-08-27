@@ -74,15 +74,15 @@ afterAll(() => teardownDatabase());
 /* ── 2.1 / 2.2 — room and session (AC 49) ───────────────────────────────── */
 
 describe('POST /room', () => {
-  it('creates a room with the stage closed and a console url', async () => {
+  it('creates a room with both gates closed and a console url', async () => {
     const room = await newRoom();
     expect(room.joinCode).toMatch(/^[1-9]\d{3}$/);
     expect(room.consoleUrl).toBe(`/facilitate/${room.roomId}`);
 
     const row = getDatabase()
-      .prepare('SELECT stage_open, opened_at FROM rooms WHERE id = ?')
+      .prepare('SELECT open_stage, opened_at FROM rooms WHERE id = ?')
       .get(room.roomId);
-    expect(row).toEqual({ stage_open: 0, opened_at: null });
+    expect(row).toEqual({ open_stage: 0, opened_at: null });
   });
 
   it('mints a distinct roomId and joinCode per room, and roomId is not the code', async () => {
@@ -139,7 +139,7 @@ describe('POST /session', () => {
 /* ── 2.3 — stage poll (AC 34) ───────────────────────────────────────────── */
 
 describe('GET /session/:id/stage', () => {
-  it('reports the room flag and caches for 1 s', async () => {
+  it('reports the room gate level and caches for 1 s', async () => {
     const room = await newRoom();
     const session = await join(room.joinCode);
 
@@ -150,23 +150,26 @@ describe('GET /session/:id/stage', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('private, max-age=1');
 
-    const body = (await response.json()) as { stageOpen: boolean; serverTime: number };
-    expect(body.stageOpen).toBe(false);
+    const body = (await response.json()) as { openStage: number; serverTime: number };
+    expect(body.openStage).toBe(0);
     expect(body.serverTime).toBeGreaterThan(0);
   });
 
-  it('follows the flag once the room is opened', async () => {
+  it('follows the gate up one level at a time (AC 62)', async () => {
     const room = await newRoom();
     const session = await join(room.joinCode);
-    getDatabase()
-      .prepare('UPDATE rooms SET stage_open = 1, opened_at = ? WHERE id = ?')
-      .run(Date.now(), room.roomId);
+    const level = async (): Promise<number> => {
+      const response = await getStage(
+        get(`/api/session/${session.sessionId}/stage`, session.token),
+        params({ id: session.sessionId }),
+      );
+      return ((await response.json()) as { openStage: number }).openStage;
+    };
 
-    const response = await getStage(
-      get(`/api/session/${session.sessionId}/stage`, session.token),
-      params({ id: session.sessionId }),
-    );
-    expect(((await response.json()) as { stageOpen: boolean }).stageOpen).toBe(true);
+    await flip(room.roomId, 1);
+    expect(await level()).toBe(1);
+    await flip(room.roomId, 2);
+    expect(await level()).toBe(2);
   });
 
   it('401s without a token, with the wrong token, and on an unknown session', async () => {
@@ -208,19 +211,28 @@ describe('GET /session/:id/stage', () => {
 
 /* ── 8.5 (pulled forward for Stage 6) — the flip ────────────────────────── */
 
+/** The facilitator's press, at one of the two levels (plan 25 §E.4). */
+function flip(roomId: string, to: unknown): Promise<Response> {
+  return openRoomStage(postJson(`/api/room/${roomId}/stage`, { to }), params({ id: roomId }));
+}
+
+function levelOf(roomId: string): number {
+  const row = getDatabase()
+    .prepare('SELECT open_stage FROM rooms WHERE id = ?')
+    .get(roomId) as { open_stage: number };
+  return row.open_stage;
+}
+
 describe('POST /room/:roomId/stage', () => {
-  it('opens the room and stamps the moment it opened', async () => {
+  it('opens the energy stage and not the reveal (AC 62)', async () => {
     const room = await newRoom();
     const session = await join(room.joinCode);
 
-    const response = await openRoomStage(
-      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-      params({ id: room.roomId }),
-    );
+    const response = await flip(room.roomId, 1);
     expect(response.status).toBe(200);
-    expect((await response.json()) as { ok: boolean; stageOpen: boolean }).toMatchObject({
+    expect((await response.json()) as { ok: boolean; openStage: number }).toMatchObject({
       ok: true,
-      stageOpen: true,
+      openStage: 1,
     });
 
     // The participant's own poll follows it, which is the whole point.
@@ -228,45 +240,41 @@ describe('POST /room/:roomId/stage', () => {
       get(`/api/session/${session.sessionId}/stage`, session.token),
       params({ id: session.sessionId }),
     );
-    expect(((await polled.json()) as { stageOpen: boolean }).stageOpen).toBe(true);
+    expect(((await polled.json()) as { openStage: number }).openStage).toBe(1);
   });
 
-  it('is idempotent and keeps the first `opened_at` (§2.2 one-way)', async () => {
+  it('is monotonic: a call at or below the current level changes nothing (AC 63)', async () => {
     const room = await newRoom();
-    const request = () =>
-      openRoomStage(
-        postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-        params({ id: room.roomId }),
-      );
 
-    const first = (await (await request()).json()) as { openedAt: number };
-    const second = (await (await request()).json()) as { ok: boolean; openedAt: number };
-    expect(second.ok).toBe(true);
-    // The room's `t = 0` for *time to fit, room* (§10) does not move under a
-    // facilitator's double-press.
-    expect(second.openedAt).toBe(first.openedAt);
+    const first = (await (await flip(room.roomId, 1)).json()) as { openedAt: number };
+    // A double-press, and then the first button after the second.
+    expect((await (await flip(room.roomId, 1)).json()) as { ok: boolean }).toMatchObject({
+      ok: true,
+    });
+    await flip(room.roomId, 2);
+    const back = (await (await flip(room.roomId, 1)).json()) as { ok: boolean; openStage: number };
+    expect(back).toMatchObject({ ok: true, openStage: 2 });
+    expect(levelOf(room.roomId)).toBe(2);
+
+    // The room's `t = 0` does not move under a facilitator's double-press.
+    const after = (await (await flip(room.roomId, 2)).json()) as { openedAt: number };
+    expect(after.openedAt).toBe(first.openedAt);
   });
 
-  it('refuses anything but `{ open: true }` — the flag does not close', async () => {
+  it('refuses anything but `{ to: 1 | 2 }` — the gate does not close', async () => {
     const room = await newRoom();
-    for (const body of [{}, { open: false }, { open: 'true' }]) {
+    for (const body of [{}, { to: 0 }, { to: 3 }, { to: '1' }, { open: true }]) {
       const response = await openRoomStage(
         postJson(`/api/room/${room.roomId}/stage`, body),
         params({ id: room.roomId }),
       );
       expect(response.status).toBe(400);
     }
-    const flag = getDatabase()
-      .prepare('SELECT stage_open FROM rooms WHERE id = ?')
-      .get(room.roomId);
-    expect(flag).toEqual({ stage_open: 0 });
+    expect(levelOf(room.roomId)).toBe(0);
   });
 
   it('404s on an unknown room', async () => {
-    const response = await openRoomStage(
-      postJson('/api/room/nope/stage', { open: true }),
-      params({ id: 'nope' }),
-    );
+    const response = await flip('nope', 1);
     expect(response.status).toBe(404);
   });
 });
@@ -276,7 +284,7 @@ describe('POST /room/:roomId/stage', () => {
 interface Status {
   total: number;
   ready: number;
-  stageOpen: boolean;
+  openStage: number;
   joinCode: string;
   inStage: Record<string, number>;
 }
@@ -292,7 +300,7 @@ async function status(roomId: string): Promise<Status> {
 
 function roomEventRows(roomId: string) {
   return getDatabase()
-    .prepare('SELECT type, ready, total FROM room_events WHERE room_id = ? ORDER BY id')
+    .prepare('SELECT type, ready, total, to_stage FROM room_events WHERE room_id = ? ORDER BY id')
     .all(roomId);
 }
 
@@ -304,7 +312,7 @@ describe('GET /room/:roomId/status', () => {
     expect(body).toEqual({
       total: 0,
       ready: 0,
-      stageOpen: false,
+      openStage: 0,
       joinCode: room.joinCode,
       inStage: { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0, s6: 0, s7: 0 },
     });
@@ -372,15 +380,14 @@ describe('GET /room/:roomId/status', () => {
     expect((await status(b.roomId)).total).toBe(2);
   });
 
-  it('follows the flag', async () => {
+  it('follows the gate', async () => {
     const room = await newRoom();
-    expect((await status(room.roomId)).stageOpen).toBe(false);
+    expect((await status(room.roomId)).openStage).toBe(0);
 
-    await openRoomStage(
-      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-      params({ id: room.roomId }),
-    );
-    expect((await status(room.roomId)).stageOpen).toBe(true);
+    await flip(room.roomId, 1);
+    expect((await status(room.roomId)).openStage).toBe(1);
+    await flip(room.roomId, 2);
+    expect((await status(room.roomId)).openStage).toBe(2);
   });
 
   it('404s on an unknown room rather than reporting an empty one', async () => {
@@ -390,10 +397,10 @@ describe('GET /room/:roomId/status', () => {
 });
 
 describe('stage.open (AC 57)', () => {
-  it('writes one record carrying ready and total at the moment of the flip', async () => {
+  it('writes one record per press, carrying ready and total at that moment', async () => {
     const room = await newRoom();
     const first = await join(room.joinCode);
-    await join(room.joinCode);
+    const second = await join(room.joinCode);
     await join(room.joinCode);
     await postReady(
       postJson(
@@ -404,37 +411,45 @@ describe('stage.open (AC 57)', () => {
       params({ id: first.sessionId }),
     );
 
-    await openRoomStage(
-      postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-      params({ id: room.roomId }),
+    await flip(room.roomId, 1);
+    // The second press counts a room that has moved on: one more ready, and
+    // its row is the one the debrief measures *time to fit, room* from.
+    await postReady(
+      postJson(
+        `/api/session/${second.sessionId}/ready`,
+        { schedule: snapshot('finish') },
+        second.token,
+      ),
+      params({ id: second.sessionId }),
     );
+    await flip(room.roomId, 2);
 
-    expect(roomEventRows(room.roomId)).toEqual([{ type: 'stage.open', ready: 1, total: 3 }]);
+    expect(roomEventRows(room.roomId)).toEqual([
+      { type: 'stage.open', ready: 1, total: 3, to_stage: 1 },
+      { type: 'stage.open', ready: 2, total: 3, to_stage: 2 },
+    ]);
   });
 
-  it('is written once per room, whatever the facilitator presses after (AC 57)', async () => {
+  it('is written once per level, whatever the facilitator presses after (AC 57)', async () => {
     const room = await newRoom();
     await join(room.joinCode);
-    const flip = () =>
-      openRoomStage(
-        postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-        params({ id: room.roomId }),
-      );
 
-    await flip();
-    // Latecomers after the flip must not be counted into a second record: the
-    // room has one t = 0 (§6.2.5) and it was taken at the press.
+    await flip(room.roomId, 1);
+    // Latecomers after a press must not be counted into a second record at the
+    // same level: each gate has one t (§6.2.5), taken at the press that opened it.
     await join(room.joinCode);
-    await flip();
-    await flip();
+    await flip(room.roomId, 1);
+    await flip(room.roomId, 1);
 
-    expect(roomEventRows(room.roomId)).toEqual([{ type: 'stage.open', ready: 0, total: 1 }]);
+    expect(roomEventRows(room.roomId)).toEqual([
+      { type: 'stage.open', ready: 0, total: 1, to_stage: 1 },
+    ]);
   });
 
-  it('writes nothing when the flip is refused', async () => {
+  it('writes nothing when the press is refused', async () => {
     const room = await newRoom();
     await openRoomStage(
-      postJson(`/api/room/${room.roomId}/stage`, { open: false }),
+      postJson(`/api/room/${room.roomId}/stage`, { to: 0 }),
       params({ id: room.roomId }),
     );
     expect(roomEventRows(room.roomId)).toEqual([]);
@@ -444,7 +459,7 @@ describe('stage.open (AC 57)', () => {
 /* ── 2.4 — ready and complete (AC 32) ───────────────────────────────────── */
 
 describe('POST /session/:id/ready', () => {
-  it('stores the finish snapshot and sets ready_at without touching the flag (AC 32)', async () => {
+  it('stores the finish snapshot and sets ready_at without touching the gate (AC 32)', async () => {
     const room = await newRoom();
     const session = await join(room.joinCode);
     const id = session.sessionId;
@@ -456,8 +471,8 @@ describe('POST /session/:id/ready', () => {
     expect(response.status).toBe(200);
 
     const db = getDatabase();
-    expect(db.prepare('SELECT stage_open FROM rooms WHERE id = ?').get(room.roomId)).toEqual({
-      stage_open: 0,
+    expect(db.prepare('SELECT open_stage FROM rooms WHERE id = ?').get(room.roomId)).toEqual({
+      open_stage: 0,
     });
 
     const row = db

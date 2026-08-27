@@ -49,7 +49,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { S3_HOLD_MS } from '@/lib/domain/types';
+import { S3_HOLD_MS, type OpenStage } from '@/lib/domain/types';
 import { buildSnapshot } from '@/lib/domain/snapshot';
 import { isFullyDerived } from '@/lib/domain/derive';
 import { fits } from '@/lib/domain/totals';
@@ -66,6 +66,9 @@ import { Pace } from './Pace';
 import { Questionnaire } from './Questionnaire';
 import { Reveal } from './Reveal';
 import { Summary } from './Summary';
+
+/** The gate level that opens the reveal (plan 25 §E.4). */
+const REVEAL_LEVEL = 2;
 
 const DEFAULT_FETCH: FetchLike = (input, init) => fetch(input, init);
 
@@ -90,19 +93,24 @@ export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
   const { stage, sessionId, token } = session;
 
   /**
-   * The flag as last polled, and whether this client has ever seen it false.
+   * The gate level as last polled, and whether this client has ever seen it
+   * below the reveal.
    *
    * The pair is what separates §6.3's third row from §11's late joiner, which
    * the spec states as two rules that read as one contradiction. §6.3
    * force-advances a participant "still in S1 or S2 **when the flag flips**";
    * §11 gives a participant who *joins* with the flag already true a full
-   * S1 → S2 "at their own pace". Both hold if force-advance keys off the
-   * observed false → true transition rather than off a truthy reading: someone
-   * who was in the room when the facilitator opened the stage is pulled
-   * forward, and someone who arrived afterwards is never yanked out of a
-   * question they are in the middle of. Decided with the user, 2026-08-26.
+   * S1 → S2 "at their own pace". Both hold if force-advance keys off an
+   * observed *increase* rather than off a reading (plan 25 §E.5): someone who
+   * was in the room when the facilitator opened the stage is pulled forward,
+   * and someone who arrived afterwards is never yanked out of a question they
+   * are in the middle of. Decided with the user, 2026-08-26.
+   *
+   * The level is an ordinal since plan 25 §E.4. Until the rating stage exists
+   * (§E.6) the only gate this machine reads is the reveal's, level 2.
    */
-  const [stageOpen, setStageOpen] = useState(false);
+  const [openStage, setOpenStage] = useState<OpenStage>(0);
+  const stageOpen = openStage >= REVEAL_LEVEL;
   const sawClosed = useRef(false);
 
   /** When *this client* entered S3. Never persisted — see the docblock. */
@@ -121,9 +129,9 @@ export function Stages({ fetchImpl = DEFAULT_FETCH }: StagesProps) {
     const poll = startStagePoll({
       credentials,
       fetchImpl,
-      onStage: (open) => {
-        if (!open) sawClosed.current = true;
-        setStageOpen(open);
+      onStage: (level) => {
+        if (level < REVEAL_LEVEL) sawClosed.current = true;
+        setOpenStage(level);
       },
     });
     return () => poll.stop();

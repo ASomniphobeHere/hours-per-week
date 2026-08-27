@@ -2,7 +2,8 @@
  * GET /api/session/:id/stage — the participant's poll (§6.1, §6.3, RD-2).
  *
  * Room-scoped by resolution, not by route. The participant never names a room;
- * the server reads `session.room_id` and reports that room's flag. The cost is
+ * the server reads `session.room_id` and reports that room's gate level
+ * (plan 25 §E.4) — an ordinal, not the boolean it replaced. The cost is
  * that the response caches per session rather than per room, which §6.2.1
  * accepts explicitly: a route that handed every participant the roomId would
  * hand them the one secret protecting the flag.
@@ -25,7 +26,7 @@ export async function GET(
   if (room === null) return notFound('unknown room');
 
   return Response.json(
-    { stageOpen: room.stage_open === 1, serverTime: Date.now() },
+    { openStage: room.open_stage, serverTime: Date.now() },
     {
       headers: {
         // §6.1: cheap, cacheable for 1 s. Private — the body is one

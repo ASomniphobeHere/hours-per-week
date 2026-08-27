@@ -8,12 +8,12 @@
  */
 
 import { expectOk, type FetchLike } from '@/lib/api/client';
-import type { StageId } from '@/lib/domain/types';
+import type { OpenLevel, OpenStage, StageId } from '@/lib/domain/types';
 
 export interface RoomStatus {
   total: number;
   ready: number;
-  stageOpen: boolean;
+  openStage: OpenStage;
   joinCode: string;
   inStage: Record<StageId, number>;
 }
@@ -45,14 +45,19 @@ export async function fetchRoomStatus(
 }
 
 /**
- * §6.2.4's flip. Idempotent server-side, so a resolved call means the stage is
- * open whether or not this press is the one that opened it.
+ * §6.2.4's flip, at the level named. Idempotent and monotonic server-side, so
+ * a resolved call means the room is open to at least `to` whether or not this
+ * press is the one that opened it (plan 25 §E.4).
  */
-export async function openRoomStage(roomId: string, fetchImpl: FetchLike): Promise<void> {
+export async function openRoomStage(
+  roomId: string,
+  to: OpenLevel,
+  fetchImpl: FetchLike,
+): Promise<void> {
   const response = await fetchImpl(`/api/room/${roomId}/stage`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ open: true }),
+    body: JSON.stringify({ to }),
   });
   await expectOk(response);
 }

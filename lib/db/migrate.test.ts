@@ -36,14 +36,14 @@ describe('schema', () => {
     // A session starts at s1 on creation, so inStage sums to total from the
     // first row (§6.2.2).
     expect(db.prepare('SELECT stage FROM sessions WHERE id = ?').get('sess-1')).toEqual({ stage: 's1' });
-    expect(db.prepare('SELECT stage_open FROM rooms WHERE id = ?').get('room-1')).toEqual({ stage_open: 0 });
+    expect(db.prepare('SELECT open_stage FROM rooms WHERE id = ?').get('room-1')).toEqual({ open_stage: 0 });
 
     db.prepare('INSERT INTO events (session_id, t, type, activity_id, from_h, to_h) VALUES (?, ?, ?, ?, ?, ?)')
       .run('sess-1', now, 'hours.change', 'leisure', 3, 1);
     db.prepare('INSERT INTO snapshots (session_id, kind, json, t) VALUES (?, ?, ?, ?)')
       .run('sess-1', 'finish', '{}', now);
-    db.prepare('INSERT INTO room_events (room_id, type, t, ready, total) VALUES (?, ?, ?, ?, ?)')
-      .run('room-1', 'stage.open', now, 23, 40);
+    db.prepare('INSERT INTO room_events (room_id, type, t, ready, total, to_stage) VALUES (?, ?, ?, ?, ?, ?)')
+      .run('room-1', 'stage.open', now, 23, 40, 2);
 
     expect(db.prepare('SELECT count(*) AS n FROM events').get()).toEqual({ n: 1 });
     db.close();
@@ -100,6 +100,48 @@ describe('schema', () => {
     migrate(db);
 
     expect(db.prepare('SELECT stage FROM events').get()).toEqual({ stage: 's4' });
+    db.close();
+  });
+
+  /*
+   * Plan 25 §E.4. The boolean became an ordinal, and both stores holding it
+   * are backfilled on the same reading: the old flag only ever opened the
+   * reveal, so a room that was open was open to level 2 and every `stage.open`
+   * row already written records that press. Driven from version 4, because a
+   * backfill is only interesting on rows that predate it.
+   */
+  it('backfills the gate ordinal from the boolean it replaced', () => {
+    const db = new Database(':memory:');
+    for (const step of migrations.filter((m) => m.version <= 4)) db.exec(step.sql());
+    db.pragma('user_version = 4');
+
+    const now = Date.now();
+    const insert = db.prepare(
+      'INSERT INTO rooms (id, join_code, stage_open, opened_at, created_at) VALUES (?, ?, ?, ?, ?)',
+    );
+    insert.run('opened', '4712', 1, now, now);
+    insert.run('shut', '4713', 0, null, now);
+    db.prepare('INSERT INTO room_events (room_id, type, t, ready, total) VALUES (?, ?, ?, ?, ?)')
+      .run('opened', 'stage.open', now, 23, 40);
+
+    expect(migrate(db)).toBe(SCHEMA_VERSION);
+
+    const levelOf = (id: string): number =>
+      (db.prepare('SELECT open_stage FROM rooms WHERE id = ?').get(id) as { open_stage: number })
+        .open_stage;
+    expect(levelOf('opened')).toBe(2);
+    expect(levelOf('shut')).toBe(0);
+
+    // The column it replaced is gone, so nothing can read the old meaning.
+    expect(() => db.prepare('SELECT stage_open FROM rooms').get()).toThrow();
+
+    // The room's t = 0 for *time to fit, room* is the `to = 2` row, and an old
+    // room's only row has to keep being findable as one.
+    expect(db.prepare('SELECT to_stage, ready, total FROM room_events').get()).toEqual({
+      to_stage: 2,
+      ready: 23,
+      total: 40,
+    });
     db.close();
   });
 

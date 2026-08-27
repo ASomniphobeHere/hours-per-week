@@ -11,7 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
-import type { Event, ScheduleSnapshot } from '@/lib/domain/types';
+import type { Event, OpenStage, ScheduleSnapshot } from '@/lib/domain/types';
 import { S3_HOLD_MS } from '@/lib/domain/types';
 import type { FetchLike } from '@/lib/session/client';
 import { POLL_INTERVAL_MS, POLL_JITTER_MS } from '@/lib/session/poll';
@@ -28,10 +28,10 @@ interface Call {
   body: unknown;
 }
 
-/** The room, as far as one phone can see it: a flag and a call log. */
+/** The room, as far as one phone can see it: a gate level and a call log. */
 function room({ open = false, fail = false } = {}) {
   const calls: Call[] = [];
-  let stageOpen = open;
+  let level: OpenStage = open ? 2 : 0;
   const broken = fail;
 
   const fetchImpl: FetchLike = async (url, init) => {
@@ -42,7 +42,7 @@ function room({ open = false, fail = false } = {}) {
       body: init?.body === undefined ? null : JSON.parse(String(init.body)),
     });
     if (broken) throw new TypeError('offline');
-    const body = url.endsWith('/stage') ? { stageOpen, serverTime: Date.now() } : { ok: true };
+    const body = url.endsWith('/stage') ? { openStage: level, serverTime: Date.now() } : { ok: true };
     return new Response(JSON.stringify(body), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -52,8 +52,8 @@ function room({ open = false, fail = false } = {}) {
   return {
     calls,
     fetchImpl,
-    openStage: () => {
-      stageOpen = true;
+    openStage: (to: OpenStage = 2) => {
+      level = to;
     },
     ready: () => calls.filter((call) => call.url.endsWith('/ready')),
     polls: () => calls.filter((call) => call.url.endsWith('/stage')),

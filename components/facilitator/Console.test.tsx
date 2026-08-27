@@ -27,7 +27,7 @@ function statusOf(overrides: Partial<RoomStatus> = {}): RoomStatus {
   return {
     total: 40,
     ready: 23,
-    stageOpen: false,
+    openStage: 0,
     joinCode: '4712',
     inStage: { s1: 9, s2: 8, s3: 23, s4: 0, s5: 0, s6: 0, s7: 0 },
     ...overrides,
@@ -52,7 +52,7 @@ function stubRoom(initial: RoomStatus = statusOf()) {
     if (init?.method === 'POST') {
       if (room.openFails) return Response.json({ error: 'nope' }, { status: 500 });
       room.flips += 1;
-      room.status = { ...room.status, stageOpen: true };
+      room.status = { ...room.status, openStage: 2 };
       return Response.json({ ok: true });
     }
     room.polls += 1;
@@ -148,7 +148,7 @@ describe('the console screen (§6.2.3)', () => {
   });
 
   it('restores the same screen from the next poll after a remount (AC 56)', async () => {
-    const { room, fetchImpl } = stubRoom(statusOf({ stageOpen: true, ready: 40 }));
+    const { room, fetchImpl } = stubRoom(statusOf({ openStage: 2, ready: 40 }));
     const first = render(<Console roomId={ROOM} fetchImpl={fetchImpl} />);
     await settle();
     expect(screen.getByTestId('stage-open')).toBeInTheDocument();

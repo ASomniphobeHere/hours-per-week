@@ -1,20 +1,22 @@
 /**
- * POST /api/room/:roomId/stage — §6.2.4's flip.
+ * POST /api/room/:roomId/stage — §6.2.4's flip, now at two levels.
  *
  * Unauthenticated by decision (§6.2.6): the console has no accounts in v1, and
- * the only thing protecting the flag is that a room's `roomId` never leaves
+ * the only thing protecting the gate is that a room's `roomId` never leaves
  * the facilitator's browser (**RD-2**). A participant is never told one.
  *
- * Idempotent. §2.2 makes S3 → S4 one-way, so a second call on an open room is
- * a double-press and answers `ok` rather than an error — the console has no
- * failure to report and nothing to press twice (step 8.5).
+ * `{ to: 1 }` opens the rating stage, `{ to: 2 }` the reveal (plan 25 §E.4).
+ * `{ open: true }` is not accepted: it names a boolean that no longer exists,
+ * and a route that guessed which level it meant would guess wrong half the
+ * time.
  *
- * Pulled forward from step 8.5 so Stage 6's machine could be proved against a
- * real flag. The console UI and the `stage.open` record (step 8.6) are Stage
- * 8's and are not here.
+ * Idempotent, and monotonic with it — a call at or below the level the room
+ * already holds returns `ok` and changes nothing, so a double-press and a
+ * facilitator pressing gate 1 after gate 2 are both non-events (AC 63).
  */
 
 import { openStage } from '@/lib/db/queries';
+import { isOpenLevel } from '@/lib/domain/types';
 import { badRequest, json, notFound, readJson } from '@/lib/api/http';
 
 export const dynamic = 'force-dynamic';
@@ -25,13 +27,11 @@ export async function POST(
 ): Promise<Response> {
   const { id } = await context.params;
 
-  const body = (await readJson(request)) as { open?: unknown } | null;
-  // Only `true` is accepted. The flag does not close (§2.2), and a route that
-  // silently ignored `{ open: false }` would read as one that closed it.
-  if (body?.open !== true) return badRequest('open must be true');
+  const body = (await readJson(request)) as { to?: unknown } | null;
+  if (!isOpenLevel(body?.to)) return badRequest('to must be 1 or 2');
 
-  const room = openStage(id);
+  const room = openStage(id, body.to);
   if (room === null) return notFound('unknown room');
 
-  return json({ ok: true, stageOpen: true, openedAt: room.opened_at });
+  return json({ ok: true, openStage: room.open_stage, openedAt: room.opened_at });
 }

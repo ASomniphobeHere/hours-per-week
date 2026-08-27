@@ -64,7 +64,13 @@ function main(): void {
     process.exit(1);
   }
 
-  const stageOpen = roomEvents(room.id, db).find((event) => event.type === 'stage.open');
+  // Two `stage.open` rows per room since plan 25 §E.4, one per gate. The
+  // room's t = 0 for *time to fit, room* is the one that opened the reveal
+  // (§6.2.5) — the rebalance the measure is about cannot start before it.
+  // Rows written before v5 are backfilled to 2 by the migration.
+  const stageOpen = roomEvents(room.id, db).find(
+    (event) => event.type === 'stage.open' && event.to_stage === 2,
+  );
 
   const debrief = deriveRoom({
     roomId: room.id,

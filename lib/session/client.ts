@@ -5,7 +5,7 @@
  * run in node with no network and no DOM.
  */
 
-import type { Event, ScheduleSnapshot } from '@/lib/domain/types';
+import type { Event, OpenStage, ScheduleSnapshot } from '@/lib/domain/types';
 import { ApiError, expectOk, type FetchLike } from '@/lib/api/client';
 
 /** Re-exported: every existing caller imports these from here, and the split
@@ -26,7 +26,8 @@ export interface CreateSessionResponse {
 }
 
 export interface StageResponse {
-  stageOpen: boolean;
+  /** §6.3's gate as an ordinal — 0 nothing, 1 energy, 2 reveal (plan 25 §E.4). */
+  openStage: OpenStage;
   serverTime: number;
 }
 

@@ -49,6 +49,11 @@ export const migrations: Migration[] = [
     name: 'stage renumber',
     sql: () => readSql('schema-004-stage-renumber.sql'),
   },
+  {
+    version: 5,
+    name: 'rooms.open_stage',
+    sql: () => readSql('schema-005-open-stage.sql'),
+  },
 ];
 
 export const SCHEMA_VERSION = migrations.reduce((max, m) => Math.max(max, m.version), 0);

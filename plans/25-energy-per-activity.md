@@ -161,12 +161,20 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
 
   **The console's breakdown wraps rather than shrinks.** Seven counts at 375 px leaves ~45 px a column, which the numbers fit and the labels do not, so the grid is four-up below 560 px and seven-up above. AC 58 forbids horizontal scroll; it does not require one line.
 
-- [ ] **E.4 The gate becomes an ordinal** (§6.1, §6.2.2, §6.2.4, §6.2.5) — `schema-005-open-stage.sql` adds `rooms.open_stage INTEGER NOT NULL DEFAULT 0`, backfills `stage_open × 2` (a room that was open was open to the reveal), and drops `stage_open`. `room_events` gains `to_stage INTEGER`, so §6.2.5's one-record-per-flip becomes two records distinguished by level, each carrying `ready` and `total` at that moment.
+- [x] **E.4 The gate becomes an ordinal** (§6.1, §6.2.2, §6.2.4, §6.2.5) — `schema-005-open-stage.sql` adds `rooms.open_stage INTEGER NOT NULL DEFAULT 0`, backfills `stage_open × 2` (a room that was open was open to the reveal), and drops `stage_open`. `room_events` gains `to_stage INTEGER`, so §6.2.5's one-record-per-flip becomes two records distinguished by level, each carrying `ready` and `total` at that moment.
 
   `openStage(roomId, to)` is **monotonic**: a call at or below the room's current level is a no-op that returns `ok`, which keeps §6.2.4's idempotence and extends it — a facilitator who double-presses the second button, or presses the first after the second, changes nothing. `POST /room/:id/stage` takes `{ to: 1 | 2 }`; anything else is a 400. `{ open: true }` is not accepted — it names a boolean that no longer exists, and a route that guessed which level it meant would guess wrong half the time.
 
   `GET /session/:id/stage` returns `{ openStage, serverTime }`, same 1 s `private` cache. `GET /room/:id/status` returns `openStage` in place of `stageOpen`.
   *AC: 62, 63*
+
+  **Built 2026-08-27.** 606 unit tests green, typecheck and lint clean. `OpenStage` (`0 | 1 | 2`), `OpenLevel` (`1 | 2`) and `isOpenLevel` live in `lib/domain/types.ts` beside `StageId`, so the route, the two clients and the poll all name the scale from one place rather than four `number`s. Three things the step turned out to include that the lines above do not say.
+
+  **`opened_at` now means the first press, and the room's `t = 0` does not.** They were the same moment when there was one gate. `openStage` writes `opened_at` under a `COALESCE`, so it keeps recording the room starting to move; *time to fit, room* (§10) reads the `to_stage = 2` row from `room_events` instead, because the rebalance it measures cannot begin before the reveal opens. `scripts/debrief.ts` selects on `to_stage === 2`, and the migration backfills existing rows to `2` so an old room's only row is still the one that read finds. Both halves are tests — the backfill in `migrate.test.ts`, driven from a database stopped at version 4, and the two-press log in `routes.test.ts`.
+
+  **The console presses straight to 2.** One button still, and it still says *Open the reveal*: §E.4 changed what the press says on the wire, not how many there are. Until §E.8 a room therefore goes `0 → 2` in one press and no participant ever observes level 1, which is exactly the behaviour that shipped before this step.
+
+  **`Stages.tsx` reads the ordinal at the reveal's level.** The `sawClosed` ref that separates §6.3's force-advance from §11's late joiner now records having seen the level *below the reveal* rather than having seen `false`. The machine is unchanged: §E.5 is where the level-1 rows of the gate table arrive, and there is no S4 to advance into until §E.6.
 
 - [ ] **E.5 Gate semantics at two levels** (§6.3) — the poll now reports an ordinal, and Stage 6's rule survives intact by reading it the same way: **force-advance keys off an observed increase, never off a reading.** A client remembers the lowest level it has seen; a participant who joins after both presses is never yanked out of a question, and runs `s1 → s2 → s3 → s4 → s5 → s6` at their own pace, holding 5 s at each of the two holds because both gates are already satisfied.
 

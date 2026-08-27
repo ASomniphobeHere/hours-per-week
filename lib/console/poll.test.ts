@@ -12,7 +12,7 @@ import type { RoomStatus } from './client';
 const STATUS: RoomStatus = {
   total: 40,
   ready: 23,
-  stageOpen: false,
+  openStage: 0,
   joinCode: '4712',
   inStage: { s1: 9, s2: 8, s3: 23, s4: 0, s5: 0, s6: 0, s7: 0 },
 };

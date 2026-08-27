@@ -115,16 +115,21 @@ describe('a simulated room, end to end (§10, step 10.5)', () => {
       ).status,
     ).toBe(200);
 
-    // The facilitator flips the flag. This is the room's t = 0 (§6.2.5).
-    expect(
-      (
-        await openStage(
-          postJson(`/api/room/${room.roomId}/stage`, { open: true }),
-          params({ id: room.roomId }),
-        )
-      ).status,
-    ).toBe(200);
-    const stageOpenAt = roomEvents(room.roomId).find((event) => event.type === 'stage.open')!.t;
+    // Both presses. The room's t = 0 is the second one (§6.2.5, plan 25 §E.4):
+    // the rebalance *time to fit, room* measures cannot start before the reveal.
+    for (const to of [1, 2]) {
+      expect(
+        (
+          await openStage(
+            postJson(`/api/room/${room.roomId}/stage`, { to }),
+            params({ id: room.roomId }),
+          )
+        ).status,
+      ).toBe(200);
+    }
+    const stageOpenAt = roomEvents(room.roomId).find(
+      (event) => event.type === 'stage.open' && event.to_stage === 2,
+    )!.t;
 
     // The rebalance: a 25 h pace, then leisure and admin, in that order.
     await telemetry(cutter, [

@@ -8,7 +8,14 @@
  */
 
 import type Database from 'better-sqlite3';
-import type { Event, ScheduleSnapshot, SnapshotKind, StageId } from '@/lib/domain/types';
+import type {
+  Event,
+  OpenLevel,
+  OpenStage,
+  ScheduleSnapshot,
+  SnapshotKind,
+  StageId,
+} from '@/lib/domain/types';
 import { STAGE_ORDER } from '@/lib/domain/types';
 import { getDatabase } from './index';
 import { newJoinCode, newRoomId, newSessionId, newToken } from './ids';
@@ -16,7 +23,8 @@ import { newJoinCode, newRoomId, newSessionId, newToken } from './ids';
 export interface RoomRow {
   id: string;
   join_code: string;
-  stage_open: number;
+  /** §6.3's gate, as an ordinal: 0 nothing, 1 energy, 2 reveal (plan 25 §E.4). */
+  open_stage: OpenStage;
   opened_at: number | null;
   created_at: number;
 }
@@ -40,14 +48,14 @@ export interface SessionRow {
  */
 export function createRoom(db: Database.Database = getDatabase(), now = Date.now()): RoomRow {
   const insert = db.prepare(
-    'INSERT INTO rooms (id, join_code, stage_open, created_at) VALUES (?, ?, 0, ?)',
+    'INSERT INTO rooms (id, join_code, open_stage, created_at) VALUES (?, ?, 0, ?)',
   );
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const room: RoomRow = {
       id: newRoomId(),
       join_code: newJoinCode(),
-      stage_open: 0,
+      open_stage: 0,
       opened_at: null,
       created_at: now,
     };
@@ -72,41 +80,47 @@ function isUniqueViolation(error: unknown): boolean {
 /**
  * §6.2.4's flip, and the only write that opens a room.
  *
- * Idempotent, and `opened_at` records the *first* flip: S3 → S6 is one-way
- * (§2.2), so a second call is a facilitator's double-press rather than a
- * second event, and overwriting the timestamp would move the room's `t = 0`
- * for *time to fit, room* (§10) after participants had already been measured
- * against it.
+ * **Monotonic.** `to` names the level the room is being opened *to*, and a
+ * call at or below the level it already holds is a no-op that reports success
+ * (plan 25 §E.4). That covers the double-press §6.2.4 already asked for and
+ * extends it to the second button: a facilitator who presses gate 1 after
+ * gate 2 has not reopened the rating stage behind the room.
  *
- * Pulled forward from step 8.5 so Stage 6's machine could be driven by a real
- * flag rather than a faked one; the console that presses it, and the
- * `stage.open` record it writes (step 8.6), are still Stage 8's.
+ * `opened_at` records the *first* flip and is never moved. It is the moment
+ * the room started moving; the room's t = 0 for *time to fit, room* (§10) is
+ * a different moment and lives in `room_events` (§6.2.5), which is why the
+ * two are not one column.
  *
  * Returns the room as it stands, or null when there is none.
  */
 export function openStage(
   roomId: string,
+  to: OpenLevel,
   db: Database.Database = getDatabase(),
   now = Date.now(),
 ): RoomRow | null {
   const room = findRoomById(roomId, db);
   if (room === null) return null;
-  if (room.stage_open === 1) return room;
+  if (room.open_stage >= to) return room;
 
-  // The flip and its record are one transaction. §6.2.5 makes `stage.open` the
-  // room's t = 0 for *time to fit, room* (§10); a flag that opened without the
-  // row would leave every participant in the room measured against a moment
-  // with no timestamp.
+  // The flip and its record are one transaction. §6.2.5 makes each `stage.open`
+  // row the log of one press, and the `to = 2` row is the room's t = 0 for
+  // *time to fit, room* (§10); a level that moved without the row would leave
+  // every participant in the room measured against a moment with no timestamp.
   const flip = db.transaction((): void => {
-    db.prepare('UPDATE rooms SET stage_open = 1, opened_at = ? WHERE id = ?').run(now, roomId);
+    db.prepare('UPDATE rooms SET open_stage = ?, opened_at = COALESCE(opened_at, ?) WHERE id = ?').run(
+      to,
+      now,
+      roomId,
+    );
     const { total, ready } = countSessions(roomId, db);
     db.prepare(
-      "INSERT INTO room_events (room_id, type, t, ready, total) VALUES (?, 'stage.open', ?, ?, ?)",
-    ).run(roomId, now, ready, total);
+      "INSERT INTO room_events (room_id, type, t, ready, total, to_stage) VALUES (?, 'stage.open', ?, ?, ?, ?)",
+    ).run(roomId, now, ready, total, to);
   });
   flip();
 
-  return { ...room, stage_open: 1, opened_at: now };
+  return { ...room, open_stage: to, opened_at: room.opened_at ?? now };
 }
 
 export interface RoomEventRow {
@@ -116,6 +130,8 @@ export interface RoomEventRow {
   t: number;
   ready: number | null;
   total: number | null;
+  /** The level this press opened. Null only on rows written before v5. */
+  to_stage: number | null;
 }
 
 /** §6.2.5's log. Read by the debrief (§10) and by the tests that check the row
@@ -131,7 +147,7 @@ export function roomEvents(roomId: string, db: Database.Database = getDatabase()
 export interface RoomStatus {
   total: number;
   ready: number;
-  stageOpen: boolean;
+  openStage: OpenStage;
   joinCode: string;
   inStage: Record<StageId, number>;
 }
@@ -184,7 +200,7 @@ export function roomStatus(roomId: string, db: Database.Database = getDatabase()
   return {
     total,
     ready,
-    stageOpen: room.stage_open === 1,
+    openStage: room.open_stage,
     joinCode: room.join_code,
     inStage,
   };

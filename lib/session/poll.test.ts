@@ -57,7 +57,7 @@ describe('startStagePoll', () => {
   it('polls immediately, then reschedules with jitter', async () => {
     const timer = manualTimer();
     const fetchImpl: FetchLike = vi.fn(async () =>
-      Response.json({ stageOpen: false, serverTime: 1 }),
+      Response.json({ openStage: 0, serverTime: 1 }),
     );
     const onStage = vi.fn();
 
@@ -69,7 +69,7 @@ describe('startStagePoll', () => {
       random: () => 0.5,
     });
 
-    await vi.waitFor(() => expect(onStage).toHaveBeenCalledWith(false, 1));
+    await vi.waitFor(() => expect(onStage).toHaveBeenCalledWith(0, 1));
     expect(timer.delays).toEqual([POLL_INTERVAL_MS]);
 
     await timer.fire();
@@ -80,7 +80,7 @@ describe('startStagePoll', () => {
   it('sends the token as a bearer header on the session-scoped route (RD-2)', async () => {
     const timer = manualTimer();
     const fetchImpl: FetchLike = vi.fn(async () =>
-      Response.json({ stageOpen: true, serverTime: 2 }),
+      Response.json({ openStage: 2, serverTime: 2 }),
     );
 
     const poll = startStagePoll({ credentials: CREDENTIALS, fetchImpl, onStage: vi.fn(), ...timer });
@@ -103,7 +103,7 @@ describe('startStagePoll', () => {
       .fn()
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce(Response.json({ error: 'nope' }, { status: 500 }))
-      .mockResolvedValue(Response.json({ stageOpen: true, serverTime: 3 }));
+      .mockResolvedValue(Response.json({ openStage: 2, serverTime: 3 }));
     const onStage = vi.fn();
 
     const poll = startStagePoll({ credentials: CREDENTIALS, fetchImpl, onStage, ...timer });
@@ -118,14 +118,14 @@ describe('startStagePoll', () => {
     expect(onStage).not.toHaveBeenCalled();
 
     await timer.fire();
-    await vi.waitFor(() => expect(onStage).toHaveBeenCalledWith(true, 3));
+    await vi.waitFor(() => expect(onStage).toHaveBeenCalledWith(2, 3));
     poll.stop();
   });
 
   it('stops rescheduling once stopped', async () => {
     const timer = manualTimer();
     const fetchImpl: FetchLike = vi.fn(async () =>
-      Response.json({ stageOpen: false, serverTime: 4 }),
+      Response.json({ openStage: 0, serverTime: 4 }),
     );
     const onStage = vi.fn();
 

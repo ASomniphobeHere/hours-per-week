@@ -38,7 +38,7 @@ async function reachStack(page: Page): Promise<Room> {
 
   await page.getByTestId('finish').click();
   const opened = await page.request.post(`/api/room/${room.roomId}/stage`, {
-    data: { open: true },
+    data: { to: 2 },
   });
   expect(opened.ok()).toBe(true);
 
@@ -107,7 +107,7 @@ test.describe('S5 — what it cost', () => {
     await setWorkdayHours(page, 'work', '0');
 
     await page.getByTestId('finish').click();
-    await page.request.post(`/api/room/${room.roomId}/stage`, { data: { open: true } });
+    await page.request.post(`/api/room/${room.roomId}/stage`, { data: { to: 2 } });
     await expect(page.getByTestId('reveal')).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('reveal-continue').click();
     await page.getByTestId('pace-continue').click();

@@ -37,7 +37,7 @@ function room() {
   const calls: Call[] = [];
   const fetchImpl: FetchLike = async (url, init) => {
     calls.push({ url, body: init?.body === undefined ? null : JSON.parse(String(init.body)) });
-    const body = url.endsWith('/stage') ? { stageOpen: true, serverTime: Date.now() } : { ok: true };
+    const body = url.endsWith('/stage') ? { openStage: 2, serverTime: Date.now() } : { ok: true };
     return new Response(JSON.stringify(body), {
       status: 200,
       headers: { 'content-type': 'application/json' },

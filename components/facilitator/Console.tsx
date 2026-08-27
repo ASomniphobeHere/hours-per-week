@@ -24,11 +24,14 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, type FetchLike } from '@/lib/api/client';
 import { openRoomStage, type RoomStatus } from '@/lib/console/client';
 import { startStatusPoll, type StatusPoll } from '@/lib/console/poll';
-import { STAGE_ORDER } from '@/lib/domain/types';
+import { STAGE_ORDER, type OpenLevel } from '@/lib/domain/types';
 import { StageButton } from './StageButton';
 import styles from './console.module.css';
 
 const DEFAULT_FETCH: FetchLike = (input, init) => fetch(input, init);
+
+/** The gate level that opens the reveal (plan 25 §E.4). */
+const REVEAL_LEVEL: OpenLevel = 2;
 
 export interface ConsoleProps {
   roomId: string;
@@ -70,8 +73,10 @@ export function Console({ roomId, fetchImpl = DEFAULT_FETCH }: ConsoleProps) {
     };
   }, [roomId, fetchImpl]);
 
+  // One button still, opening straight to the reveal. The second gate and its
+  // own sequence are plan 25 §E.8; §E.4 only changed what the press says.
   const open = async (): Promise<void> => {
-    await openRoomStage(roomId, fetchImpl);
+    await openRoomStage(roomId, REVEAL_LEVEL, fetchImpl);
     poll.current?.refresh();
   };
 
@@ -129,7 +134,11 @@ export function Console({ roomId, fetchImpl = DEFAULT_FETCH }: ConsoleProps) {
       </div>
 
       <div className={styles.action}>
-        <StageButton total={status.total} stageOpen={status.stageOpen} onOpen={open} />
+        <StageButton
+          total={status.total}
+          stageOpen={status.openStage >= REVEAL_LEVEL}
+          onOpen={open}
+        />
         {stale ? (
           <p className={styles.note} role="status" data-testid="console-reconnecting">
             Reconnecting…

@@ -135,6 +135,27 @@ export const STAGE_ORDER: readonly StageId[] = [
   's7',
 ] as const;
 
+/**
+ * §6.3's gate, as an ordinal rather than a boolean (plan 25 §E.4).
+ *
+ *   0  nothing open      1  the rating stage is open      2  the reveal is open
+ *
+ * Monotonic and single-valued, which is the whole reason it is not two
+ * booleans: a pair can express *reveal open, energy never opened*, and the
+ * flow has no such state.
+ */
+export type OpenStage = 0 | 1 | 2;
+
+/** What a facilitator may open the room *to*. `0` is where a room starts and
+ *  is not something anyone presses. */
+export type OpenLevel = 1 | 2;
+
+export const OPEN_LEVELS: readonly OpenLevel[] = [1, 2] as const;
+
+export function isOpenLevel(value: unknown): value is OpenLevel {
+  return value === 1 || value === 2;
+}
+
 /** Minimum time in a hold before the flag may advance a participant (§2.2).
  *  Applies to both holds, s3 and s5 (plan 25 §E.5). */
 export const S3_HOLD_MS = 5_000;
@@ -184,12 +205,18 @@ export interface Event {
   to?: number;
 }
 
-/** A room-level fact the server records itself (§6.2.5). `stage.open` only in v1. */
+/**
+ * A room-level fact the server records itself (§6.2.5). `stage.open` only.
+ *
+ * One row per flip and two per room (plan 25 §E.4), told apart by `to`. The
+ * room's t = 0 for *time to fit, room* (§10) is the `to: 2` row.
+ */
 export interface RoomEvent {
   type: 'stage.open';
   t: number;
   ready: number;
   total: number;
+  to: OpenLevel;
 }
 
 /**
