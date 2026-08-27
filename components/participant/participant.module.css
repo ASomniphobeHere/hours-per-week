@@ -62,6 +62,32 @@
   gap: 20px;
 }
 
+/*
+ * A body that does not take the leftover height, so `.centred` can do what it
+ * says. `.body` grows by default because a questionnaire screen wants its
+ * fields at the top and its Next at the bottom whatever the answer count is —
+ * but on a screen that carries one statement, growing pins that statement to
+ * the top of a tall empty box and `justify-content: center` has nothing left
+ * to centre. With the grow off, the whole column — title, statement, control —
+ * is what sits in the middle of the page.
+ */
+.bodyStill {
+  flex: 0 0 auto;
+}
+
+/*
+ * The S4 commitment (§8.3). Larger than `.note`, because this is the screen's
+ * subject rather than a remark under a question: it is read once, carefully,
+ * and it is the only thing on the page.
+ */
+.lead {
+  font-family: var(--font-utility);
+  font-size: clamp(17px, 4.6vw, 21px);
+  line-height: 1.55;
+  color: var(--fg);
+  margin: 0;
+}
+
 /* ── Media (§4.5) ─────────────────────────────────────────────────────── */
 
 .media {

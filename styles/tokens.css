@@ -72,6 +72,23 @@
   /* Unallocated (§7.8) */
   --unallocated-outline: rgba(255, 255, 255, 0.45);
 
+  /* ── The locked band (§7.3, §8.3) ───────────────────────────────────────
+     School is the one band the participant did not choose, and the only one
+     they cannot remove. It is outlined and its label sits a step heavier than
+     its neighbours — both greyscale-safe, which is what §7.5 requires of
+     anything that distinguishes a band, and neither of them a hue.
+
+     700 and not a lighter step, because there is no lighter step: the display
+     stack is Georgia and its fallbacks, which ship Regular and Bold and
+     nothing between. 500 was tried and rendered as 400, 600 as 700 — a middle
+     weight here would need a variable serif loaded over the network, and §4.3
+     keeps the room off the network. So the choice is the band's label at the
+     same weight as its neighbours or at the bold face, and the bold face is
+     the one that says the band is not the participant's. */
+  --locked-outline: rgba(244, 244, 246, 0.72);
+  --locked-weight: 2px;
+  --locked-label-weight: 700;
+
   /* ── Type (§7.1, §7.4) ──────────────────────────────────────────────────
      Two faces: a display face for activity labels, a utility face for numbers
      and the toggle. The utility face carries `tabular-nums` so a changing

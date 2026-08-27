@@ -1,8 +1,18 @@
 # 24 — Build Specification
 
 **Product:** a phone-first time-budget exercise for facilitated workshops.
-**Version:** 1.4 — build spec
+**Version:** 1.5 — build spec
 **Status of content:** the question list and the estimator models are *not* in this document. They are content, loaded as data, and are specified in §4 as interfaces. This document specifies the system that consumes them. A build is complete and testable with placeholder content.
+
+### Changes in 1.5
+
+The locked band is drawn as one. Specified in place; this list exists so a reader of 1.4 knows what moved.
+
+| # | Was | Now | Where |
+|---|---|---|---|
+| 17 | §7.3 gave every band one anatomy, so school rendered exactly like an activity the participant had chosen | The locked band carries a 2 px outline and sets its label and hour count bold. Both are greyscale-safe and neither is a hue, so §7.5 is untouched | §7.3 |
+
+**Known consequence, accepted (17).** This is the first time anything but hue and height distinguishes one band from another, and it is a door worth keeping shut behind it: the treatment marks *locked*, which is a property of the schedule rather than of an activity, and the v1 pack has exactly one such band. A second decorated band for any other reason would put §7.5's "colour is orientation, not identification" back in play, this time without colour to blame.
 
 ### Changes in 1.4
 
@@ -600,6 +610,7 @@ Recomputed on resize and orientation change. A band's height is `hours × pxPerH
 - **Tick treatment:** exact ticks, and the numbers stand alone. **Nothing sits between the spine and the tick** — no plate, no scrim, no translucent stripe. The tick is a hairline rule and the number is set beside it.
 - **Tick colour:** white for now, and deliberately open. An earlier draft guaranteed contrast with a translucent plate behind each number, on the argument that no single colour holds against ten arbitrary hues at full saturation. That argument still stands and the plate is still gone: the mark is worth more than the guarantee, and the risk is carried by the colour instead. Legibility against every hue at full saturation is a build check (§12 AC 19), not an assumption. If white fails, the resolution is a different tick colour or an adjustment to the light end of the hue ring — not the plate returning.
 - **Label block:** activity label and hour count, right-aligned, inset 16 px from the right edge.
+- **The locked band:** a band whose activity is `locked` (§3.3 — school, and nothing else in v1) is outlined at 2 px and sets its label and hour count bold. It is the one band the participant did not choose and cannot remove, and the treatment says so without a hue: §7.5 makes colour orientation rather than identification and requires the app to work in greyscale, so what marks this band has to survive there. The outline is drawn inside the band's computed height, so it still measures exactly its hours against the ruler.
 
 ### 7.4 Type scaling
 
