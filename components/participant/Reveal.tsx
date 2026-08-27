@@ -31,9 +31,21 @@ export interface RevealProps {
 export function Reveal({ pack, onContinue }: RevealProps) {
   return (
     <main className={`${styles.page} ${styles.centred}`} data-testid="reveal">
-      <div className={styles.body}>
+      {/*
+        * Centred as a block, and the only screen in the client that is. The
+        * questionnaire puts fields at the top and Next at the bottom because
+        * a participant works down it; there is no work here, so the commitment
+        * sits in the middle of the page with nothing above or below it.
+        *
+        * The pace screen deliberately does not follow: its outcome line
+        * changes length at every rung, and a centred column would move the
+        * stepper under the thumb pressing it.
+        */}
+      <div className={`${styles.body} ${styles.bodyStill}`}>
         <h1 className={styles.prompt}>{copyOf(pack, 's4.reveal.title')}</h1>
-        <p className={styles.note}>{copyOf(pack, 's4.reveal.body')}</p>
+        <p className={styles.lead} data-testid="reveal-body">
+          {copyOf(pack, 's4.reveal.body')}
+        </p>
       </div>
       <div className={styles.controls}>
         <button

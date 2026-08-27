@@ -168,6 +168,23 @@ describe('school in the stack (AC 38, 39, 39a)', () => {
     expect(screen.getByTestId('toggle-hours-wd')).toHaveTextContent('9.5 hr');
   });
 
+  it('is drawn as the locked band, and no other band is (§7.3)', async () => {
+    mount();
+    await toReveal();
+    click('reveal-continue');
+    click('pace-continue');
+
+    const bands = [...screen.getByTestId('stack').querySelectorAll('[data-activity]')];
+    const locked = bands.filter((band) => band.getAttribute('data-locked') === 'true');
+
+    // Keyed on the domain's `locked`, not on the id — school is the only
+    // activity in the pack that carries it, and the marking is what the
+    // stylesheet keys the outline and the bold label off (§7.3).
+    expect(locked).toHaveLength(1);
+    expect(locked[0]?.getAttribute('data-activity')).toBe(SCHOOL_ID);
+    expect(bands.length).toBeGreaterThan(1);
+  });
+
   it('is zero on the weekend, so the reveal leaves that stack alone', async () => {
     mount();
     await toReveal();

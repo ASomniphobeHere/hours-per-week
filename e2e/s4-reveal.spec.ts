@@ -76,6 +76,64 @@ test.describe('S4 — the reveal', () => {
     await expect(page.getByTestId('stack')).toBeVisible();
   });
 
+  test('the commitment sits in the middle of the page (§8.3)', async ({ page }) => {
+    const room = await newRoom(page);
+    await reachReveal(page, room);
+
+    const viewport = page.viewportSize();
+    const title = await page.getByTestId('reveal').getByRole('heading').boundingBox();
+    const button = await page.getByTestId('reveal-continue').boundingBox();
+    expect(viewport && title && button).toBeTruthy();
+
+    // Centred as a block: the space above the title and the space below the
+    // button are the same, give or take the page's own padding. Measured this
+    // way rather than against a midpoint, because it is what fails if the body
+    // ever takes the leftover height again.
+    const above = title!.y;
+    const below = viewport!.height - (button!.y + button!.height);
+    expect(Math.abs(above - below)).toBeLessThanOrEqual(24);
+    // And it really is short of the page, rather than filling it.
+    expect(above).toBeGreaterThan(48);
+
+    // The statement is set larger than a remark under a question.
+    const size = await page
+      .getByTestId('reveal-body')
+      .evaluate((node) => parseFloat(getComputedStyle(node).fontSize));
+    expect(size).toBeGreaterThanOrEqual(17);
+  });
+
+  test('draws school as the locked band, and no other band that way (§7.3)', async ({ page }) => {
+    const room = await newRoom(page);
+    await reachReveal(page, room);
+    await page.getByTestId('reveal-continue').click();
+    await page.getByTestId('pace-continue').click();
+
+    const drawn = await page.getByTestId('stack').evaluate((stack) =>
+      [...stack.querySelectorAll('[data-activity]')].map((band) => {
+        const style = getComputedStyle(band);
+        const label = band.querySelector('span > span');
+        return {
+          id: band.getAttribute('data-activity'),
+          locked: band.getAttribute('data-locked') === 'true',
+          border: parseFloat(style.borderTopWidth),
+          weight: label === null ? '' : getComputedStyle(label).fontWeight,
+        };
+      }),
+    );
+
+    const school = drawn.find((band) => band.locked);
+    expect(school?.id).toBe('school');
+    expect(school?.border).toBeGreaterThanOrEqual(2);
+    expect(Number(school?.weight)).toBeGreaterThanOrEqual(700);
+
+    // Every other band keeps §7.3's one anatomy.
+    for (const band of drawn.filter((entry) => !entry.locked)) {
+      expect(band.border).toBe(0);
+      expect(Number(band.weight)).toBeLessThan(700);
+    }
+    expect(drawn.length).toBeGreaterThan(1);
+  });
+
   test('walks the ladder, and both bounds stop (AC 39, AC 39a)', async ({ page }) => {
     const room = await newRoom(page);
     await reachReveal(page, room);

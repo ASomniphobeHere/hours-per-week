@@ -1,6 +1,6 @@
 # 24 — Implementation Plan
 
-**Implements:** `specs/24-build-spec.md` v1.4 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a, 49a)
+**Implements:** `specs/24-build-spec.md` v1.5 (58 numbered acceptance criteria, plus 22a–c, 37a, 39a, 49a)
 **Written:** 2026-08-24
 **Status:** Stage 8 complete
 

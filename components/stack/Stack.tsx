@@ -94,8 +94,15 @@ export function Stack({
       {boxes.map(({ band: { id, activity, hours }, ...box }) => (
         <div
           key={id}
-          className={styles.band}
+          /*
+           * `locked` rather than an id: it is the domain's own marker for a
+           * band the participant did not choose and cannot remove (§3.3), and
+           * a stylesheet keyed on the string 'school' would be a second
+           * definition of which activity that is.
+           */
+          className={`${styles.band}${activity.locked ? ` ${styles.bandLocked}` : ''}`}
           data-activity={id}
+          data-locked={activity.locked ? 'true' : undefined}
           style={{
             top: `${box.top}px`,
             height: `${box.height}px`,

@@ -204,6 +204,34 @@
   white-space: nowrap;
 }
 
+/*
+ * The locked band — school, and nothing else in the v1 pack (§3.3, §8.3).
+ *
+ * Every other band is something the participant put there and can take away.
+ * This one arrives at S4, cannot be removed, and is the thing the rest of the
+ * week now has to make room for; a band that looked like its neighbours would
+ * be understating what it is.
+ *
+ * Outline and weight rather than colour, on §7.5's own terms: the ring says
+ * hue is orientation and never identification, and the app has to work in
+ * greyscale — so what marks this band has to survive there, and both of these
+ * do. `box-sizing: border-box` is global, so the border is drawn inside the
+ * height `geometry.ts` computed and the band still measures exactly its hours
+ * against the ruler.
+ */
+.bandLocked {
+  border: var(--locked-weight) solid var(--locked-outline);
+}
+
+.bandLocked .bandLabel {
+  font-weight: var(--locked-label-weight);
+}
+
+.bandLocked .bandHours {
+  font-weight: var(--locked-label-weight);
+  color: var(--fg);
+}
+
 /* ── Overflow (§7.6) ──────────────────────────────────────────────────── */
 
 /*
