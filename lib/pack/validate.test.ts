@@ -18,7 +18,7 @@ describe('the school fixture', () => {
   /* It shifts every order and re-hues the ring, so it is exactly the kind of
      fixture that goes quietly wrong. If it fails to validate, the S4 tests are
      asserting against a pack the client would refuse to load. */
-  it('passes all fourteen rules with the locked activity in it', () => {
+  it('passes all seventeen rules with the locked activity in it', () => {
     expect(validatePack(schoolPack())).toEqual([]);
   });
 });
@@ -210,11 +210,61 @@ describe('§4.6 rules', () => {
     expect(rulesFired(pack)).toContain('even-hue-ring');
   });
 
-  it('covers all fourteen rules across this suite', () => {
+  /* ── plan 25 §E.2 — the scale is the instrument's, the levels are theirs ── */
+
+  it('energy-scale — a pack with no energy block at all', () => {
+    const pack = minimalPack();
+    delete (pack as Partial<typeof pack>).energy;
+    expect(rulesFired(pack)).toContain('energy-scale');
+  });
+
+  it('energy-scale — a rung outside the five levels', () => {
+    const pack = minimalPack();
+    pack.energy.scale[0]!.value = -3 as never;
+    expect(rulesFired(pack)).toContain('energy-scale');
+  });
+
+  it('energy-scale — a missing rung', () => {
+    const pack = minimalPack();
+    pack.energy.scale = pack.energy.scale.slice(1);
+    expect(rulesFired(pack)).toContain('energy-scale');
+  });
+
+  it('energy-scale — the same level twice', () => {
+    const pack = minimalPack();
+    pack.energy.scale[0]!.value = pack.energy.scale[1]!.value;
+    expect(rulesFired(pack)).toContain('energy-scale');
+  });
+
+  it('copy-key-exists — a rung label the copy table does not carry', () => {
+    const pack = minimalPack();
+    pack.energy.scale[2]!.label = 'energy.level.nowhere';
+    expect(rulesFired(pack)).toContain('copy-key-exists');
+  });
+
+  it('copy-key-exists — fewer than four lines on the second hold', () => {
+    const pack = minimalPack();
+    delete pack.copy['s5.lines.3'];
+    expect(rulesFired(pack)).toContain('copy-key-exists');
+  });
+
+  it('energy-locked-declared — a locked activity with no level, which nobody can supply', () => {
+    const pack = schoolPack();
+    delete pack.activities[0]!.energy;
+    expect(rulesFired(pack)).toContain('energy-locked-declared');
+  });
+
+  it('energy-participant-owned — a pack declaring a level the participant owns', () => {
+    const pack = minimalPack();
+    pack.activities[0]!.energy = -2;
+    expect(rulesFired(pack)).toContain('energy-participant-owned');
+  });
+
+  it('covers all seventeen rules across this suite', () => {
     // The suite above fires each rule at least once; this asserts the rule set
     // itself has not grown a member nothing tests.
-    expect(PACK_RULES).toHaveLength(14);
-    expect(new Set(PACK_RULES).size).toBe(14);
+    expect(PACK_RULES).toHaveLength(17);
+    expect(new Set(PACK_RULES).size).toBe(17);
   });
 });
 

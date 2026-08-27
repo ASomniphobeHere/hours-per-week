@@ -5,7 +5,7 @@
  * pack fetched at session start and can be replaced without a client release.
  */
 
-import type { AnswerMap, Constraint, DayType } from '@/lib/domain/types';
+import type { AnswerMap, Constraint, DayType, EnergyLevel } from '@/lib/domain/types';
 
 /* ── §4.5 Media ─────────────────────────────────────────────────────────── */
 
@@ -162,6 +162,35 @@ export interface ActivityDef {
   /** Per-day-type default hours, used when this activity's estimator throws
    *  (§4.3 rule 3). Required for every activity with a fallback path (§4.6). */
   fallbackHours?: Record<DayType, number>;
+  /** How this activity sits with the participant, when the participant is not
+   *  the one who says so (plan 25 §E.2). Required on a `locked` activity —
+   *  school is revealed after the rating stage and so is never rated — and
+   *  forbidden on every other, where the value is the participant's. */
+  energy?: EnergyLevel;
+}
+
+/* ── The energy stage (plan 25 §E.2) ────────────────────────────────────── */
+
+export interface EnergyRung {
+  value: EnergyLevel;
+  /** Copy key. */
+  label: string;
+}
+
+/**
+ * The rating stage's content: what it asks, and what the five rungs are
+ * called. The *number* of rungs is fixed at five by `energy-scale` — the
+ * control is five 44 px targets across 320 px (plan 25 §E.6) and the scale is
+ * the unit `netEnergy` multiplies by, so a pack cannot quietly re-shape it.
+ * What each rung is called is content like everything else here.
+ */
+export interface EnergyDef {
+  /** Copy key. */
+  prompt: string;
+  /** Copy key, secondary line. */
+  note?: string;
+  /** The five rungs, −2 … +2. */
+  scale: EnergyRung[];
 }
 
 export interface ContentPack {
@@ -171,6 +200,8 @@ export interface ContentPack {
   /** The questionnaire, ordered. */
   screens: Screen[];
   estimators: EstimatorDef[];
+  /** The rating stage (plan 25 §E.2). */
+  energy: EnergyDef;
   /** §9. Every referenced copy key must exist. */
   copy: Record<string, string>;
 }

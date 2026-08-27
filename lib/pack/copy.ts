@@ -47,7 +47,8 @@ export function unitKey(unit: string | undefined): string | undefined {
 }
 
 /**
- * §9's `s3.lines[]`, in index order.
+ * §9's `s3.lines[]`, in index order — and the second hold's `s5.lines[]`,
+ * which is the same shape under a different prefix (plan 25 §E.7).
  *
  * The pack's copy map is flat, so the array is spelled `s3.lines.0` upward and
  * reassembled here — one shape for the client, one for the validator, and no
@@ -55,10 +56,10 @@ export function unitKey(unit: string | undefined): string | undefined {
  * numerically rather than lexically, so a pack with ten lines does not put
  * `.10` between `.1` and `.2`.
  */
-export function holdLines(pack: ContentPack): string[] {
+export function holdLines(pack: ContentPack, prefix: string = S3_LINES_PREFIX): string[] {
   return Object.keys(pack.copy)
-    .filter((key) => key.startsWith(S3_LINES_PREFIX))
-    .map((key) => ({ key, index: Number(key.slice(S3_LINES_PREFIX.length)) }))
+    .filter((key) => key.startsWith(prefix))
+    .map((key) => ({ key, index: Number(key.slice(prefix.length)) }))
     .filter(({ index }) => Number.isInteger(index) && index >= 0)
     .sort((a, b) => a.index - b.index)
     .map(({ key }) => copyOf(pack, key));

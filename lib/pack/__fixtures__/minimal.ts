@@ -1,5 +1,5 @@
 /**
- * A minimal pack that passes all fourteen §4.6 rules, so a validator test can
+ * A minimal pack that passes all seventeen §4.6 rules, so a validator test can
  * break exactly one thing and assert exactly one rule fires.
  *
  * Two activities, so the hue ring step is 180°. `beta` is gated, which is what
@@ -129,6 +129,17 @@ const MINIMAL: ContentPack = {
       },
     },
   ],
+  energy: {
+    prompt: 'energy.prompt',
+    note: 'energy.note',
+    scale: [
+      { value: -2, label: 'energy.level.-2' },
+      { value: -1, label: 'energy.level.-1' },
+      { value: 0, label: 'energy.level.0' },
+      { value: 1, label: 'energy.level.1' },
+      { value: 2, label: 'energy.level.2' },
+    ],
+  },
   copy: {
     'act.alpha': 'Alpha',
     'act.beta': 'Beta',
@@ -150,6 +161,19 @@ const MINIMAL: ContentPack = {
     's3.lines.1': 'Two',
     's3.lines.2': 'Three',
     's3.lines.3': 'Four',
+    'energy.prompt': 'Does each one drain you or give you energy?',
+    'energy.note': 'One answer each, for the whole week.',
+    'energy.level.-2': 'Drains me a lot',
+    'energy.level.-1': 'Drains me a little',
+    'energy.level.0': 'Neither',
+    'energy.level.1': 'Gives me a little energy',
+    'energy.level.2': 'Gives me a lot of energy',
+    's4.energy.continue': 'Continue',
+    's5.title': 'Waiting for the room',
+    's5.lines.0': 'Five',
+    's5.lines.1': 'Six',
+    's5.lines.2': 'Seven',
+    's5.lines.3': 'Eight',
     's4.reveal.title': 'One more commitment',
     's4.reveal.body': 'Fit it into your week.',
     's4.pace.title': 'How much of your week',

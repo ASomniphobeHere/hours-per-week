@@ -123,7 +123,7 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
 
   **Built 2026-08-27.** `lib/domain/energy.ts` and `lib/domain/energy.test.ts` (19 tests); `EnergyLevel`, `EnergyLevels` and `Activity.energy` live in `lib/domain/types.ts` with the rest of §3.2 and are re-exported from `energy.ts`, so §Handoff's import path holds without a cycle. `ENERGY_LEVELS` and `isEnergyLevel` ship here too — E.2's pack validation and E.9's persistence both need to know what a rung is, and the scale is domain vocabulary rather than either one's private business. AC 65 stays open until E.9 gives it a snapshot to assert against.
 
-- [ ] **E.2 Pack: the energy block** (§4.1, §4.6, §9) — `ContentPack` gains:
+- [x] **E.2 Pack: the energy block** (§4.1, §4.6, §9) — `ContentPack` gains:
 
   ```ts
   interface EnergyDef {
@@ -139,8 +139,12 @@ Depends on Stages 6, 7 and 8 (all complete). Blocks step 10.6, which cannot show
   - every `locked` activity declares `energy`;
   - no non-locked activity declares it — the participant owns that value, and a pack that shipped one would silently overrule them.
 
-  Nine copy keys join §9's required table and `REQUIRED_COPY_KEYS`, on the reasoning Stage 3 established: `s4.energy.title`, `s4.energy.note`, `s4.energy.continue`, `energy.level.-2` … `energy.level.2`, `s5.title`, `s5.lines[]`. The register applies in full — the rung labels describe the participant's experience and may not characterise it, so no rung says anything like *healthy*, *productive* or *wasted*. `packs/v1/pack.json` ships `school: { energy: 2 }`; the value is content and the facilitator may change it without a client release.
+  **Copy, and a correction to this plan's own list.** It named nine keys for `REQUIRED_COPY_KEYS`, four of which should not be there. `s4.energy.title` and `s4.energy.note` duplicate `energy.prompt` and `energy.note`, which the block above declares by name and `copy-key-exists` already checks resolve; requiring a second fixed name for the same string would only stop a pack calling it something else. The five `energy.level.*` keys are the same case — they are `scale[].label` values, checked dynamically, and hardcoding their names would forbid a pack that spells its rungs differently. So the required table gains **two** keys, which are the two the *client* asks for by name and no pack declares: `s4.energy.continue` and `s5.title`. `s5.lines[]` joins on §9's own terms — a minimum of four, checked by the same rule as `s3.lines[]`, now run over both prefixes.
+
+  The register applies in full — the rung labels describe the participant's experience and may not characterise it, so no rung says anything like *healthy*, *productive* or *wasted*, and `v1.test.ts` asserts it the way it already asserts the outcome ladder. `packs/v1/pack.json` ships `school: { energy: 2 }`; the value is content and the facilitator may change it without a client release.
   *AC: 59 (with E.6)*
+
+  **Built 2026-08-27.** Three rules — `energy-scale`, `energy-locked-declared`, `energy-participant-owned` — take §4.6 from fourteen to seventeen, each fired by its own test. `holdLines(pack, prefix)` gained a prefix so E.7's second hold reads its lines through the same function, and `HOLD_LINES_PREFIXES` is what the four-line minimum now runs over. `ContentPack.energy` is required rather than optional: a pack without it cannot run the stage, and an optional block would push that failure from load time into the middle of a room.
 
 - [ ] **E.3 The renumber** (§2.2) — mechanical, in its own commit, no behaviour change and no new screens. `StageId`, `STAGE_ORDER`, `Stages.tsx`, `persist.ts`, `queries.ts` (`inStage`), `Console.tsx`, and every e2e spec that names a stage. `schema-003-stage-renumber.sql` rewrites `sessions.stage`; `PersistedState.v = 2` drops a stale stage pointer to `s2` (§The renumber). The commit is reviewable as a rename: after it, the machine is `s1 → s2 → s3 → s6 → s7` with two ids unused, and every existing test passes with its names updated.
   *AC: none directly — every criterion it touches is re-asserted by E.5–E.8*

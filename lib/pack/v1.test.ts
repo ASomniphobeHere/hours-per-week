@@ -5,12 +5,13 @@ import { derivedState, total } from '@/lib/domain/totals';
 import { buildEstimators } from '@/lib/estimators/registry';
 import { setAnswer } from '@/lib/store/answers';
 import { fieldIds } from './index';
-import { outcomeKey, validatePack } from './validate';
+import { holdLines } from './copy';
+import { outcomeKey, S5_LINES_PREFIX, validatePack } from './validate';
 import { weeklyLevels } from '@/lib/domain/constraints';
 import { v1Index, v1Pack } from './v1';
 
 describe('the v1 pack (§3.3, §4.1, §9)', () => {
-  it('passes all fourteen §4.6 rules', () => {
+  it('passes all seventeen §4.6 rules', () => {
     expect(validatePack(v1Pack)).toEqual([]);
   });
 
@@ -47,6 +48,44 @@ describe('the v1 pack (§3.3, §4.1, §9)', () => {
     // placement would be a second reading of the same rule.
     const notes = v1Pack.screens.map((screen) => screen.note).filter(Boolean);
     expect(notes).not.toContain('intro.multitasking');
+  });
+
+  /* Plan 25 §E.2 — the rating stage is content like everything else. The five
+     rungs are the unit `netEnergy` multiplies by, so the pack declaring four
+     of them, or six, would silently re-scale every figure the room produces. */
+  it('carries the five-rung energy scale, ascending, each rung with its copy', () => {
+    expect(v1Pack.energy.scale.map((rung) => rung.value)).toEqual([-2, -1, 0, 1, 2]);
+    for (const rung of v1Pack.energy.scale) expect(v1Pack.copy[rung.label]).toBeTruthy();
+    expect(v1Pack.copy[v1Pack.energy.prompt]).toBeTruthy();
+  });
+
+  /* The one activity nobody rates, because it is revealed after the stage that
+     rates them. Its level is content, and the pack has to carry it. */
+  it('declares an energy level for the locked activity and for nothing else', () => {
+    for (const activity of v1Pack.activities) {
+      if (activity.locked === true) expect(activity.energy).toBe(2);
+      else expect(activity.energy).toBeUndefined();
+    }
+  });
+
+  /* §9's register, applied to the rungs: they name what an activity does to
+     the participant, and characterise neither the activity nor the answer. */
+  it('states no norm, benchmark or judgement on any rung of the scale', () => {
+    const labels = v1Pack.energy.scale.map((rung) => v1Pack.copy[rung.label] ?? '');
+    for (const label of labels) {
+      expect(label).not.toMatch(
+        /most people|others|average|typical|everyone|healthy|productive|wasted|should/i,
+      );
+    }
+  });
+
+  /* §6.3's silence rule reaches both holds, and plan 25 §E.7 keeps them
+     distinct: the same four lines cycling again reads as a stuck app. */
+  it('gives the second hold its own four lines, sharing none with the first', () => {
+    const first = holdLines(v1Pack);
+    const second = holdLines(v1Pack, S5_LINES_PREFIX);
+    expect(second.length).toBeGreaterThanOrEqual(4);
+    expect(second.filter((line) => first.includes(line))).toEqual([]);
   });
 
   /* §8.3's ladder, as content. The client walks the constraint and addresses

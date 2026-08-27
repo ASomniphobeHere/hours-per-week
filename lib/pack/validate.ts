@@ -1,5 +1,5 @@
 /**
- * §4.6 pack validation. Fourteen rules, each named, each independently
+ * §4.6 pack validation. Seventeen rules, each named, each independently
  * assertable — a pack is content and may be replaced without a client release,
  * so this is the only thing standing between a bad pack and a broken room.
  *
@@ -13,9 +13,21 @@
  *     an estimator throws. There has to be a number to hand them.
  *   even-hue-ring           — §7.5. At 12% opacity lightness collapses, so hue
  *     spacing is the only thing distinguishing two bands.
+ *
+ * Three more are plan 25 §E.2's, and they draw one line: the scale is the
+ * instrument's and the levels are the participant's.
+ *
+ *   energy-scale             — five rungs, −2 … +2, each once. `netEnergy`
+ *     multiplies hours by these, so a pack that re-shaped the scale would
+ *     silently re-scale every net figure ever recorded against it.
+ *   energy-locked-declared   — school is revealed after the rating stage, so
+ *     nobody ever rates it. Its level is content, and there has to be one.
+ *   energy-participant-owned — and nothing else's level is content. A pack
+ *     that shipped one would overrule an answer without saying so.
  */
 
 import { DAY_TYPES } from '@/lib/domain/types';
+import { ENERGY_LEVELS } from '@/lib/domain/energy';
 import { weeklyLevels } from '@/lib/domain/constraints';
 import type { ActivityDef, ContentPack, EstimatorDef, Field, Screen } from './types';
 import { ARITH_ID, arithTermInputs, isArithParams } from '@/lib/estimators/arith';
@@ -36,7 +48,10 @@ export type PackRule =
   | 'gated-input-has-default'
   | 'default-in-gated-section'
   | 'fallback-default'
-  | 'even-hue-ring';
+  | 'even-hue-ring'
+  | 'energy-scale'
+  | 'energy-locked-declared'
+  | 'energy-participant-owned';
 
 export const PACK_RULES: readonly PackRule[] = [
   'section-resolves',
@@ -53,6 +68,9 @@ export const PACK_RULES: readonly PackRule[] = [
   'default-in-gated-section',
   'fallback-default',
   'even-hue-ring',
+  'energy-scale',
+  'energy-locked-declared',
+  'energy-participant-owned',
 ] as const;
 
 export interface PackIssue {
@@ -67,6 +85,13 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
   's1.progress',
   's2.finish',
   's3.title',
+  /* The rating stage and the second hold (plan 25 §E.2, §E.6, §E.7). The
+     stage's prompt and note are not here: `pack.energy` names its own keys and
+     `copy-key-exists` checks they resolve, so requiring a second fixed name
+     for the same string would only stop a pack calling it something else. What
+     is here is what the *client* asks for by name and no pack declares. */
+  's4.energy.continue',
+  's5.title',
   's4.reveal.title',
   's4.reveal.body',
   's4.pace.title',
@@ -113,7 +138,15 @@ export const REQUIRED_COPY_KEYS: readonly string[] = [
 ] as const;
 
 export const S3_LINES_PREFIX = 's3.lines.';
+/**
+ * The second hold's own lines (plan 25 §E.7). A distinct set rather than a
+ * reuse of `s3.lines`: the same four lines cycling on a second wait four
+ * minutes later reads as a stuck app, which §6.3 spends a paragraph avoiding.
+ */
+export const S5_LINES_PREFIX = 's5.lines.';
+/** Applies to both holds. Fewer than four and the cycle is visibly a loop. */
 export const S3_LINES_MINIMUM = 4;
+export const HOLD_LINES_PREFIXES: readonly string[] = [S3_LINES_PREFIX, S5_LINES_PREFIX] as const;
 
 /** §8.3's ladder key for a weekly level, e.g. `s4.school.outcome.25`. */
 export const outcomeKey = (weekly: number): string => `s4.school.outcome.${weekly}`;
@@ -329,6 +362,49 @@ export function validatePack(pack: ContentPack): PackIssue[] {
     }
   });
 
+  /* ── energy: the scale is the instrument's, the levels are theirs ────── */
+  const energy = pack.energy;
+  if (energy === undefined || energy === null || typeof energy !== 'object') {
+    add('energy-scale', 'energy', 'the pack declares no energy block');
+  } else if (!Array.isArray(energy.scale)) {
+    add('energy-scale', 'energy.scale', 'scale must be a list of rungs');
+  } else {
+    const seen = new Set<number>();
+    energy.scale.forEach((rung, index) => {
+      const path = `energy.scale[${index}]`;
+      if (!ENERGY_LEVELS.includes(rung?.value)) {
+        add('energy-scale', path, `"${String(rung?.value)}" is not a level between -2 and 2`);
+        return;
+      }
+      if (seen.has(rung.value)) add('energy-scale', path, `level ${rung.value} appears twice`);
+      seen.add(rung.value);
+    });
+    for (const level of ENERGY_LEVELS) {
+      if (!seen.has(level)) add('energy-scale', 'energy.scale', `level ${level} is missing`);
+    }
+  }
+
+  pack.activities.forEach((activity, index) => {
+    const path = `activities[${index}]`;
+    if (activity.locked === true) {
+      if (!ENERGY_LEVELS.includes(activity.energy as never)) {
+        add(
+          'energy-locked-declared',
+          path,
+          `"${activity.id}" is locked and must declare an energy level; nobody rates it`,
+        );
+      }
+      return;
+    }
+    if (activity.energy !== undefined) {
+      add(
+        'energy-participant-owned',
+        path,
+        `"${activity.id}" declares an energy level; that value is the participant's`,
+      );
+    }
+  });
+
   /* ── even-hue-ring ───────────────────────────────────────────────────── */
   const step = 360 / pack.activities.length;
   const orders = new Set<number>();
@@ -387,13 +463,25 @@ export function validatePack(pack: ContentPack): PackIssue[] {
     }
   });
 
-  const lines = Object.keys(copy).filter((key) => key.startsWith(S3_LINES_PREFIX));
-  if (lines.length < S3_LINES_MINIMUM) {
-    add(
-      'copy-key-exists',
-      'copy',
-      `s3.lines needs at least ${S3_LINES_MINIMUM} entries; found ${lines.length}`,
-    );
+  if (energy !== undefined && energy !== null && typeof energy === 'object') {
+    requireCopy(energy.prompt, 'energy');
+    requireCopy(energy.note, 'energy');
+    if (Array.isArray(energy.scale)) {
+      energy.scale.forEach((rung, index) =>
+        requireCopy(rung?.label, `energy.scale[${index}]`),
+      );
+    }
+  }
+
+  for (const prefix of HOLD_LINES_PREFIXES) {
+    const lines = Object.keys(copy).filter((key) => key.startsWith(prefix));
+    if (lines.length < S3_LINES_MINIMUM) {
+      add(
+        'copy-key-exists',
+        'copy',
+        `${prefix.slice(0, -1)} needs at least ${S3_LINES_MINIMUM} entries; found ${lines.length}`,
+      );
+    }
   }
 
   return issues;

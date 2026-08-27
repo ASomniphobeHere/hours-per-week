@@ -41,6 +41,9 @@ export function schoolPack(): ContentPack {
           weekendAllowed: false,
         },
         fallbackHours: { wd: 4, we: 0 },
+        // Nobody rates school: it is revealed after the rating stage, so its
+        // level is content (plan 25 §E.2).
+        energy: 2,
       },
       // Shifted down one place, and re-hued onto the new ring.
       ...pack.activities.map((activity) => ({

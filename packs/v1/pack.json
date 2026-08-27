@@ -8,7 +8,8 @@
       "order": 0,
       "locked": true,
       "constraint": { "minWeekly": 20, "maxWeekly": 40, "stepWeekly": 5, "weekendAllowed": false },
-      "fallbackHours": { "wd": 4, "we": 0 }
+      "fallbackHours": { "wd": 4, "we": 0 },
+      "energy": 2
     },
     {
       "id": "sleep",
@@ -734,6 +735,18 @@
     }
   ],
 
+  "energy": {
+    "prompt": "energy.prompt",
+    "note": "energy.note",
+    "scale": [
+      { "value": -2, "label": "energy.level.-2" },
+      { "value": -1, "label": "energy.level.-1" },
+      { "value": 0, "label": "energy.level.0" },
+      { "value": 1, "label": "energy.level.1" },
+      { "value": 2, "label": "energy.level.2" }
+    ]
+  },
+
   "copy": {
     "act.school": "StartSchool",
     "act.sleep": "Sleep",
@@ -810,6 +823,19 @@
     "s3.lines.2": "Building your workday",
     "s3.lines.3": "Building your weekend day",
     "s3.lines.4": "Preparing the editor",
+    "energy.prompt": "Does each of these drain your energy, or give you energy?",
+    "energy.note": "One answer for each, covering the whole week.",
+    "energy.level.-2": "Drains me a lot",
+    "energy.level.-1": "Drains me a little",
+    "energy.level.0": "Neither",
+    "energy.level.1": "Gives me a little energy",
+    "energy.level.2": "Gives me a lot of energy",
+    "s4.energy.continue": "Continue",
+    "s5.title": "Waiting for the room",
+    "s5.lines.0": "Saving your answers",
+    "s5.lines.1": "Waiting for the others",
+    "s5.lines.2": "Holding your week",
+    "s5.lines.3": "Ready when the room is",
     "s4.reveal.title": "One more commitment",
     "s4.reveal.body": "StartSchool takes at least 20 hours a week, spread across your workdays.",
     "s4.pace.title": "How much of your week",
